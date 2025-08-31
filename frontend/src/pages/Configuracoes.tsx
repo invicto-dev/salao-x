@@ -1,0 +1,581 @@
+import { useState } from 'react';
+import { 
+  Card, 
+  Form, 
+  Input, 
+  Button, 
+  Switch,
+  Space,
+  Typography,
+  message,
+  Row,
+  Col,
+  Divider,
+  Select,
+  InputNumber,
+  Upload,
+  Tabs,
+  Statistic
+} from 'antd';
+import { 
+  Settings, 
+  Save,
+  Building,
+  Bell,
+  Palette,
+  Shield,
+  Database,
+  Upload as UploadIcon
+} from 'lucide-react';
+
+const { Title, Text } = Typography;
+const { TextArea } = Input;
+const { Option } = Select;
+const { TabPane } = Tabs;
+
+const Configuracoes = () => {
+  const [form] = Form.useForm();
+  const [notificacoesForm] = Form.useForm();
+  const [sistemaForm] = Form.useForm();
+
+  // Mock data das configurações atuais
+  const configuracoes = {
+    // Informações da Empresa
+    nomeEmpresa: 'Salão X',
+    cnpj: '12.345.678/0001-90',
+    endereco: 'Rua das Flores, 123',
+    bairro: 'Centro',
+    cidade: 'São Paulo',
+    cep: '01234-567',
+    telefone: '(11) 3333-4444',
+    email: 'contato@salaox.com.br',
+    site: 'www.salaox.com.br',
+    
+    // Configurações de Negócio
+    horarioFuncionamento: {
+      segundaASexta: { inicio: '08:00', fim: '18:00' },
+      sabado: { inicio: '08:00', fim: '16:00' },
+      domingo: { inicio: '00:00', fim: '00:00' } // Fechado
+    },
+    intervaloPadrao: 15, // minutos entre agendamentos
+    antecedenciaMinima: 60, // minutos de antecedência mínima
+    
+    // Notificações
+    notificarAgendamentos: true,
+    notificarEstoqueBaixo: true,
+    notificarAniversarios: true,
+    whatsappAtivo: false,
+    emailAtivo: true,
+    
+    // Sistema
+    backupAutomatico: true,
+    manterHistorico: 12, // meses
+    timezone: 'America/Sao_Paulo'
+  };
+
+  const handleSalvarEmpresa = (values: any) => {
+    console.log('Configurações da empresa:', values);
+    message.success('Informações da empresa atualizadas!');
+  };
+
+  const handleSalvarNotificacoes = (values: any) => {
+    console.log('Configurações de notificações:', values);
+    message.success('Configurações de notificações salvas!');
+  };
+
+  const handleSalvarSistema = (values: any) => {
+    console.log('Configurações do sistema:', values);
+    message.success('Configurações do sistema atualizadas!');
+  };
+
+  const uploadProps = {
+    name: 'file',
+    showUploadList: false,
+    beforeUpload: () => {
+      message.success('Logo atualizado com sucesso!');
+      return false;
+    },
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Title level={2} className="!mb-2">Configurações</Title>
+        <p className="text-muted-foreground">
+          Gerencie as configurações do sistema e da empresa
+        </p>
+      </div>
+
+      <Tabs defaultActiveKey="1" size="large">
+        <TabPane 
+          tab={
+            <span className="flex items-center gap-2">
+              <Building size={16} />
+              Empresa
+            </span>
+          } 
+          key="1"
+        >
+          <Card title="🏢 Informações da Empresa">
+            <Form
+              form={form}
+              layout="vertical"
+              initialValues={configuracoes}
+              onFinish={handleSalvarEmpresa}
+            >
+              <Row gutter={16}>
+                <Col xs={24} lg={16}>
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        label="Nome da Empresa"
+                        name="nomeEmpresa"
+                        rules={[{ required: true, message: 'Nome é obrigatório' }]}
+                      >
+                        <Input placeholder="Nome da empresa" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        label="CNPJ"
+                        name="cnpj"
+                      >
+                        <Input placeholder="00.000.000/0000-00" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Form.Item
+                    label="Endereço"
+                    name="endereco"
+                  >
+                    <Input placeholder="Rua, número" />
+                  </Form.Item>
+
+                  <Row gutter={16}>
+                    <Col xs={24} sm={8}>
+                      <Form.Item
+                        label="Bairro"
+                        name="bairro"
+                      >
+                        <Input placeholder="Bairro" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Form.Item
+                        label="Cidade"
+                        name="cidade"
+                      >
+                        <Input placeholder="Cidade" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Form.Item
+                        label="CEP"
+                        name="cep"
+                      >
+                        <Input placeholder="00000-000" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        label="Telefone"
+                        name="telefone"
+                      >
+                        <Input placeholder="(11) 3333-4444" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        label="Email"
+                        name="email"
+                        rules={[{ type: 'email', message: 'Email inválido' }]}
+                      >
+                        <Input placeholder="contato@salaox.com" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Form.Item
+                    label="Site"
+                    name="site"
+                  >
+                    <Input placeholder="www.salaox.com" />
+                  </Form.Item>
+                </Col>
+
+                <Col xs={24} lg={8}>
+                  <Form.Item label="Logo da Empresa">
+                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                      <Upload {...uploadProps}>
+                        <div className="space-y-2">
+                          <UploadIcon size={32} className="mx-auto text-muted-foreground" />
+                          <div className="text-sm">
+                            Clique para fazer upload do logo
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            PNG, JPG até 2MB
+                          </div>
+                        </div>
+                      </Upload>
+                    </div>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Divider />
+
+              <Title level={4}>⏰ Horário de Funcionamento</Title>
+              
+              <Row gutter={16}>
+                <Col xs={24} sm={8}>
+                  <Text strong>Segunda a Sexta</Text>
+                  <div className="flex gap-2 mt-2">
+                    <Form.Item name={['horarioFuncionamento', 'segundaASexta', 'inicio']}>
+                      <Input placeholder="08:00" />
+                    </Form.Item>
+                    <span className="flex items-center">às</span>
+                    <Form.Item name={['horarioFuncionamento', 'segundaASexta', 'fim']}>
+                      <Input placeholder="18:00" />
+                    </Form.Item>
+                  </div>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text strong>Sábado</Text>
+                  <div className="flex gap-2 mt-2">
+                    <Form.Item name={['horarioFuncionamento', 'sabado', 'inicio']}>
+                      <Input placeholder="08:00" />
+                    </Form.Item>
+                    <span className="flex items-center">às</span>
+                    <Form.Item name={['horarioFuncionamento', 'sabado', 'fim']}>
+                      <Input placeholder="16:00" />
+                    </Form.Item>
+                  </div>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text strong>Domingo</Text>
+                  <div className="flex gap-2 mt-2">
+                    <Form.Item name={['horarioFuncionamento', 'domingo', 'inicio']}>
+                      <Input placeholder="Fechado" disabled />
+                    </Form.Item>
+                    <span className="flex items-center">às</span>
+                    <Form.Item name={['horarioFuncionamento', 'domingo', 'fim']}>
+                      <Input placeholder="Fechado" disabled />
+                    </Form.Item>
+                  </div>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    label="Intervalo Padrão (minutos)"
+                    name="intervaloPadrao"
+                    help="Tempo de intervalo entre agendamentos"
+                  >
+                    <InputNumber min={5} max={60} style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    label="Antecedência Mínima (minutos)"
+                    name="antecedenciaMinima"
+                    help="Tempo mínimo para agendar um serviço"
+                  >
+                    <InputNumber min={15} max={1440} style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Form.Item>
+                <Button 
+                  type="primary" 
+                  htmlType="submit"
+                  icon={<Save size={16} />}
+                  className="bg-salao-primary"
+                >
+                  Salvar Configurações da Empresa
+                </Button>
+              </Form.Item>
+            </Form>
+          </Card>
+        </TabPane>
+
+        <TabPane 
+          tab={
+            <span className="flex items-center gap-2">
+              <Bell size={16} />
+              Notificações
+            </span>
+          } 
+          key="2"
+        >
+          <Card title="🔔 Configurações de Notificações">
+            <Form
+              form={notificacoesForm}
+              layout="vertical"
+              initialValues={configuracoes}
+              onFinish={handleSalvarNotificacoes}
+            >
+              <Row gutter={16}>
+                <Col xs={24} sm={12}>
+                  <Card size="small" title="📧 Email">
+                    <Space direction="vertical" className="w-full">
+                      <Form.Item
+                        name="emailAtivo"
+                        valuePropName="checked"
+                      >
+                        <Switch 
+                          checkedChildren="Ativo" 
+                          unCheckedChildren="Inativo"
+                        />
+                        <Text className="ml-2">Notificações por email</Text>
+                      </Form.Item>
+                      
+                      <Form.Item
+                        label="Servidor SMTP"
+                        name="smtpServer"
+                      >
+                        <Input placeholder="smtp.gmail.com" />
+                      </Form.Item>
+                      
+                      <Form.Item
+                        label="Email de Envio"
+                        name="emailEnvio"
+                      >
+                        <Input placeholder="noreply@salaox.com" />
+                      </Form.Item>
+                    </Space>
+                  </Card>
+                </Col>
+
+                <Col xs={24} sm={12}>
+                  <Card size="small" title="💬 WhatsApp">
+                    <Space direction="vertical" className="w-full">
+                      <Form.Item
+                        name="whatsappAtivo"
+                        valuePropName="checked"
+                      >
+                        <Switch 
+                          checkedChildren="Ativo" 
+                          unCheckedChildren="Inativo"
+                        />
+                        <Text className="ml-2">Notificações por WhatsApp</Text>
+                      </Form.Item>
+                      
+                      <Form.Item
+                        label="Token da API"
+                        name="whatsappToken"
+                      >
+                        <Input.Password placeholder="Token do WhatsApp Business API" />
+                      </Form.Item>
+                      
+                      <Form.Item
+                        label="Número de Envio"
+                        name="whatsappNumero"
+                      >
+                        <Input placeholder="5511999999999" />
+                      </Form.Item>
+                    </Space>
+                  </Card>
+                </Col>
+              </Row>
+
+              <Divider />
+
+              <Title level={4}>🔔 Tipos de Notificação</Title>
+              
+              <Row gutter={16}>
+                <Col xs={24} sm={8}>
+                  <Form.Item
+                    name="notificarAgendamentos"
+                    valuePropName="checked"
+                  >
+                    <Switch />
+                    <Text className="ml-2">Confirmação de agendamentos</Text>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item
+                    name="notificarEstoqueBaixo"
+                    valuePropName="checked"
+                  >
+                    <Switch />
+                    <Text className="ml-2">Estoque baixo</Text>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item
+                    name="notificarAniversarios"
+                    valuePropName="checked"
+                  >
+                    <Switch />
+                    <Text className="ml-2">Aniversários de clientes</Text>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Form.Item>
+                <Button 
+                  type="primary" 
+                  htmlType="submit"
+                  icon={<Save size={16} />}
+                  className="bg-salao-primary"
+                >
+                  Salvar Configurações de Notificações
+                </Button>
+              </Form.Item>
+            </Form>
+          </Card>
+        </TabPane>
+
+        <TabPane 
+          tab={
+            <span className="flex items-center gap-2">
+              <Database size={16} />
+              Sistema
+            </span>
+          } 
+          key="3"
+        >
+          <Card title="⚙️ Configurações do Sistema">
+            <Form
+              form={sistemaForm}
+              layout="vertical"
+              initialValues={configuracoes}
+              onFinish={handleSalvarSistema}
+            >
+              <Row gutter={16}>
+                <Col xs={24} sm={12}>
+                  <Card size="small" title="💾 Backup e Segurança">
+                    <Space direction="vertical" className="w-full">
+                      <Form.Item
+                        name="backupAutomatico"
+                        valuePropName="checked"
+                      >
+                        <Switch />
+                        <Text className="ml-2">Backup automático</Text>
+                      </Form.Item>
+                      
+                      <Form.Item
+                        label="Manter histórico por (meses)"
+                        name="manterHistorico"
+                      >
+                        <InputNumber min={1} max={60} style={{ width: '100%' }} />
+                      </Form.Item>
+                      
+                      <Button type="dashed" block>
+                        Fazer Backup Agora
+                      </Button>
+                    </Space>
+                  </Card>
+                </Col>
+
+                <Col xs={24} sm={12}>
+                  <Card size="small" title="🌍 Localização">
+                    <Space direction="vertical" className="w-full">
+                      <Form.Item
+                        label="Fuso Horário"
+                        name="timezone"
+                      >
+                        <Select>
+                          <Option value="America/Sao_Paulo">São Paulo (GMT-3)</Option>
+                          <Option value="America/Rio_Branco">Rio Branco (GMT-5)</Option>
+                          <Option value="America/Manaus">Manaus (GMT-4)</Option>
+                        </Select>
+                      </Form.Item>
+                      
+                      <Form.Item
+                        label="Moeda"
+                        name="moeda"
+                        initialValue="BRL"
+                      >
+                        <Select>
+                          <Option value="BRL">Real Brasileiro (R$)</Option>
+                          <Option value="USD">Dólar Americano ($)</Option>
+                          <Option value="EUR">Euro (€)</Option>
+                        </Select>
+                      </Form.Item>
+                    </Space>
+                  </Card>
+                </Col>
+              </Row>
+
+              <Divider />
+
+              <Title level={4}>🔐 Integração Asaas (Crediário)</Title>
+              
+              <Row gutter={16}>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    label="API Key Asaas"
+                    name="asaasApiKey"
+                    help="Chave da API do Asaas para integração de crediário"
+                  >
+                    <Input.Password placeholder="$aact_..." />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    label="Ambiente"
+                    name="asaasAmbiente"
+                    initialValue="sandbox"
+                  >
+                    <Select>
+                      <Option value="sandbox">Sandbox (Testes)</Option>
+                      <Option value="production">Produção</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Form.Item
+                name="asaasAtivo"
+                valuePropName="checked"
+              >
+                <Switch />
+                <Text className="ml-2">Habilitar integração com Asaas</Text>
+              </Form.Item>
+
+              <Form.Item>
+                <Button 
+                  type="primary" 
+                  htmlType="submit"
+                  icon={<Save size={16} />}
+                  className="bg-salao-primary"
+                >
+                  Salvar Configurações do Sistema
+                </Button>
+              </Form.Item>
+            </Form>
+          </Card>
+
+          <Card title="ℹ️ Informações do Sistema" className="mt-4">
+            <Row gutter={16}>
+              <Col xs={24} sm={8}>
+                <Card size="small">
+                  <Statistic title="Versão do Sistema" value="1.0.0" />
+                </Card>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Card size="small">
+                  <Statistic title="Último Backup" value="Hoje 08:30" />
+                </Card>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Card size="small">
+                  <Statistic title="Uptime" value="99.9%" />
+                </Card>
+              </Col>
+            </Row>
+          </Card>
+        </TabPane>
+      </Tabs>
+    </div>
+  );
+};
+
+export default Configuracoes;

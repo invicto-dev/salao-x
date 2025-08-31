@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Salao X Design System - Minimalista inspirado no ChatGPT */
+
+@layer base {
+  :root {
+    /* Salao X Brand Colors */
+    --salao-primary: 267 84% 45%;        /* Purple elegante */
+    --salao-primary-light: 267 70% 85%;  /* Purple claro */
+    --salao-accent: 342 75% 50%;         /* Rosa vibrante */
+    --salao-success: 152 69% 31%;        /* Verde sucesso */
+    --salao-warning: 45 93% 47%;         /* Amarelo warning */
+    --salao-error: 0 84% 60%;            /* Vermelho erro */
+    
+    /* Layout Colors - Light Mode */
+    --background: 0 0% 100%;
+    --foreground: 222 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 84% 4.9%;
+    --sidebar-bg: 0 0% 98%;
+    --sidebar-border: 220 13% 91%;
+    --header-bg: 0 0% 100%;
+    --content-bg: 0 0% 99%;
+    
+    /* Interactive Elements */
+    --border: 214 31% 91%;
+    --input: 214 31% 91%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    
+    /* Shadows & Effects */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    
+    /* Animation Variables */
+    --transition-fast: 150ms ease-in-out;
+    --transition-normal: 250ms ease-in-out;
+    --transition-slow: 350ms ease-in-out;
+    
+    --radius: 6px;
+  }
+
+  .dark {
+    /* Layout Colors - Dark Mode */
+    --background: 222 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --sidebar-bg: 220 13% 9%;
+    --sidebar-border: 217 32% 17%;
+    --header-bg: 222 84% 4.9%;
+    --content-bg: 220 13% 6%;
+    
+    /* Interactive Elements - Dark */
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 98%;
+    
+    /* Shadows - Dark Mode */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
