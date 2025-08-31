@@ -198,10 +198,8 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
         width={256}
         collapsedWidth={64}
       >
-        <div className="flex items-center justify-center h-16 border-b border-sidebar-border">
-          <Title level={collapsed ? 5 : 4} className="!mb-0 !text-salao-primary">
-            {collapsed ? 'SX' : 'Salão X'}
-          </Title>
+        <div className="flex items-center justify- h-16 border-b border-sidebar-border">
+          <img className='w-40' src="/public/salao-x-not-bg.png"/>
         </div>
         <div className="py-4">
           {renderMenu()}
