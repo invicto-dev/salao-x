@@ -34,7 +34,7 @@ const App = () => {
       theme={{
         algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
-          colorPrimary: '#7c3aed', // Purple elegante
+          colorPrimary: '#212121', // Purple elegante
           colorSuccess: '#059669',
           colorWarning: '#d97706',
           colorError: '#dc2626',
@@ -50,7 +50,7 @@ const App = () => {
           Menu: {
             itemBg: 'transparent',
             itemHoverBg: isDarkMode ? '#374151' : '#f3f4f6',
-            itemSelectedBg: '#7c3aed',
+            itemSelectedBg: '#212121',
             itemSelectedColor: '#ffffff',
           },
         },

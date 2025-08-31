@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Configuracoes {
+  id                 String   @id @default(uuid())
+  
+  // Informações da Empresa
+  nomeEmpresa        String
+  cnpj               String   @unique
+  endereco           String
+  bairro             String
+  cidade             String
+  cep                String
+  telefone           String
+  email              String   @unique
+  site               String?
+
+  // Configurações de Negócio
+  horarioFuncionamento Json     // Armazena Record<DiaSemana, Horario>
+  intervaloPadrao     Int       // minutos
+  antecedenciaMinima  Int       // minutos
+
+  // Notificações
+  notificarAgendamentos  Boolean
+  notificarEstoqueBaixo  Boolean
+  notificarAniversarios  Boolean
+  whatsappAtivo          Boolean
+  emailAtivo             Boolean
+
+  // Sistema
+  backupAutomatico    Boolean
+  manterHistorico     Int      // meses
+  timezone            String
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
