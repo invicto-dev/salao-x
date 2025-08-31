@@ -7,12 +7,6 @@
 @layer base {
   :root {
     /* Salao X Brand Colors */
-    --salao-primary: 267 84% 45%;        /* Purple elegante */
-    --salao-primary-light: 267 70% 85%;  /* Purple claro */
-    --salao-accent: 342 75% 50%;         /* Rosa vibrante */
-    --salao-success: 152 69% 31%;        /* Verde sucesso */
-    --salao-warning: 45 93% 47%;         /* Amarelo warning */
-    --salao-error: 0 84% 60%;            /* Vermelho erro */
     
     /* Layout Colors - Light Mode */
     --background: 0 0% 100%;
