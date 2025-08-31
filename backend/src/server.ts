@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import { prisma } from "./config/database";
 import { PORT, NODE_ENV } from "./config/database";
 import { settingsRoutes } from "./routes/configuracoes";
+import { employeeRoutes } from "./routes/funcionarios";
 
 const app = express();
 
@@ -64,6 +65,7 @@ app.use(
 );
 
 app.use("/api/configuracoes", settingsRoutes);
+app.use("/api/funcionarios", employeeRoutes);
 
 // Middleware para rotas não encontradas
 app.use("*", (req, res) => {
