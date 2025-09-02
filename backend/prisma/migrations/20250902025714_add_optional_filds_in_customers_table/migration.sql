@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Customer" ALTER COLUMN "email" DROP NOT NULL,
+ALTER COLUMN "cpf" DROP NOT NULL,
+ALTER COLUMN "observacoes" DROP NOT NULL;

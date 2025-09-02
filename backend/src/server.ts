@@ -6,6 +6,7 @@ import { prisma } from "./config/database";
 import { PORT, NODE_ENV } from "./config/database";
 import { settingsRoutes } from "./routes/configuracoes";
 import { employeeRoutes } from "./routes/funcionarios";
+import { customerRoutes } from "./routes/customers";
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use(
 
 app.use("/api/configuracoes", settingsRoutes);
 app.use("/api/funcionarios", employeeRoutes);
+app.use("/api/customers", customerRoutes);
 
 // Middleware para rotas não encontradas
 app.use("*", (req, res) => {
