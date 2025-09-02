@@ -27,13 +27,14 @@ import {
   Mail,
   User,
   Percent,
-  DollarSign,
 } from "lucide-react";
 import {
   useFuncionarioCreate,
   useFuncionarios,
   useFuncionarioUpdate,
 } from "@/hooks/use-funcionarios";
+import { PhoneInput } from "@/components/inputs/PhoneInput";
+import { NameInput } from "@/components/inputs/NameInput";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -159,7 +160,7 @@ const Funcionarios = () => {
       render: (_: any, record: any) => (
         <Space>
           <Button
-            disabled={true} 
+            disabled={true}
             type="text"
             icon={<Percent size={14} />}
             onClick={() => gerenciarComissao(record)}
@@ -246,7 +247,7 @@ const Funcionarios = () => {
       key: "acoes",
       render: () => (
         <Button
-        disabled={true}
+          disabled={true}
           type="text"
           danger
           onClick={() => message.success("Regra removida!")}
@@ -320,7 +321,7 @@ const Funcionarios = () => {
                 name="nome"
                 rules={[{ required: true, message: "Nome é obrigatório" }]}
               >
-                <Input placeholder="Ex: Ana Silva" />
+                <NameInput placeholder="Ex: Ana Silva" />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
@@ -329,7 +330,7 @@ const Funcionarios = () => {
                 name="funcao"
                 rules={[{ required: true, message: "Função é obrigatória" }]}
               >
-                <Input placeholder="Ex: Cabeleireira" />
+                <NameInput placeholder="Ex: Cabeleireira" />
               </Form.Item>
             </Col>
           </Row>
@@ -341,7 +342,7 @@ const Funcionarios = () => {
                 name="telefone"
                 rules={[{ required: true, message: "Telefone é obrigatório" }]}
               >
-                <Input placeholder="(11) 99999-9999" />
+                <PhoneInput />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
