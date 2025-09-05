@@ -122,7 +122,7 @@ const Clientes = () => {
           <div>
             <div className="font-medium">{record.nome}</div>
             {record.cpf && (
-              <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <div className="text-xs text-muted-foreground flex items-center gap-2">
                 <IdCard size={12} />
                 {record.cpf}
               </div>
@@ -228,8 +228,6 @@ const Clientes = () => {
   };
 
   const handleSubmit = (values: Customer.Props) => {
-    const formatDate = dayjs(values.aniversario).format("DD/MM/YYYY");
-
     try {
       if (!editingClient) {
         createCustomer(values);

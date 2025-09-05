@@ -7,6 +7,8 @@ import { PORT, NODE_ENV } from "./config/database";
 import { settingsRoutes } from "./routes/configuracoes";
 import { employeeRoutes } from "./routes/funcionarios";
 import { customerRoutes } from "./routes/customers";
+import { serviceRoutes } from "./routes/services";
+import { productRoutes } from "./routes/products";
 
 const app = express();
 
@@ -68,6 +70,8 @@ app.use(
 app.use("/api/configuracoes", settingsRoutes);
 app.use("/api/funcionarios", employeeRoutes);
 app.use("/api/customers", customerRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/products", productRoutes);
 
 // Middleware para rotas não encontradas
 app.use("*", (req, res) => {
