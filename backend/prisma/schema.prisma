@@ -68,3 +68,34 @@ model Customer {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
+
+model Product {
+  id                 String   @id @default(uuid())
+  nome               String
+  codigo             String?   @unique
+  categoria          String?
+  preco              Float
+  custo              Float
+  contarEstoque      Boolean  @default(true)
+  estoque            Int?
+  ativo              Boolean  @default(true)
+  descricao          String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Service {
+  id                 String   @id @default(uuid())
+  nome               String
+  codigo             String?   @unique
+  categoria          String?
+  valorEmAberto      Boolean  @default(false)
+  preco              Float?
+  duracao            Int?
+  ativo              Boolean  @default(true)
+  descricao          String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
