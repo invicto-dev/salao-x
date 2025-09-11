@@ -11,7 +11,7 @@ import { AxiosError } from "axios";
 
 export const useProducts = () => {
   return useQuery<Product.Props[]>({
-    queryKey: ["get-Products"],
+    queryKey: ["get-products"],
     queryFn: getProducts,
   });
 };

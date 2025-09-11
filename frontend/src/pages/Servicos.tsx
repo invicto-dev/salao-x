@@ -71,7 +71,7 @@ const Servicos = () => {
       servico.nome.toLowerCase().includes(busca.toLowerCase()) ||
       (servico.codigo || "").toLowerCase().includes(busca.toLowerCase());
     const matchCategoria =
-      !filtroCategoria || (servico.categoria || "") === (filtroCategoria || "");
+      !(filtroCategoria || "") || servico.categoria === (filtroCategoria || "");
     const matchStatus =
       (filtroStatus || "") === "" ||
       (filtroStatus === "ativo" && (servico.ativo || "")) ||

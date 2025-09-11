@@ -1,6 +1,6 @@
-import { Layout, Menu, Button, Breadcrumb, Switch, Typography, Drawer } from 'antd';
-import { useState } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Layout, Menu, Button, Breadcrumb, Switch, Drawer } from "antd";
+import { useState } from "react";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
   Package,
@@ -15,23 +15,21 @@ import {
   Menu as MenuIcon,
   Store,
   Scissors,
-  PlusCircle
-} from 'lucide-react';
+} from "lucide-react";
 
 // Pages
-import Dashboard from '../../pages/Dashboard';
-import PDV from '../../pages/PDV';
-import Estoque from '../../pages/Estoque';
-import Produtos from '../../pages/Produtos';
-import Servicos from '../../pages/Servicos';
-import Clientes from '../../pages/Clientes';
-import Funcionarios from '../../pages/Funcionarios';
-import Agendamentos from '../../pages/Agendamentos';
-import Fidelidade from '../../pages/Fidelidade';
-import Configuracoes from '../../pages/Configuracoes';
+import Dashboard from "../../pages/Dashboard";
+import PDV from "../../pages/PDV";
+import Estoque from "../../pages/Estoque";
+import Produtos from "../../pages/Produtos";
+import Servicos from "../../pages/Servicos";
+import Clientes from "../../pages/Clientes";
+import Funcionarios from "../../pages/Funcionarios";
+import Agendamentos from "../../pages/Agendamentos";
+import Fidelidade from "../../pages/Fidelidade";
+import Configuracoes from "../../pages/Configuracoes";
 
 const { Header, Sider, Content } = Layout;
-const { Title } = Typography;
 
 interface AppLayoutProps {
   isDarkMode: boolean;
@@ -46,79 +44,79 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
 
   const menuItems = [
     {
-      key: '/',
+      key: "/",
       icon: <BarChart3 size={16} />,
-      label: 'Dashboard',
-      path: '/'
+      label: "Dashboard",
+      path: "/",
     },
     {
-      key: '/pdv',
+      key: "/pdv",
       icon: <ShoppingCart size={16} />,
-      label: 'PDV',
-      path: '/pdv'
+      label: "PDV",
+      path: "/pdv",
     },
     {
-      key: 'produtos-servicos',
-      label: 'Produtos & Serviços',
+      key: "produtos-servicos",
+      label: "Produtos & Serviços",
       icon: <Package size={16} />,
       children: [
         {
-          key: '/produtos',
+          key: "/produtos",
           icon: <Package size={14} />,
-          label: 'Produtos',
-          path: '/produtos'
+          label: "Produtos",
+          path: "/produtos",
         },
         {
-          key: '/servicos',
+          key: "/servicos",
           icon: <Scissors size={14} />,
-          label: 'Serviços',
-          path: '/servicos'
+          label: "Serviços",
+          path: "/servicos",
         },
         {
-          key: '/estoque',
+          key: "/estoque",
           icon: <Store size={14} />,
-          label: 'Estoque',
-          path: '/estoque'
-        }
-      ]
+          label: "Estoque",
+          path: "/estoque",
+        },
+      ],
     },
     {
-      key: 'gestao',
-      label: 'Gestão',
+      key: "gestao",
+      label: "Gestão",
       icon: <Users size={16} />,
       children: [
         {
-          key: '/clientes',
+          key: "/clientes",
           icon: <Users size={14} />,
-          label: 'Clientes',
-          path: '/clientes'
+          label: "Clientes",
+          path: "/clientes",
         },
         {
-          key: '/funcionarios',
+          key: "/funcionarios",
           icon: <UserCheck size={14} />,
-          label: 'Funcionários',
-          path: '/funcionarios'
+          label: "Funcionários",
+          path: "/funcionarios",
         },
         {
-          key: '/agendamentos',
+          key: "/agendamentos",
           icon: <Calendar size={14} />,
-          label: 'Agendamentos',
-          path: '/agendamentos'
-        }
-      ]
+          label: "Agendamentos",
+          path: "/agendamentos",
+        },
+      ],
     },
     {
-      key: '/fidelidade',
+      key: "/fidelidade",
       icon: <Gift size={16} />,
-      label: 'Fidelidade',
-      path: '/fidelidade'
+      label: "Fidelidade",
+      path: "/fidelidade",
     },
     {
-      key: '/configuracoes',
+      key: "/configuracoes",
       icon: <Settings size={16} />,
-      label: 'Configurações',
-      path: '/configuracoes'
-    }
+      label: "Configurações",
+      path: "/configuracoes",
+    },
   ];
 
   const handleMenuClick = (item: any) => {
@@ -135,27 +133,37 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
 
   const getOpenKeys = () => {
     const currentPath = location.pathname;
-    if (currentPath.includes('/produtos') || currentPath.includes('/servicos') || currentPath.includes('/estoque')) {
-      return ['produtos-servicos'];
+    if (
+      currentPath.includes("/produtos") ||
+      currentPath.includes("/servicos") ||
+      currentPath.includes("/estoque")
+    ) {
+      return ["produtos-servicos"];
     }
-    if (currentPath.includes('/clientes') || currentPath.includes('/funcionarios') || currentPath.includes('/agendamentos')) {
-      return ['gestao'];
+    if (
+      currentPath.includes("/clientes") ||
+      currentPath.includes("/funcionarios") ||
+      currentPath.includes("/agendamentos")
+    ) {
+      return ["gestao"];
     }
     return [];
   };
 
   const getBreadcrumb = () => {
     const currentPath = location.pathname;
-    const breadcrumbs = [{ title: 'Salão X' }];
-    
-    const menuItem = menuItems.find(item => {
+    const breadcrumbs = [{ title: "Salão X" }];
+
+    const menuItem = menuItems.find((item) => {
       if (item.path === currentPath) return true;
-      return item.children?.some(child => child.path === currentPath);
+      return item.children?.some((child) => child.path === currentPath);
     });
 
     if (menuItem) {
       if (menuItem.children) {
-        const childItem = menuItem.children.find(child => child.path === currentPath);
+        const childItem = menuItem.children.find(
+          (child) => child.path === currentPath
+        );
         breadcrumbs.push({ title: menuItem.label });
         if (childItem) breadcrumbs.push({ title: childItem.label });
       } else {
@@ -171,18 +179,18 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
       mode="inline"
       selectedKeys={getSelectedKeys()}
       defaultOpenKeys={getOpenKeys()}
-      style={{ borderRight: 0, background: 'transparent' }}
-      items={menuItems.map(item => ({
+      style={{ borderRight: 0, background: "transparent" }}
+      items={menuItems.map((item) => ({
         key: item.key,
         icon: item.icon,
         label: item.label,
-        children: item.children?.map(child => ({
+        children: item.children?.map((child) => ({
           key: child.key,
           icon: child.icon,
           label: child.label,
-          onClick: () => handleMenuClick(child)
+          onClick: () => handleMenuClick(child),
         })),
-        onClick: item.path ? () => handleMenuClick(item) : undefined
+        onClick: item.path ? () => handleMenuClick(item) : undefined,
       }))}
     />
   );
@@ -199,11 +207,9 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
         collapsedWidth={64}
       >
         <div className="flex items-center justify- h-16 border-b border-sidebar-border">
-          <img className='w-40' src="/public/salao-x-not-bg.png"/>
+          <img className="w-40" src="/public/salao-x-not-bg.png" />
         </div>
-        <div className="py-4">
-          {renderMenu()}
-        </div>
+        <div className="py-4">{renderMenu()}</div>
       </Sider>
 
       {/* Mobile Drawer */}
@@ -216,9 +222,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
         width={256}
         bodyStyle={{ padding: 0 }}
       >
-        <div className="py-4">
-          {renderMenu()}
-        </div>
+        <div className="py-4">{renderMenu()}</div>
       </Drawer>
 
       <Layout>
@@ -239,7 +243,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
             />
             <Breadcrumb items={getBreadcrumb()} />
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Switch
               checked={isDarkMode}
