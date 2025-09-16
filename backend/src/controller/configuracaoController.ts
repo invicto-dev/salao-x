@@ -5,7 +5,7 @@ import { prisma } from "../config/database";
 export class ConfiguracaoController {
   static async getConfig(req: Request, res: Response) {
     try {
-      const config = await prisma.configuracoes.findFirst();
+      const config = await prisma.setting.findFirst();
       if (!config) {
         return res.status(404).json({
           success: false,
@@ -43,7 +43,7 @@ export class ConfiguracaoController {
           error: "Nenhuma configuração fornecida",
         });
       }
-      const config = await prisma.configuracoes.update({
+      const config = await prisma.setting.update({
         where: { id },
         data: body,
       });

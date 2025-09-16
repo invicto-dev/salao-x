@@ -99,10 +99,10 @@ const Produtos = () => {
       render: (_: any, record: any) => (
         <div>
           <div className="font-semibold text-salao-primary">
-            R$ {record.preco.toFixed(2)}
+            R$ {record.preco}
           </div>
           <div className="text-sm text-muted-foreground">
-            Custo: R$ {record.custo.toFixed(2)}
+            Custo: R$ {record.custo}
           </div>
           <div className="text-xs text-salao-success">
             Margem:{" "}

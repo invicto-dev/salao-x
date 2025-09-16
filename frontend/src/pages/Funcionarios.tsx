@@ -15,19 +15,9 @@ import {
   Switch,
   Tag,
   Avatar,
-  Tabs,
   InputNumber,
 } from "antd";
-import {
-  UserCheck,
-  Plus,
-  Search,
-  Edit,
-  Phone,
-  Mail,
-  User,
-  Percent,
-} from "lucide-react";
+import { Plus, Search, Edit, Phone, Mail, User, Percent } from "lucide-react";
 import {
   useFuncionarioCreate,
   useFuncionarios,

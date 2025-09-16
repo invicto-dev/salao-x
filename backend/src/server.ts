@@ -11,6 +11,7 @@ import { serviceRoutes } from "./routes/services";
 import { productRoutes } from "./routes/products";
 import { paymentMethodRoutes } from "./routes/paymentMethods";
 import { categoryRoutes } from "./routes/categories";
+import { salesRoutes } from "./routes/sales";
 
 const app = express();
 
@@ -70,12 +71,13 @@ app.use(
 );
 
 app.use("/api/configuracoes", settingsRoutes);
-app.use("/api/funcionarios", employeeRoutes);
+app.use("/api/employees", employeeRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/payment-methods", paymentMethodRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/sales", salesRoutes);
 
 // Middleware para rotas não encontradas
 app.use("*", (req, res) => {
