@@ -1,4 +1,4 @@
-import { Layout, Menu, Button, Breadcrumb, Switch, Drawer } from "antd";
+import { Layout, Menu, Button, Breadcrumb, Switch, Drawer, List } from "antd";
 import { useState } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -13,6 +13,7 @@ import {
   Moon,
   Sun,
   Menu as MenuIcon,
+  List as ListIcon,
   Store,
   Scissors,
 } from "lucide-react";
@@ -28,6 +29,7 @@ import Funcionarios from "../../pages/Funcionarios";
 import Agendamentos from "../../pages/Agendamentos";
 import Fidelidade from "../../pages/Fidelidade";
 import Configuracoes from "../../pages/Configuracoes";
+import Categorias from "@/pages/Categorias";
 
 const { Header, Sider, Content } = Layout;
 
@@ -85,6 +87,12 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
       label: "Gestão",
       icon: <Users size={16} />,
       children: [
+        {
+          key: "/categorias",
+          icon: <ListIcon size={14} />,
+          label: "Categorias",
+          path: "/categorias",
+        },
         {
           key: "/clientes",
           icon: <Users size={14} />,
@@ -214,13 +222,18 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
 
       {/* Mobile Drawer */}
       <Drawer
-        title="Salão X"
+        title={
+          <img
+            className="w-36 h-16 object-contain"
+            src="/public/salao-x-not-bg.png"
+          />
+        }
         placement="left"
         onClose={() => setMobileMenuOpen(false)}
         open={mobileMenuOpen}
         className="md:hidden"
         width={256}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 }, header: { padding: 0 } }}
       >
         <div className="py-4">{renderMenu()}</div>
       </Drawer>
@@ -262,6 +275,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/servicos" element={<Servicos />} />
             <Route path="/estoque" element={<Estoque />} />
+            <Route path="/categorias" element={<Categorias />} />
             <Route path="/clientes" element={<Clientes />} />
             <Route path="/funcionarios" element={<Funcionarios />} />
             <Route path="/agendamentos" element={<Agendamentos />} />
