@@ -5,8 +5,54 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Iniciando seed do banco de dados...");
 
+  // Criar funcionários
+  await prisma.funcionarios.createMany({
+    data: [
+      {
+        nome: "Victor Hugo",
+        email: "victor@hugo.com",
+        telefone: "(11) 1234-5678",
+        funcao: "Diretor de Negócios",
+        comissao: 10,
+        ativo: true,
+      },
+      {
+        nome: "Vicente Hugo",
+        email: "vicente@hugo.com",
+        telefone: "(11) 1234-5678",
+        funcao: "Diretor de Negócios",
+        comissao: 10,
+        ativo: true,
+      },
+    ],
+  });
+
+  console.log("✅ Funcionários criados com sucesso!");
+
+  // Criar clientes
+  await prisma.customer.createMany({
+    data: [
+      {
+        nome: "Rafael Hugo",
+        email: "rafaek@hugo.com",
+        telefone: "(11) 1234-5678",
+        cpf: "123.456.789-01",
+        ativo: true,
+      },
+      {
+        nome: "Pablo Marcal",
+        email: "pablo@marcal.com",
+        telefone: "(11) 1234-5678",
+        cpf: "123.456.789-02",
+        ativo: true,
+      },
+    ],
+  });
+
+  console.log("✅ Clientes criados com sucesso!");
+
   // Criar configurações padrão
-  const configuracoes = await prisma.configuracoes.upsert({
+  await prisma.configuracoes.upsert({
     where: { id: new Date().toISOString() },
     update: {},
     create: {
@@ -42,7 +88,7 @@ async function main() {
     },
   });
 
-  console.log("✅ Cofiguração padrão criada:", configuracoes.name);
+  console.log("✅ Cofiguração padrão criada com sucesso!");
   console.log("\n🎉 Seed concluído com sucesso!");
 }
 
