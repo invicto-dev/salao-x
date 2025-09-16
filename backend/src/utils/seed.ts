@@ -89,6 +89,42 @@ async function main() {
   });
 
   console.log("✅ Cofiguração padrão criada com sucesso!");
+  // Criar categoria
+  const categoriaCabelo = await prisma.category.create({
+    data: {
+      nome: "Cabelo",
+      descricao: "Serviços relacionados a cabelo",
+    },
+  });
+
+  console.log("✅ Categoria criada com sucesso!");
+
+  // Criar produto sem categoria
+  await prisma.product.create({
+    data: {
+      nome: "Shampoo Premium",
+      preco: 49.9,
+      custo: 20,
+      descricao: "Shampoo para todos os tipos de cabelo",
+      contarEstoque: true,
+      estoque: 100,
+    },
+  });
+
+  console.log("✅ Produto criado sem categoria!");
+
+  // Criar serviço vinculado à categoria
+  await prisma.service.create({
+    data: {
+      nome: "Corte de Cabelo",
+      preco: 60,
+      duracao: 45,
+      descricao: "Corte de cabelo masculino/feminino",
+      categoriaId: categoriaCabelo.id, // vincula
+    },
+  });
+
+  console.log("✅ Serviço criado com categoria!");
   console.log("\n🎉 Seed concluído com sucesso!");
 }
 

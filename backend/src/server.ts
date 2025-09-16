@@ -10,6 +10,7 @@ import { customerRoutes } from "./routes/customers";
 import { serviceRoutes } from "./routes/services";
 import { productRoutes } from "./routes/products";
 import { paymentMethodRoutes } from "./routes/paymentMethods";
+import { categoryRoutes } from "./routes/categories";
 
 const app = express();
 
@@ -74,6 +75,7 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/payment-methods", paymentMethodRoutes);
+app.use("/api/categories", categoryRoutes);
 
 // Middleware para rotas não encontradas
 app.use("*", (req, res) => {
