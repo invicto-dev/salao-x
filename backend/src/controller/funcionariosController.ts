@@ -5,7 +5,7 @@ import { prisma } from "../config/database";
 export class FuncionariosController {
   static async getFuncionarios(req: Request, res: Response) {
     try {
-      const funcionarios = await prisma.funcionarios.findMany();
+      const funcionarios = await prisma.employee.findMany();
 
       return res.status(200).json({
         success: true,
@@ -30,7 +30,7 @@ export class FuncionariosController {
         });
       }
 
-      const funcionario = await prisma.funcionarios.findUnique({
+      const funcionario = await prisma.employee.findUnique({
         where: { id },
       });
 
@@ -64,7 +64,7 @@ export class FuncionariosController {
         });
       }
 
-      const funcionario = await prisma.funcionarios.create({
+      const funcionario = await prisma.employee.create({
         data: body,
       });
 
@@ -98,7 +98,7 @@ export class FuncionariosController {
         });
       }
 
-      const funcionario = await prisma.funcionarios.delete({
+      const funcionario = await prisma.employee.delete({
         where: { id },
       });
 
@@ -140,7 +140,7 @@ export class FuncionariosController {
         });
       }
 
-      const funcionario = await prisma.funcionarios.update({
+      const funcionario = await prisma.employee.update({
         where: { id },
         data: body,
       });

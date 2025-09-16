@@ -219,6 +219,7 @@ const Clientes = () => {
   const novoCliente = () => {
     setEditingClient(null);
     form.resetFields();
+    form.setFieldsValue({ ativo: true });
     setModalVisible(true);
   };
 

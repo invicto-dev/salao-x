@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Configuracoes {
+model Setting {
   id                 String   @id @default(uuid())
   
   // Informações da Empresa
@@ -42,14 +42,16 @@ model Configuracoes {
   updatedAt           DateTime @updatedAt
 }
 
-model Funcionarios {
+model Employee {
   id                 String   @id @default(uuid())
   nome               String
   email              String   @unique
   telefone           String
   funcao             String
-  comissao           Int
+  comissao           Decimal
   ativo              Boolean
+
+  vendas             Sale[]
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -61,9 +63,11 @@ model Customer {
   telefone           String
   email              String?  @unique
   cpf                String?  @unique
-  aniversario        String?
+  aniversario        DateTime?
   observacoes        String?  
   ativo              Boolean  @default(true)
+
+  vendas             Sale[]
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -72,9 +76,9 @@ model Customer {
 model Product {
   id                 String   @id @default(uuid())
   nome               String
-  codigo             String?   @unique
-  preco              Float
-  custo              Float
+  codigo             String?  @unique
+  preco              Decimal?  
+  custo              Decimal?  
   contarEstoque      Boolean  @default(true)
   estoque            Int?
   ativo              Boolean  @default(true)
@@ -84,6 +88,8 @@ model Product {
   categoriaId        String?
   categoria          Category? @relation(fields: [categoriaId], references: [id])
 
+  itensVenda         SaleItem[]
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -91,16 +97,18 @@ model Product {
 model Service {
   id                 String   @id @default(uuid())
   nome               String
-  codigo             String?   @unique
+  codigo             String?  @unique
   valorEmAberto      Boolean  @default(false)
-  preco              Float?
+  preco              Decimal?  
   duracao            Int?
   ativo              Boolean  @default(true)
   descricao          String?
 
   // Relação with Category
-  categoriaId         String?
-  categoria           Category? @relation(fields: [categoriaId], references: [id])
+  categoriaId        String?
+  categoria          Category? @relation(fields: [categoriaId], references: [id])
+
+  itensVenda         SaleItem[]
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -112,6 +120,8 @@ model PaymentMethod {
   descricao          String?
   ativo              Boolean  @default(true)
   chavePix           String?
+
+  pagamentos         SalePayment[]
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -125,6 +135,65 @@ model Category {
 
   products           Product[]
   services           Service[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+enum SaleStatus {
+  PENDENTE
+  PAGO
+  CANCELADO
+}
+
+model Sale {
+  id                 String   @id @default(uuid())
+  clienteId          String?  // Customer optional (e.g sale avulso)
+  cliente            Customer? @relation(fields: [clienteId], references: [id])
+  funcionarioId      String?  // Funcionario optional (e.g sale avulso)
+  funcionario        Employee? @relation(fields: [funcionarioId], references: [id])
+
+  total              Decimal
+  desconto           Decimal?
+  acrescimo          Decimal?
+  status             SaleStatus @default(PENDENTE)
+
+  itens              SaleItem[]
+  pagamentos         SalePayment[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model SaleItem {
+  id                 String   @id @default(uuid())
+  vendaId            String
+  venda              Sale     @relation(fields: [vendaId], references: [id])
+
+  produtoId          String?
+  produto            Product? @relation(fields: [produtoId], references: [id])
+
+  servicoId          String?
+  servico            Service? @relation(fields: [servicoId], references: [id])
+
+  quantidade         Int      @default(1)
+  preco              Decimal
+  subtotal           Decimal
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model SalePayment {
+  id                 String   @id @default(uuid())
+  vendaId            String
+  venda              Sale     @relation(fields: [vendaId], references: [id])
+
+  metodoDePagamentoId String
+  metodoDePagamento   PaymentMethod @relation(fields: [metodoDePagamentoId], references: [id])
+
+  valor              Decimal
+  observacao         String?
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

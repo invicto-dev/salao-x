@@ -122,7 +122,7 @@ const Servicos = () => {
       key: "preco",
       render: (preco: number, record) => (
         <div className="font-semibold text-salao-primary">
-          {record.valorEmAberto ? "Valor em aberto" : `R$ ${preco.toFixed(2)}`}
+          {record.valorEmAberto ? "Valor em aberto" : `R$ ${preco}`}
         </div>
       ),
     },
