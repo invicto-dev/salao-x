@@ -99,3 +99,14 @@ model Service {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
+
+model PaymentMethod {
+  id                 String   @id @default(uuid())
+  nome               String
+  descricao          String?
+  ativo              Boolean  @default(true)
+  chavePix           String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
