@@ -1,12 +1,13 @@
 export {};
 
 declare global {
-  namespace Category {
+  namespace PaymentMethod {
     interface Props {
       id?: string;
       nome: string;
-      description?: string;
+      descricao?: string;
       ativo: boolean;
+      chavePix?: string;
     }
   }
 }
