@@ -16,6 +16,7 @@ import {
   List as ListIcon,
   Store,
   Scissors,
+  WalletCards,
 } from "lucide-react";
 
 // Pages
@@ -30,6 +31,7 @@ import Agendamentos from "../../pages/Agendamentos";
 import Fidelidade from "../../pages/Fidelidade";
 import Configuracoes from "../../pages/Configuracoes";
 import Categorias from "@/pages/Categorias";
+import MetodoDePagamentos from "@/pages/Pagamentos";
 
 const { Header, Sider, Content } = Layout;
 
@@ -88,6 +90,12 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
       icon: <Users size={16} />,
       children: [
         {
+          key: "/agendamentos",
+          icon: <Calendar size={14} />,
+          label: "Agendamentos",
+          path: "/agendamentos",
+        },
+        {
           key: "/categorias",
           icon: <ListIcon size={14} />,
           label: "Categorias",
@@ -106,10 +114,10 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
           path: "/funcionarios",
         },
         {
-          key: "/agendamentos",
-          icon: <Calendar size={14} />,
-          label: "Agendamentos",
-          path: "/agendamentos",
+          key: "/metodos-de-pagamento",
+          icon: <WalletCards size={14} />,
+          label: "Métodos de Pagamento",
+          path: "/metodos-de-pagamento",
         },
       ],
     },
@@ -281,6 +289,10 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
             <Route path="/agendamentos" element={<Agendamentos />} />
             <Route path="/fidelidade" element={<Fidelidade />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
+            <Route
+              path="/metodos-de-pagamento"
+              element={<MetodoDePagamentos />}
+            />
           </Routes>
         </Content>
       </Layout>
