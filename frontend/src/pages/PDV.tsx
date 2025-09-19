@@ -1,106 +1,108 @@
-import { useState } from 'react';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Button, 
-  Table, 
-  Select, 
-  Input, 
-  InputNumber, 
-  Space, 
-  Tag, 
-  Divider, 
-  Typography, 
-  Radio, 
+import { useState } from "react";
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Table,
+  Select,
+  Input,
+  InputNumber,
+  Divider,
+  Typography,
   message,
-  Modal
-} from 'antd';
-import { 
-  ShoppingCart, 
-  Plus, 
-  Minus, 
-  Trash2, 
-  Search, 
-  User, 
+  TableColumnProps,
+  Form,
+  Modal,
+  Tooltip,
+} from "antd";
+import {
+  ShoppingCart,
+  Plus,
+  Minus,
+  Trash2,
+  Search,
   CreditCard,
+  User,
+  X,
   Printer,
-  Calculator
-} from 'lucide-react';
+} from "lucide-react";
+import { useProducts } from "@/hooks/use-products";
+import { useServices } from "@/hooks/use-services";
+import { useCustomers } from "@/hooks/use-customer";
+import { useSaleCreate } from "@/hooks/use-sales";
+import { usePaymentMethods } from "@/hooks/use-payment-methods";
+import { TelaPagamento } from "@/components/PDV/TelaPagamento";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-interface CartItem {
-  id: string;
-  nome: string;
-  tipo: 'produto' | 'servico';
-  preco: number;
-  quantidade: number;
-  funcionario?: string;
-  comissao?: number;
-}
-
 const PDV = () => {
-  const [carrinho, setCarrinho] = useState<CartItem[]>([]);
-  const [clienteSelecionado, setClienteSelecionado] = useState<string>('');
-  const [formaPagamento, setFormaPagamento] = useState<string>('dinheiro');
+  const [modoCarrinho, setModoCarrinho] = useState<Sale.CartType>("venda");
+  const [carrinho, setCarrinho] = useState<Sale.CartItem[]>([]);
+  const [clienteSelecionado, setClienteSelecionado] = useState<string>(null);
+  const [abrirModalCliente, setAbrirModalCliente] = useState(false);
+
+  const [pagamentos, setPagamentos] = useState<Sale.Props["pagamentos"]>([]);
   const [desconto, setDesconto] = useState<number>(0);
-  const [busca, setBusca] = useState<string>('');
+  const [acrescimo, setAcrescimo] = useState<number>(0);
+  const [busca, setBusca] = useState<string>("");
   const [reciboPrint, setReciboPrint] = useState(false);
 
-  // Mock data
-  const produtos = [
-    { id: '1', nome: 'Shampoo Profissional', preco: 29.90, estoque: 15 },
-    { id: '2', nome: 'Condicionador', preco: 25.90, estoque: 12 },
-    { id: '3', nome: 'Máscara Hidratante', preco: 45.90, estoque: 8 },
-    { id: '4', nome: 'Óleo Capilar', preco: 35.90, estoque: 5 },
-  ];
+  const { data: produtos } = useProducts();
+  const { data: servicos } = useServices();
+  const { data: clientes } = useCustomers();
+  /*  const { data: funcionarios } = useFuncionarios(); */
+  const { data: formasDePagamentos } = usePaymentMethods();
 
-  const servicos = [
-    { id: '5', nome: 'Corte Feminino', preco: 50.00, duracao: 60, comissao: 30 },
-    { id: '6', nome: 'Escova', preco: 30.00, duracao: 45, comissao: 40 },
-    { id: '7', nome: 'Coloração', preco: 80.00, duracao: 120, comissao: 25 },
-    { id: '8', nome: 'Manicure', preco: 25.00, duracao: 45, comissao: 50 },
-  ];
+  const { mutate: createSale } = useSaleCreate();
 
-  const clientes = [
-    { id: '1', nome: 'Ana Silva', telefone: '(11) 99999-9999' },
-    { id: '2', nome: 'Maria Santos', telefone: '(11) 88888-8888' },
-    { id: '3', nome: 'Carla Oliveira', telefone: '(11) 77777-7777' },
-  ];
+  const formatItem = (item: Sale.CartItem) => {
+    switch (item.tipo) {
+      case "produto":
+        return {
+          produtoId: item.id,
+          preco: item.preco,
+          quantidade: item.quantidade,
+        };
+      case "servico":
+        return {
+          servicoId: item.id,
+          preco: item.preco,
+          quantidade: item.quantidade,
+        };
+    }
+  };
 
-  const funcionarios = [
-    { id: '1', nome: 'Ana Silva' },
-    { id: '2', nome: 'Maria Santos' },
-    { id: '3', nome: 'Carla Oliveira' },
-  ];
-
-  const adicionarAoCarrinho = (item: any, tipo: 'produto' | 'servico') => {
-    const novoItem: CartItem = {
+  const adicionarAoCarrinho = (
+    item: Product.Props | Service.Props,
+    tipo: "produto" | "servico"
+  ) => {
+    const novoItem: Sale.CartItem = {
       id: item.id,
       nome: item.nome,
       tipo,
       preco: item.preco,
       quantidade: 1,
-      comissao: tipo === 'servico' ? item.comissao : undefined
     };
 
-    const itemExistente = carrinho.find(c => c.id === item.id && c.tipo === tipo);
-    
-    if (itemExistente && tipo === 'produto') {
-      setCarrinho(carrinho.map(c => 
-        c.id === item.id && c.tipo === tipo 
-          ? { ...c, quantidade: c.quantidade + 1 }
-          : c
-      ));
+    const itemExistente = carrinho.find((c) => c.id === novoItem.id);
+
+    if (itemExistente) {
+      setCarrinho(
+        carrinho?.map((c) =>
+          c.id === item.id && c.tipo === tipo
+            ? { ...c, quantidade: c.quantidade + 1 }
+            : c
+        )
+      );
     } else {
       setCarrinho([...carrinho, novoItem]);
     }
   };
 
   const removerDoCarrinho = (index: number) => {
-    setCarrinho(carrinho.filter((_, i) => i !== index));
+    setCarrinho(carrinho?.filter((_, i) => i !== index));
   };
 
   const alterarQuantidade = (index: number, novaQuantidade: number) => {
@@ -108,201 +110,239 @@ const PDV = () => {
       removerDoCarrinho(index);
       return;
     }
-    
-    setCarrinho(carrinho.map((item, i) => 
-      i === index ? { ...item, quantidade: novaQuantidade } : item
-    ));
+
+    setCarrinho(
+      carrinho?.map((item, i) =>
+        i === index ? { ...item, quantidade: novaQuantidade } : item
+      )
+    );
   };
 
-  const alterarFuncionario = (index: number, funcionarioId: string) => {
-    setCarrinho(carrinho.map((item, i) => 
-      i === index ? { ...item, funcionario: funcionarioId } : item
-    ));
-  };
+  const toogleClienteModal = () => setAbrirModalCliente(!abrirModalCliente);
+
+  const toogleCarrinhoTipo = () =>
+    setModoCarrinho(modoCarrinho === "venda" ? "pagamento" : "venda");
 
   const calcularSubtotal = () => {
-    return carrinho.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+    return carrinho.reduce(
+      (acc, item) => acc + item.preco * item.quantidade,
+      0
+    );
   };
+
+  const calPercentual = (valor: number, percentual: number) =>
+    (valor * percentual) / 100;
 
   const calcularTotal = () => {
     const subtotal = calcularSubtotal();
-    return subtotal - (subtotal * desconto / 100);
+    const calAcrescimo = calPercentual(subtotal, acrescimo);
+    const calDesconto = calPercentual(subtotal, desconto);
+
+    return subtotal + calAcrescimo - calDesconto;
   };
 
-  const calcularComissaoTotal = () => {
-    return carrinho
-      .filter(item => item.tipo === 'servico' && item.comissao)
-      .reduce((acc, item) => acc + ((item.preco * item.quantidade) * (item.comissao || 0) / 100), 0);
-  };
-
-  const finalizarVenda = () => {
+  const finalizarVenda = async () => {
     if (carrinho.length === 0) {
-      message.error('Carrinho vazio!');
+      message.error("Carrinho vazio!");
       return;
     }
 
-    if (!clienteSelecionado) {
-      message.error('Selecione um cliente!');
+    if (pagamentos.length === 0) {
+      message.error("Adicione ao menos uma forma de pagamento.");
       return;
     }
 
-    // Verificar se serviços têm funcionários
-    const servicosSemFuncionario = carrinho.filter(item => 
-      item.tipo === 'servico' && !item.funcionario
-    );
-
-    if (servicosSemFuncionario.length > 0) {
-      message.error('Selecione funcionários para todos os serviços!');
+    const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+    if (totalPago < calcularTotal()) {
+      message.error("O valor pago é menor que o total da venda.");
       return;
     }
 
-    message.success('Venda finalizada com sucesso!');
+    const body: Sale.Props = {
+      clienteId: clienteSelecionado,
+      funcionarioId: null,
+      itens: carrinho.map((item) => formatItem(item)),
+      pagamentos,
+      desconto: 0,
+      acrescimo: 0,
+      status: "PAGO",
+    };
+
+    createSale(body);
     setReciboPrint(true);
   };
 
   const limparCarrinho = () => {
     setCarrinho([]);
-    setClienteSelecionado('');
+    setClienteSelecionado("");
     setDesconto(0);
-    setFormaPagamento('dinheiro');
+    setAcrescimo(0);
+    setPagamentos([]);
+    setClienteSelecionado(null);
+    setModoCarrinho("venda");
   };
 
-  const carrinhoColumns = [
+  const carrinhoColumns: TableColumnProps<Sale.CartItem>[] = [
     {
-      title: 'Item',
-      dataIndex: 'nome',
-      key: 'nome',
-      render: (text: string, record: CartItem) => (
-        <div>
-          <div className="font-medium">{text}</div>
-          <Tag color={record.tipo === 'produto' ? 'blue' : 'purple'}>
-            {record.tipo === 'produto' ? 'Produto' : 'Serviço'}
-          </Tag>
-        </div>
-      )
+      title: "Item",
+      dataIndex: "nome",
+      key: "nome",
+      width: "30%",
+      render: (text: string) => (
+        <Text ellipsis={{ tooltip: text }} className="font-medium">
+          {text}
+        </Text>
+      ),
     },
     {
-      title: 'Preço Unit.',
-      dataIndex: 'preco',
-      key: 'preco',
-      render: (preco: number) => `R$ ${preco.toFixed(2)}`
+      title: "Preço Unit.",
+      dataIndex: "preco",
+      key: "preco",
+      align: "center",
+      ellipsis: true,
+      render: (preco: number) => `R$ ${preco}`,
     },
     {
-      title: 'Qtd.',
-      key: 'quantidade',
-      render: (_: any, record: CartItem, index: number) => (
+      title: "Qtd.",
+      key: "quantidade",
+      align: "center",
+      render: (_: any, record: Sale.CartItem, index: number) => (
         <div className="flex items-center gap-2">
           <Button
             size="small"
-            icon={<Minus size={12} />}
+            icon={<Minus size={14} />}
             onClick={() => alterarQuantidade(index, record.quantidade - 1)}
           />
           <span className="w-8 text-center">{record.quantidade}</span>
           <Button
             size="small"
-            icon={<Plus size={12} />}
+            icon={<Plus size={14} />}
             onClick={() => alterarQuantidade(index, record.quantidade + 1)}
           />
         </div>
-      )
+      ),
     },
     {
-      title: 'Funcionário',
-      key: 'funcionario',
-      render: (_: any, record: CartItem, index: number) => (
-        record.tipo === 'servico' ? (
-          <Select
-            placeholder="Selecionar"
-            style={{ width: 120 }}
-            size="small"
-            value={record.funcionario}
-            onChange={(value) => alterarFuncionario(index, value)}
-          >
-            {funcionarios.map(func => (
-              <Option key={func.id} value={func.id}>
-                {func.nome}
-              </Option>
-            ))}
-          </Select>
-        ) : '-'
-      )
-    },
-    {
-      title: 'Total',
-      key: 'total',
-      render: (_: any, record: CartItem) => (
+      title: "Total",
+      key: "total",
+      align: "center",
+      render: (_, record: Sale.CartItem) => (
         <span className="font-semibold">
           R$ {(record.preco * record.quantidade).toFixed(2)}
         </span>
-      )
+      ),
     },
     {
-      title: 'Ações',
-      key: 'acoes',
-      render: (_: any, record: CartItem, index: number) => (
+      title: "Ações",
+      key: "acoes",
+      align: "center",
+      render: (_, record: Sale.CartItem, index: number) => (
         <Button
           type="text"
-          danger
           icon={<Trash2 size={14} />}
           onClick={() => removerDoCarrinho(index)}
         />
-      )
-    }
+      ),
+    },
   ];
 
-  const filteredProdutos = produtos.filter(produto =>
+  const filteredProdutos = (produtos || []).filter((produto) =>
     produto.nome.toLowerCase().includes(busca.toLowerCase())
   );
 
-  const filteredServicos = servicos.filter(servico =>
+  const filteredServicos = (servicos || []).filter((servico) =>
     servico.nome.toLowerCase().includes(busca.toLowerCase())
   );
+
+  const RenderResumo = () => {
+    return (
+      <div className="bg-muted p-4 rounded-lg space-y-2">
+        <div className="flex justify-between">
+          <span>Subtotal:</span>
+          <span>R$ {calcularSubtotal().toFixed(2)}</span>
+        </div>
+        {acrescimo > 0 && (
+          <div className="flex justify-between text-salao-success">
+            <span>Acrescimo ({acrescimo}%):</span>
+            <span>
+              + R$ {((calcularSubtotal() * acrescimo) / 100).toFixed(2)}
+            </span>
+          </div>
+        )}
+        {desconto > 0 && (
+          <div className="flex justify-between text-salao-success">
+            <span>Desconto ({desconto}%):</span>
+            <span>
+              - R$ {((calcularSubtotal() * desconto) / 100).toFixed(2)}
+            </span>
+          </div>
+        )}
+
+        <Divider className="!my-2" />
+        <div className="flex justify-between text-lg font-semibold">
+          <span>Total:</span>
+          <span className="text-salao-primary">
+            R$ {calcularTotal().toFixed(2)}
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
       <div>
-        <Title level={2} className="!mb-2">PDV - Ponto de Venda</Title>
+        <Title level={2} className="!mb-2">
+          PDV - Ponto de Venda
+        </Title>
         <p className="text-muted-foreground">
           Sistema completo para vendas e atendimento
         </p>
       </div>
 
       <Row gutter={[16, 16]}>
-        {/* Produtos e Serviços */}
-        <Col xs={24} lg={14}>
+        <Col xs={24} lg={12}>
           <Card title="Produtos e Serviços" className="h-full">
             <div className="mb-4">
               <Input
                 placeholder="Buscar produtos ou serviços..."
-                prefix={<Search size={16} />}
+                prefix={<Search size={14} />}
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
               />
             </div>
 
             <div className="space-y-4">
-              {/* Produtos */}
               {filteredProdutos.length > 0 && (
                 <div>
-                  <Title level={5} className="!mb-3">Produtos</Title>
+                  <Title level={5} className="!mb-3">
+                    Produtos
+                  </Title>
                   <Row gutter={[8, 8]}>
-                    {filteredProdutos.map(produto => (
+                    {filteredProdutos?.map((produto) => (
                       <Col xs={12} sm={8} md={6} key={produto.id}>
                         <Card
                           size="small"
-                          className="text-center cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() => adicionarAoCarrinho(produto, 'produto')}
+                          hoverable
+                          onClick={() =>
+                            adicionarAoCarrinho(produto, "produto")
+                          }
                         >
                           <div className="space-y-2">
-                            <div className="font-medium text-sm">{produto.nome}</div>
-                            <div className="text-salao-primary font-semibold">
-                              R$ {produto.preco.toFixed(2)}
-                            </div>
-                            <Tag 
-                              color={produto.estoque > 5 ? 'green' : 'orange'}
+                            <Text
+                              ellipsis={{
+                                tooltip: produto.nome,
+                              }}
+                              className="font-medium text-sm"
                             >
-                              Estoque: {produto.estoque}
-                            </Tag>
+                              {produto.nome}
+                            </Text>
+                            <div className="text-salao-primary font-semibold">
+                              R$ {produto.preco}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {produto.estoque} un
+                            </div>
                           </div>
                         </Card>
                       </Col>
@@ -311,25 +351,30 @@ const PDV = () => {
                 </div>
               )}
 
-              {/* Serviços */}
               {filteredServicos.length > 0 && (
                 <div>
-                  <Title level={5} className="!mb-3">Serviços</Title>
+                  <Title level={5} className="!mb-3">
+                    Serviços
+                  </Title>
                   <Row gutter={[8, 8]}>
-                    {filteredServicos.map(servico => (
+                    {filteredServicos?.map((servico) => (
                       <Col xs={12} sm={8} md={6} key={servico.id}>
                         <Card
                           size="small"
-                          className="text-center cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() => adicionarAoCarrinho(servico, 'servico')}
+                          hoverable
+                          onClick={() =>
+                            adicionarAoCarrinho(servico, "servico")
+                          }
                         >
                           <div className="space-y-2">
-                            <div className="font-medium text-sm">{servico.nome}</div>
+                            <div className="font-medium text-sm">
+                              {servico.nome}
+                            </div>
                             <div className="text-salao-primary font-semibold">
-                              R$ {servico.preco.toFixed(2)}
+                              R$ {servico.preco}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {servico.duracao}min | {servico.comissao}%
+                              {servico.duracao}min
                             </div>
                           </div>
                         </Card>
@@ -342,180 +387,237 @@ const PDV = () => {
           </Card>
         </Col>
 
-        {/* Carrinho */}
-        <Col xs={24} lg={10}>
-          <Card 
+        <Col xs={24} lg={12}>
+          <Card
             title={
-              <div className="flex items-center gap-2">
-                <ShoppingCart size={16} />
-                Carrinho ({carrinho.length})
+              <div className="flex justify-between">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart size={14} />
+                  Carrinho ({carrinho.length})
+                </div>
+                <div>
+                  {!clienteSelecionado ? (
+                    <Button
+                      type="primary"
+                      onClick={toogleClienteModal}
+                      icon={<User size={14} />}
+                    >
+                      Vincular um cliente
+                    </Button>
+                  ) : (
+                    <Tooltip title="Desvicular Cliente">
+                      <Button
+                        className="font-bold hover:underline"
+                        onClick={() => setClienteSelecionado(null)}
+                        type="text"
+                        icon={<User className="font-semibold" size={14} />}
+                      >
+                        {
+                          clientes.find((c) => c.id === clienteSelecionado)
+                            ?.nome
+                        }
+                      </Button>
+                    </Tooltip>
+                  )}
+                </div>
               </div>
             }
             className="h-full"
           >
             <div className="space-y-4">
-              {/* Cliente */}
-              <div>
-                <Text strong className="block mb-2">Cliente</Text>
-                <Select
-                  placeholder="Selecionar cliente"
-                  style={{ width: '100%' }}
-                  value={clienteSelecionado}
-                  onChange={setClienteSelecionado}
-                  showSearch
-                  filterOption={(input, option) =>
-                    option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
-                  }
-                >
-                  {clientes.map(cliente => (
-                    <Option key={cliente.id} value={cliente.id}>
-                      {cliente.nome} - {cliente.telefone}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-
-              {/* Itens do Carrinho */}
-              <div>
-                <Table
-                  dataSource={carrinho}
-                  columns={carrinhoColumns}
-                  pagination={false}
-                  size="small"
-                  scroll={{ x: true }}
-                  locale={{ emptyText: 'Carrinho vazio' }}
-                />
-              </div>
-
-              {/* Desconto */}
-              <div>
-                <Text strong className="block mb-2">Desconto (%)</Text>
-                <InputNumber
-                  min={0}
-                  max={100}
-                  value={desconto}
-                  onChange={(value) => setDesconto(value || 0)}
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              {/* Resumo */}
-              <div className="bg-muted p-4 rounded-lg space-y-2">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>R$ {calcularSubtotal().toFixed(2)}</span>
-                </div>
-                {desconto > 0 && (
-                  <div className="flex justify-between text-salao-success">
-                    <span>Desconto ({desconto}%):</span>
-                    <span>- R$ {(calcularSubtotal() * desconto / 100).toFixed(2)}</span>
+              {modoCarrinho === "venda" ? (
+                <>
+                  <div>
+                    <Table
+                      dataSource={carrinho}
+                      columns={carrinhoColumns}
+                      pagination={false}
+                      size="small"
+                      scroll={{ y: 45 * 5 }}
+                      locale={{ emptyText: "Carrinho vazio" }}
+                      rowKey={(record) => `${record.tipo}-${record.id}`}
+                    />
                   </div>
-                )}
-                <Divider className="!my-2" />
-                <div className="flex justify-between text-lg font-semibold">
-                  <span>Total:</span>
-                  <span className="text-salao-primary">R$ {calcularTotal().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Comissão Total:</span>
-                  <span>R$ {calcularComissaoTotal().toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* Forma de Pagamento */}
-              <div>
-                <Text strong className="block mb-2">Forma de Pagamento</Text>
-                <Radio.Group
-                  value={formaPagamento}
-                  onChange={(e) => setFormaPagamento(e.target.value)}
-                  className="w-full"
-                >
-                  <Space direction="vertical" className="w-full">
-                    <Radio value="dinheiro">Dinheiro</Radio>
-                    <Radio value="cartao">Cartão</Radio>
-                    <Radio value="pix">PIX</Radio>
-                    <Radio value="crediario">Crediário (Asaas)</Radio>
-                  </Space>
-                </Radio.Group>
-              </div>
-
-              {/* Ações */}
-              <div className="space-y-2">
-                <Button
-                  type="primary"
-                  block
-                  icon={<CreditCard size={16} />}
-                  onClick={finalizarVenda}
-                  disabled={carrinho.length === 0}
-                  className="bg-salao-primary"
-                >
-                  Finalizar Venda
-                </Button>
-                <Button
-                  block
-                  icon={<Trash2 size={16} />}
-                  onClick={limparCarrinho}
-                  disabled={carrinho.length === 0}
-                >
-                  Limpar Carrinho
-                </Button>
-              </div>
+                  <div>
+                    <Form
+                      layout="vertical"
+                      className="grid grid-cols-3 w-full gap-2"
+                    >
+                      <Form.Item className="m-0" label="Desconto">
+                        <InputNumber
+                          min={0}
+                          max={100}
+                          value={desconto}
+                          onChange={(value) => setDesconto(value || 0)}
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                      <Form.Item className="m-0" label="Acréscimo">
+                        <InputNumber
+                          min={0}
+                          max={100}
+                          value={acrescimo}
+                          onChange={(value) => setAcrescimo(value || 0)}
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                      <Form.Item className="m-0 flex items-end w-full">
+                        <Button
+                          danger
+                          icon={<Trash2 size={14} />}
+                          onClick={limparCarrinho}
+                          disabled={carrinho.length === 0}
+                          style={{ width: "100%" }}
+                        >
+                          Limpar Carrinho
+                        </Button>
+                      </Form.Item>
+                    </Form>
+                  </div>
+                  <RenderResumo />
+                  <div className="space-y-2">
+                    <Button
+                      type="primary"
+                      size="large"
+                      block
+                      icon={<CreditCard size={14} />}
+                      onClick={toogleCarrinhoTipo}
+                      disabled={carrinho.length === 0}
+                    >
+                      Formas de Pagamento
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <TelaPagamento
+                  totalAPagar={calcularTotal()}
+                  formasDePagamento={formasDePagamentos || []}
+                  pagamentos={pagamentos}
+                  setPagamentos={setPagamentos}
+                  onFinalizar={finalizarVenda}
+                  onVoltar={toogleCarrinhoTipo}
+                />
+              )}
             </div>
           </Card>
         </Col>
       </Row>
 
-      {/* Modal do Recibo */}
+      <Modal
+        title="Vincular Cliente"
+        open={abrirModalCliente}
+        onCancel={toogleClienteModal}
+        okText="Confirmar"
+        onOk={toogleClienteModal}
+      >
+        <div className="space-y-4">
+          <Select
+            placeholder="Selecionar cliente"
+            style={{ width: "100%" }}
+            value={clienteSelecionado}
+            allowClear
+            onChange={setClienteSelecionado}
+            showSearch
+            filterOption={(input, option) =>
+              option?.label
+                ?.toString()
+                .toLowerCase()
+                .includes(input.toLowerCase()) ?? false
+            }
+          >
+            {clientes?.map((cliente) => (
+              <Option key={cliente.id} value={cliente.id}>
+                {cliente.nome} - {cliente.telefone}
+              </Option>
+            ))}
+          </Select>
+        </div>
+      </Modal>
+
       <Modal
         title="Recibo de Venda"
         open={reciboPrint}
-        onCancel={() => setReciboPrint(false)}
+        onCancel={() => {
+          limparCarrinho();
+          setReciboPrint(false);
+        }}
         footer={[
-          <Button key="print" icon={<Printer size={16} />} onClick={() => window.print()}>
+          <Button
+            key="print"
+            icon={<Printer size={14} />}
+            onClick={() => window.print()}
+          >
             Imprimir
           </Button>,
-          <Button key="close" onClick={() => setReciboPrint(false)}>
+          <Button
+            key="close"
+            onClick={() => {
+              limparCarrinho();
+              setReciboPrint(false);
+            }}
+          >
             Fechar
-          </Button>
+          </Button>,
         ]}
         width={400}
       >
         <div className="space-y-4 print:text-black">
           <div className="text-center">
-            <Title level={4} className="!mb-1">Salão X</Title>
+            <Title level={4} className="!mb-1">
+              Salão X
+            </Title>
             <p className="text-sm">Recibo de Venda</p>
           </div>
-          
+
           <Divider />
-          
+
           <div>
-            <p><strong>Cliente:</strong> {clientes.find(c => c.id === clienteSelecionado)?.nome}</p>
-            <p><strong>Data:</strong> {new Date().toLocaleDateString('pt-BR')}</p>
-            <p><strong>Hora:</strong> {new Date().toLocaleTimeString('pt-BR')}</p>
+            <p>
+              <strong>Cliente:</strong>{" "}
+              {clientes?.find((c) => c.id === clienteSelecionado)?.nome}
+            </p>
+            <p>
+              <strong>Data:</strong> {new Date().toLocaleDateString("pt-BR")}
+            </p>
+            <p>
+              <strong>Hora:</strong> {new Date().toLocaleTimeString("pt-BR")}
+            </p>
           </div>
-          
+
           <Divider />
-          
+
           <div className="space-y-2">
-            {carrinho.map((item, index) => (
+            {carrinho?.map((item, index) => (
               <div key={index} className="flex justify-between text-sm">
-                <span>{item.nome} x{item.quantidade}</span>
+                <span>
+                  {item.nome} x{item.quantidade}
+                </span>
                 <span>R$ {(item.preco * item.quantidade).toFixed(2)}</span>
               </div>
             ))}
           </div>
-          
+
           <Divider />
-          
+
           <div className="space-y-1">
             <div className="flex justify-between">
               <span>Subtotal:</span>
               <span>R$ {calcularSubtotal().toFixed(2)}</span>
             </div>
+            {acrescimo > 0 && (
+              <div className="flex justify-between">
+                <span>Acréscimo:</span>
+                <span>
+                  R$ {((calcularSubtotal() * acrescimo) / 100).toFixed(2)}
+                </span>
+              </div>
+            )}
             {desconto > 0 && (
               <div className="flex justify-between">
                 <span>Desconto:</span>
-                <span>R$ {(calcularSubtotal() * desconto / 100).toFixed(2)}</span>
+                <span>
+                  R$ {((calcularSubtotal() * desconto) / 100).toFixed(2)}
+                </span>
               </div>
             )}
             <div className="flex justify-between font-semibold text-lg">
@@ -523,7 +625,7 @@ const PDV = () => {
               <span>R$ {calcularTotal().toFixed(2)}</span>
             </div>
           </div>
-          
+
           <div className="text-center text-sm text-muted-foreground mt-4">
             <p>Obrigado pela preferência!</p>
           </div>

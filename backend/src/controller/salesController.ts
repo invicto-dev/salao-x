@@ -47,8 +47,15 @@ export class SalesController {
 
   // Criar nova venda
   static async create(req: Request, res: Response) {
-    const { clienteId, funcionarioId, itens, pagamentos, desconto, acrescimo } =
-      req.body;
+    const {
+      clienteId,
+      funcionarioId,
+      itens,
+      pagamentos,
+      desconto,
+      acrescimo,
+      status,
+    } = req.body;
 
     try {
       // Calcular total da venda
@@ -66,7 +73,7 @@ export class SalesController {
           total,
           desconto: desconto || 0,
           acrescimo: acrescimo || 0,
-          status: "PENDENTE",
+          status: status || "PAGO",
           itens: {
             create: itens.map((item: any) => ({
               produtoId: item.produtoId,

@@ -55,7 +55,6 @@ export class CustomersController {
 
   static async createCustomer(req: Request, res: Response) {
     try {
-      console.log(req.body);
       const { body } = req.body;
 
       if (!body) {
