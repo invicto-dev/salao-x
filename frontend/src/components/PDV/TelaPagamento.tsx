@@ -20,7 +20,7 @@ interface TelaPagamentoProps {
   setPagamentos: React.Dispatch<
     React.SetStateAction<{ metodoDePagamentoId: string; valor: number }[]>
   >;
-  onFinalizar: () => void;
+  onFinalizar: (troco: number) => void;
   onVoltar: () => void;
 }
 
@@ -58,15 +58,6 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
         ...pagamentos,
         { metodoDePagamentoId: id, valor: valorNumerico },
       ]);
-    }
-  };
-
-  const handlePayRemaining = (id: string) => {
-    const pagamentoAtual =
-      pagamentos.find((p) => p.metodoDePagamentoId === id)?.valor || 0;
-    const valorParaAdicionar = valorRestante + pagamentoAtual;
-    if (valorParaAdicionar > 0) {
-      handlePaymentChange(id, valorParaAdicionar);
     }
   };
 
@@ -136,14 +127,6 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
                     className="w-40"
                     onChange={(valor) => handlePaymentChange(forma.id, valor)}
                   />
-                  <Button
-                    type="text"
-                    className="hover:underline"
-                    onClick={() => handlePayRemaining(forma.id)}
-                    disabled={valorRestante <= 0}
-                  >
-                    {pagamentos.length > 0 ? "Pagar Restante" : "Pagar Total"}
-                  </Button>
 
                   <div className="w-8 h-8 flex items-center justify-center">
                     {pagamentoAtual && (
@@ -167,7 +150,7 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
         block
         size="large"
         icon={<Receipt size={16} />}
-        onClick={onFinalizar}
+        onClick={() => onFinalizar(troco)}
         disabled={valorRestante > 0}
       >
         Finalizar Venda

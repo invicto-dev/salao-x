@@ -67,11 +67,13 @@ export const usePaymentMethodUpdate = () => {
 };
 
 export const usePaymentMethodDelete = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
       return await deletePaymentMethod(id);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get-payment-methods"] });
       message.success("Metodo de pagemento excluído com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {

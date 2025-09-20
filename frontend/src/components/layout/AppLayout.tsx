@@ -1,4 +1,4 @@
-import { Layout, Menu, Button, Breadcrumb, Switch, Drawer, List } from "antd";
+import { Layout, Menu, Button, Breadcrumb, Switch, Drawer } from "antd";
 import { useState } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -17,6 +17,7 @@ import {
   Store,
   Scissors,
   WalletCards,
+  DollarSign,
 } from "lucide-react";
 
 // Pages
@@ -32,6 +33,7 @@ import Fidelidade from "../../pages/Fidelidade";
 import Configuracoes from "../../pages/Configuracoes";
 import Categorias from "@/pages/Categorias";
 import MetodoDePagamentos from "@/pages/Pagamentos";
+import Vendas from "@/pages/Vendas";
 
 const { Header, Sider, Content } = Layout;
 
@@ -58,6 +60,12 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
       icon: <ShoppingCart size={16} />,
       label: "PDV",
       path: "/pdv",
+    },
+    {
+      key: "/vendas",
+      icon: <DollarSign size={16} />,
+      label: "Vendas",
+      path: "/vendas",
     },
     {
       key: "produtos-servicos",
@@ -280,6 +288,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/pdv" element={<PDV />} />
+            <Route path="/vendas" element={<Vendas />} />
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/servicos" element={<Servicos />} />
             <Route path="/estoque" element={<Estoque />} />

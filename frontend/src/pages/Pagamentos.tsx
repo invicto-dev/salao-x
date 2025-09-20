@@ -9,7 +9,6 @@ import {
   Modal,
   Form,
   Switch,
-  Space,
   Typography,
   message,
   Row,
@@ -22,9 +21,11 @@ import { Plus, Search, Edit, Upload as UploadIcon, List } from "lucide-react";
 import { NameInput } from "@/components/inputs/NameInput";
 import {
   usePaymentMethodCreate,
+  usePaymentMethodDelete,
   usePaymentMethods,
   usePaymentMethodUpdate,
 } from "@/hooks/use-payment-methods";
+import DropdownComponent from "@/components/Dropdown";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -40,6 +41,7 @@ const MetodoDePagamentos = () => {
   const { data: paymentMethods } = usePaymentMethods();
   const { mutate: createPaymentMethod } = usePaymentMethodCreate();
   const { mutate: updatePaymentMethod } = usePaymentMethodUpdate();
+  const { mutate: deletePaymentMethod } = usePaymentMethodDelete();
 
   const paymentMethodsFiltered = (paymentMethods || []).filter(
     (paymentMethod) => {
@@ -87,16 +89,24 @@ const MetodoDePagamentos = () => {
     {
       title: "Ações",
       key: "acoes",
+      align: "center",
       render: (_, record) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<Edit size={14} />}
-            onClick={() => editarMetodoDePagamento(record)}
-          >
-            Editar
-          </Button>
-        </Space>
+        <DropdownComponent
+          menu={{
+            items: [
+              {
+                key: "1",
+                label: "Editar",
+                onClick: () => editarMetodoDePagamento(record),
+              },
+              {
+                key: "2",
+                label: "Excluir",
+                onClick: () => excluirMetodoDePagamento(record),
+              },
+            ],
+          }}
+        />
       ),
     },
   ];
@@ -105,6 +115,17 @@ const MetodoDePagamentos = () => {
     setEditingPaymentMethod(paymentMethod);
     form.setFieldsValue(paymentMethod);
     setModalVisible(true);
+  };
+
+  const excluirMetodoDePagamento = (paymentMethod: PaymentMethod.Props) => {
+    Modal.confirm({
+      title: "Confirmar Exclusão",
+      content: `Você tem certeza que deseja excluir o método de pagamento ${paymentMethod.nome}?`,
+      okText: "Sim, Excluir",
+      okButtonProps: { danger: true },
+      cancelText: "Não",
+      onOk: () => deletePaymentMethod(paymentMethod.id),
+    });
   };
 
   const handleSubmit = (values: PaymentMethod.Props) => {

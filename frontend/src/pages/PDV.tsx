@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   Row,
@@ -25,7 +25,6 @@ import {
   CreditCard,
   User,
   X,
-  Printer,
 } from "lucide-react";
 import { useProducts } from "@/hooks/use-products";
 import { useServices } from "@/hooks/use-services";
@@ -33,29 +32,66 @@ import { useCustomers } from "@/hooks/use-customer";
 import { useSaleCreate } from "@/hooks/use-sales";
 import { usePaymentMethods } from "@/hooks/use-payment-methods";
 import { TelaPagamento } from "@/components/PDV/TelaPagamento";
+import { formatCurrency } from "@/utils/formatCurrency";
+import { useReciboVenda } from "@/hooks/use-recibo-venda";
+import { useQueryClient } from "@tanstack/react-query";
+import { getSale } from "@/api/sales";
 
 const { Title, Text } = Typography;
-const { Option } = Select;
+
+type AcrescimoOrDesconto = {
+  valor: number;
+  tipo: "percentual" | "valor";
+};
+
+const PDV_SESSION_KEY = "pdv-session-data";
+const INITIAL_STATE = {
+  carrinho: [] as Sale.CartItem[],
+  clienteSelecionado: null as string | null,
+  pagamentos: [],
+  desconto: { valor: null, tipo: "percentual" } as AcrescimoOrDesconto,
+  acrescimo: { valor: null, tipo: "percentual" } as AcrescimoOrDesconto,
+};
 
 const PDV = () => {
+  const queryClient = useQueryClient();
+
+  const [saleSession, setSaleSession] = useState<typeof INITIAL_STATE>(() => {
+    try {
+      const savedSession = window.localStorage.getItem(PDV_SESSION_KEY);
+      if (savedSession) {
+        return JSON.parse(savedSession);
+      }
+    } catch (error) {
+      console.error("Falha ao carregar sessão do PDV:", error);
+    }
+    return INITIAL_STATE;
+  });
+
+  const { carrinho, clienteSelecionado, pagamentos, desconto, acrescimo } =
+    saleSession;
+
   const [modoCarrinho, setModoCarrinho] = useState<Sale.CartType>("venda");
-  const [carrinho, setCarrinho] = useState<Sale.CartItem[]>([]);
-  const [clienteSelecionado, setClienteSelecionado] = useState<string>(null);
   const [abrirModalCliente, setAbrirModalCliente] = useState(false);
 
-  const [pagamentos, setPagamentos] = useState<Sale.Props["pagamentos"]>([]);
-  const [desconto, setDesconto] = useState<number>(0);
-  const [acrescimo, setAcrescimo] = useState<number>(0);
   const [busca, setBusca] = useState<string>("");
-  const [reciboPrint, setReciboPrint] = useState(false);
+  const { ReciboComponent, abrirRecibo } = useReciboVenda();
 
-  const { data: produtos } = useProducts();
-  const { data: servicos } = useServices();
-  const { data: clientes } = useCustomers();
-  /*  const { data: funcionarios } = useFuncionarios(); */
+  const { data: produtos, isLoading: isLoadingProdutos } = useProducts();
+  const { data: servicos, isLoading: isLoadingServicos } = useServices();
+  const { data: clientes, isLoading: isLoadingClientes } = useCustomers();
   const { data: formasDePagamentos } = usePaymentMethods();
 
-  const { mutate: createSale } = useSaleCreate();
+  const { mutateAsync: createSale } = useSaleCreate();
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      PDV_SESSION_KEY,
+      JSON.stringify(saleSession || [])
+    );
+  }, [saleSession]);
+
+  const carrinhoVazio = carrinho.length === 0;
 
   const formatItem = (item: Sale.CartItem) => {
     switch (item.tipo) {
@@ -74,6 +110,10 @@ const PDV = () => {
     }
   };
 
+  const updateSaleSession = (updates) => {
+    setSaleSession((prev) => ({ ...prev, ...updates }));
+  };
+
   const adicionarAoCarrinho = (
     item: Product.Props | Service.Props,
     tipo: "produto" | "servico"
@@ -86,23 +126,23 @@ const PDV = () => {
       quantidade: 1,
     };
 
-    const itemExistente = carrinho.find((c) => c.id === novoItem.id);
+    const itemExistente = carrinho?.find((c) => c.id === novoItem.id);
+    let novoCarrinho;
 
     if (itemExistente) {
-      setCarrinho(
-        carrinho?.map((c) =>
-          c.id === item.id && c.tipo === tipo
-            ? { ...c, quantidade: c.quantidade + 1 }
-            : c
-        )
+      novoCarrinho = carrinho?.map((c) =>
+        c.id === item.id && c.tipo === tipo
+          ? { ...c, quantidade: c.quantidade + 1 }
+          : c
       );
     } else {
-      setCarrinho([...carrinho, novoItem]);
+      novoCarrinho = [...carrinho, novoItem];
     }
+    updateSaleSession({ carrinho: novoCarrinho });
   };
 
   const removerDoCarrinho = (index: number) => {
-    setCarrinho(carrinho?.filter((_, i) => i !== index));
+    updateSaleSession({ carrinho: carrinho?.filter((_, i) => i !== index) });
   };
 
   const alterarQuantidade = (index: number, novaQuantidade: number) => {
@@ -111,11 +151,11 @@ const PDV = () => {
       return;
     }
 
-    setCarrinho(
-      carrinho?.map((item, i) =>
+    updateSaleSession({
+      carrinho: carrinho?.map((item, i) =>
         i === index ? { ...item, quantidade: novaQuantidade } : item
-      )
-    );
+      ),
+    });
   };
 
   const toogleClienteModal = () => setAbrirModalCliente(!abrirModalCliente);
@@ -130,8 +170,13 @@ const PDV = () => {
     );
   };
 
-  const calPercentual = (valor: number, percentual: number) =>
-    (valor * percentual) / 100;
+  const calPercentual = (value: number, item: AcrescimoOrDesconto) => {
+    if (item.tipo === "percentual") {
+      return (value * item.valor) / 100;
+    } else {
+      return item.valor;
+    }
+  };
 
   const calcularTotal = () => {
     const subtotal = calcularSubtotal();
@@ -141,8 +186,8 @@ const PDV = () => {
     return subtotal + calAcrescimo - calDesconto;
   };
 
-  const finalizarVenda = async () => {
-    if (carrinho.length === 0) {
+  const finalizarVenda = async (troco: number) => {
+    if (carrinhoVazio) {
       message.error("Carrinho vazio!");
       return;
     }
@@ -162,25 +207,35 @@ const PDV = () => {
       clienteId: clienteSelecionado,
       funcionarioId: null,
       itens: carrinho.map((item) => formatItem(item)),
+      subtotal: calcularSubtotal(),
+      total: calcularTotal(),
+      troco: troco,
       pagamentos,
-      desconto: 0,
-      acrescimo: 0,
+      desconto: calPercentual(calcularSubtotal(), desconto),
+      acrescimo: calPercentual(calcularSubtotal(), acrescimo),
       status: "PAGO",
     };
 
-    createSale(body);
-    setReciboPrint(true);
+    try {
+      const novaVenda = await createSale(body);
+      const vendaCompleta = await queryClient.fetchQuery({
+        queryKey: ["get-sale", novaVenda.id],
+        queryFn: () => getSale(novaVenda.id),
+      });
+      limparCarrinho();
+      abrirRecibo(vendaCompleta);
+    } catch (error) {
+      message.error(error);
+    }
   };
 
   const limparCarrinho = () => {
-    setCarrinho([]);
-    setClienteSelecionado("");
-    setDesconto(0);
-    setAcrescimo(0);
-    setPagamentos([]);
-    setClienteSelecionado(null);
+    setSaleSession(INITIAL_STATE);
     setModoCarrinho("venda");
+    window.localStorage.removeItem(PDV_SESSION_KEY);
   };
+
+  const { Option } = Select;
 
   const carrinhoColumns: TableColumnProps<Sale.CartItem>[] = [
     {
@@ -200,13 +255,13 @@ const PDV = () => {
       key: "preco",
       align: "center",
       ellipsis: true,
-      render: (preco: number) => `R$ ${preco}`,
+      render: (preco: number) => formatCurrency(preco),
     },
     {
       title: "Qtd.",
       key: "quantidade",
       align: "center",
-      render: (_: any, record: Sale.CartItem, index: number) => (
+      render: (_, record, index: number) => (
         <div className="flex items-center gap-2">
           <Button
             size="small"
@@ -226,9 +281,9 @@ const PDV = () => {
       title: "Total",
       key: "total",
       align: "center",
-      render: (_, record: Sale.CartItem) => (
+      render: (_, record) => (
         <span className="font-semibold">
-          R$ {(record.preco * record.quantidade).toFixed(2)}
+          {formatCurrency(record.preco * record.quantidade)}
         </span>
       ),
     },
@@ -236,7 +291,7 @@ const PDV = () => {
       title: "Ações",
       key: "acoes",
       align: "center",
-      render: (_, record: Sale.CartItem, index: number) => (
+      render: (_, record, index: number) => (
         <Button
           type="text"
           icon={<Trash2 size={14} />}
@@ -259,21 +314,27 @@ const PDV = () => {
       <div className="bg-muted p-4 rounded-lg space-y-2">
         <div className="flex justify-between">
           <span>Subtotal:</span>
-          <span>R$ {calcularSubtotal().toFixed(2)}</span>
+          <span>{formatCurrency(calcularSubtotal())}</span>
         </div>
-        {acrescimo > 0 && (
+        {acrescimo.valor > 0 && (
           <div className="flex justify-between text-salao-success">
-            <span>Acrescimo ({acrescimo}%):</span>
             <span>
-              + R$ {((calcularSubtotal() * acrescimo) / 100).toFixed(2)}
+              Acrescimo
+              {acrescimo.tipo === "percentual" ? ` (${acrescimo.valor}%:)` : ""}
+            </span>
+            <span>
+              + {formatCurrency(calPercentual(calcularSubtotal(), acrescimo))}
             </span>
           </div>
         )}
-        {desconto > 0 && (
+        {desconto.valor > 0 && (
           <div className="flex justify-between text-salao-success">
-            <span>Desconto ({desconto}%):</span>
             <span>
-              - R$ {((calcularSubtotal() * desconto) / 100).toFixed(2)}
+              Desconto
+              {desconto.tipo === "percentual" ? ` (${desconto.valor}%:)` : ""}
+            </span>
+            <span>
+              - {formatCurrency(calPercentual(calcularSubtotal(), desconto))}
             </span>
           </div>
         )}
@@ -282,7 +343,7 @@ const PDV = () => {
         <div className="flex justify-between text-lg font-semibold">
           <span>Total:</span>
           <span className="text-salao-primary">
-            R$ {calcularTotal().toFixed(2)}
+            {formatCurrency(calcularTotal())}
           </span>
         </div>
       </div>
@@ -302,7 +363,11 @@ const PDV = () => {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card title="Produtos e Serviços" className="h-full">
+          <Card
+            loading={isLoadingProdutos || isLoadingServicos}
+            title="Produtos e Serviços"
+            className="h-full"
+          >
             <div className="mb-4">
               <Input
                 placeholder="Buscar produtos ou serviços..."
@@ -311,6 +376,14 @@ const PDV = () => {
                 onChange={(e) => setBusca(e.target.value)}
               />
             </div>
+
+            {!filteredProdutos.length && !filteredServicos.length && (
+              <div className="flex justify-center items-center h-full">
+                <p className="text-center text-sm text-muted-foreground">
+                  Nenhum produto ou serviço encontrado
+                </p>
+              </div>
+            )}
 
             <div className="space-y-4">
               {filteredProdutos.length > 0 && (
@@ -338,7 +411,7 @@ const PDV = () => {
                               {produto.nome}
                             </Text>
                             <div className="text-salao-primary font-semibold">
-                              R$ {produto.preco}
+                              {formatCurrency(produto.preco)}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {produto.estoque} un
@@ -371,7 +444,7 @@ const PDV = () => {
                               {servico.nome}
                             </div>
                             <div className="text-salao-primary font-semibold">
-                              R$ {servico.preco}
+                              {formatCurrency(servico.preco)}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {servico.duracao}min
@@ -408,12 +481,14 @@ const PDV = () => {
                     <Tooltip title="Desvicular Cliente">
                       <Button
                         className="font-bold hover:underline"
-                        onClick={() => setClienteSelecionado(null)}
+                        onClick={() =>
+                          updateSaleSession({ clienteSelecionado: null })
+                        }
                         type="text"
-                        icon={<User className="font-semibold" size={14} />}
+                        icon={<X className="font-semibold" size={14} />}
                       >
                         {
-                          clientes.find((c) => c.id === clienteSelecionado)
+                          clientes?.find((c) => c.id === clienteSelecionado)
                             ?.nome
                         }
                       </Button>
@@ -445,20 +520,82 @@ const PDV = () => {
                     >
                       <Form.Item className="m-0" label="Desconto">
                         <InputNumber
+                          disabled={carrinhoVazio}
+                          addonAfter={
+                            <Select
+                              defaultValue={desconto.tipo}
+                              onChange={(value) => {
+                                updateSaleSession({
+                                  desconto: {
+                                    valor: saleSession.desconto.valor,
+                                    tipo: value,
+                                  },
+                                });
+                              }}
+                              options={[
+                                {
+                                  value: "percentual",
+                                  label: "%",
+                                },
+                                {
+                                  value: "valor",
+                                  label: "R$",
+                                },
+                              ]}
+                            />
+                          }
                           min={0}
                           max={100}
-                          value={desconto}
-                          onChange={(value) => setDesconto(value || 0)}
-                          style={{ width: "100%" }}
+                          value={desconto.valor}
+                          onChange={(value) => {
+                            updateSaleSession({
+                              desconto: {
+                                valor: value || 0,
+                                tipo: saleSession.desconto.tipo,
+                              },
+                            });
+                          }}
+                          style={{ width: "80%" }}
                         />
                       </Form.Item>
                       <Form.Item className="m-0" label="Acréscimo">
                         <InputNumber
+                          disabled={carrinhoVazio}
+                          addonAfter={
+                            <Select
+                              defaultValue={acrescimo.tipo}
+                              onChange={(value) => {
+                                updateSaleSession({
+                                  acrescimo: {
+                                    valor: saleSession.acrescimo.valor,
+                                    tipo: value,
+                                  },
+                                });
+                              }}
+                              options={[
+                                {
+                                  value: "percentual",
+                                  label: "%",
+                                },
+                                {
+                                  value: "valor",
+                                  label: "R$",
+                                },
+                              ]}
+                            />
+                          }
                           min={0}
                           max={100}
-                          value={acrescimo}
-                          onChange={(value) => setAcrescimo(value || 0)}
-                          style={{ width: "100%" }}
+                          value={acrescimo.valor}
+                          onChange={(value) => {
+                            updateSaleSession({
+                              acrescimo: {
+                                valor: value || 0,
+                                tipo: saleSession.acrescimo.tipo,
+                              },
+                            });
+                          }}
+                          style={{ width: "80%" }}
                         />
                       </Form.Item>
                       <Form.Item className="m-0 flex items-end w-full">
@@ -466,7 +603,7 @@ const PDV = () => {
                           danger
                           icon={<Trash2 size={14} />}
                           onClick={limparCarrinho}
-                          disabled={carrinho.length === 0}
+                          disabled={carrinhoVazio}
                           style={{ width: "100%" }}
                         >
                           Limpar Carrinho
@@ -482,7 +619,7 @@ const PDV = () => {
                       block
                       icon={<CreditCard size={14} />}
                       onClick={toogleCarrinhoTipo}
-                      disabled={carrinho.length === 0}
+                      disabled={carrinhoVazio}
                     >
                       Formas de Pagamento
                     </Button>
@@ -493,7 +630,9 @@ const PDV = () => {
                   totalAPagar={calcularTotal()}
                   formasDePagamento={formasDePagamentos || []}
                   pagamentos={pagamentos}
-                  setPagamentos={setPagamentos}
+                  setPagamentos={(pagamentos) => {
+                    updateSaleSession({ pagamentos });
+                  }}
                   onFinalizar={finalizarVenda}
                   onVoltar={toogleCarrinhoTipo}
                 />
@@ -516,7 +655,9 @@ const PDV = () => {
             style={{ width: "100%" }}
             value={clienteSelecionado}
             allowClear
-            onChange={setClienteSelecionado}
+            onChange={(cliente) =>
+              updateSaleSession({ clienteSelecionado: cliente })
+            }
             showSearch
             filterOption={(input, option) =>
               option?.label
@@ -534,103 +675,7 @@ const PDV = () => {
         </div>
       </Modal>
 
-      <Modal
-        title="Recibo de Venda"
-        open={reciboPrint}
-        onCancel={() => {
-          limparCarrinho();
-          setReciboPrint(false);
-        }}
-        footer={[
-          <Button
-            key="print"
-            icon={<Printer size={14} />}
-            onClick={() => window.print()}
-          >
-            Imprimir
-          </Button>,
-          <Button
-            key="close"
-            onClick={() => {
-              limparCarrinho();
-              setReciboPrint(false);
-            }}
-          >
-            Fechar
-          </Button>,
-        ]}
-        width={400}
-      >
-        <div className="space-y-4 print:text-black">
-          <div className="text-center">
-            <Title level={4} className="!mb-1">
-              Salão X
-            </Title>
-            <p className="text-sm">Recibo de Venda</p>
-          </div>
-
-          <Divider />
-
-          <div>
-            <p>
-              <strong>Cliente:</strong>{" "}
-              {clientes?.find((c) => c.id === clienteSelecionado)?.nome}
-            </p>
-            <p>
-              <strong>Data:</strong> {new Date().toLocaleDateString("pt-BR")}
-            </p>
-            <p>
-              <strong>Hora:</strong> {new Date().toLocaleTimeString("pt-BR")}
-            </p>
-          </div>
-
-          <Divider />
-
-          <div className="space-y-2">
-            {carrinho?.map((item, index) => (
-              <div key={index} className="flex justify-between text-sm">
-                <span>
-                  {item.nome} x{item.quantidade}
-                </span>
-                <span>R$ {(item.preco * item.quantidade).toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-
-          <Divider />
-
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span>R$ {calcularSubtotal().toFixed(2)}</span>
-            </div>
-            {acrescimo > 0 && (
-              <div className="flex justify-between">
-                <span>Acréscimo:</span>
-                <span>
-                  R$ {((calcularSubtotal() * acrescimo) / 100).toFixed(2)}
-                </span>
-              </div>
-            )}
-            {desconto > 0 && (
-              <div className="flex justify-between">
-                <span>Desconto:</span>
-                <span>
-                  R$ {((calcularSubtotal() * desconto) / 100).toFixed(2)}
-                </span>
-              </div>
-            )}
-            <div className="flex justify-between font-semibold text-lg">
-              <span>Total:</span>
-              <span>R$ {calcularTotal().toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div className="text-center text-sm text-muted-foreground mt-4">
-            <p>Obrigado pela preferência!</p>
-          </div>
-        </div>
-      </Modal>
+      <ReciboComponent />
     </div>
   );
 };
