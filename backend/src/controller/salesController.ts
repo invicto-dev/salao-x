@@ -16,7 +16,7 @@ export class SalesController {
         },
         orderBy: { createdAt: "desc" },
       });
-      res.json(vendas);
+      res.status(200).json({ sucess: true, data: vendas });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Erro ao buscar vendas" });
@@ -38,7 +38,8 @@ export class SalesController {
       });
       if (!venda)
         return res.status(404).json({ error: "Venda não encontrada" });
-      res.json(venda);
+
+      res.status(200).json({ sucess: true, data: venda });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Erro ao buscar venda" });
@@ -51,6 +52,9 @@ export class SalesController {
       clienteId,
       funcionarioId,
       itens,
+      subtotal,
+      total,
+      troco,
       pagamentos,
       desconto,
       acrescimo,
@@ -58,19 +62,13 @@ export class SalesController {
     } = req.body;
 
     try {
-      // Calcular total da venda
-      let total = itens.reduce(
-        (acc: number, item: any) => acc + item.preco * item.quantidade,
-        0
-      );
-      if (desconto) total -= desconto;
-      if (acrescimo) total += acrescimo;
-
       const venda = await prisma.sale.create({
         data: {
           clienteId,
           funcionarioId,
+          subtotal,
           total,
+          troco: troco || 0,
           desconto: desconto || 0,
           acrescimo: acrescimo || 0,
           status: status || "PAGO",
@@ -97,7 +95,7 @@ export class SalesController {
         },
       });
 
-      res.status(201).json(venda);
+      res.status(201).json({ sucess: true, data: venda });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Erro ao criar venda" });
@@ -118,7 +116,7 @@ export class SalesController {
         where: { id },
         data: { status },
       });
-      res.json(venda);
+      res.status(200).json({ sucess: true, data: venda });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Erro ao atualizar venda" });

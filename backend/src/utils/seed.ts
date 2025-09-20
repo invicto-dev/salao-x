@@ -5,54 +5,6 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Iniciando seed do banco de dados...");
 
-  // Criar funcionários individualmente para pegar os IDs
-  const victor = await prisma.employee.create({
-    data: {
-      nome: "Victor Hugo",
-      email: "victor@hugo.com",
-      telefone: "(11) 1234-5678",
-      funcao: "Diretor de Negócios",
-      comissao: 10,
-      ativo: true,
-    },
-  });
-
-  const vicente = await prisma.employee.create({
-    data: {
-      nome: "Vicente Hugo",
-      email: "vicente@hugo.com",
-      telefone: "(11) 1234-5678",
-      funcao: "Gerente Comercial",
-      comissao: 8,
-      ativo: true,
-    },
-  });
-
-  console.log("✅ Funcionários criados com sucesso!");
-
-  // Criar clientes
-  const rafael = await prisma.customer.create({
-    data: {
-      nome: "Rafael Hugo",
-      email: "rafaek@hugo.com",
-      telefone: "(11) 1234-5678",
-      cpf: "123.456.789-01",
-      ativo: true,
-    },
-  });
-
-  const pablo = await prisma.customer.create({
-    data: {
-      nome: "Pablo Marcal",
-      email: "pablo@marcal.com",
-      telefone: "(11) 1234-5678",
-      cpf: "123.456.789-02",
-      ativo: true,
-    },
-  });
-
-  console.log("✅ Clientes criados com sucesso!");
-
   // Criar configuração padrão
   await prisma.setting.upsert({
     where: { id: "configuracao-padrao" },
@@ -129,58 +81,6 @@ async function main() {
 
   console.log("✅ Serviço criado com categoria!");
 
-  // Criar formas de pagamento
-  const dinheiro = await prisma.paymentMethod.create({
-    data: { nome: "Dinheiro" },
-  });
-
-  const pix = await prisma.paymentMethod.create({
-    data: { nome: "Pix", chavePix: "123.456.789-00" },
-  });
-
-  console.log("✅ Formas de pagamento criadas com sucesso!");
-
-  // Criar uma venda vinculada a funcionário e cliente
-  const venda = await prisma.sale.create({
-    data: {
-      clienteId: rafael.id,
-      funcionarioId: victor.id,
-      total: 109.9,
-      desconto: 10,
-      acrescimo: 0,
-      status: "PENDENTE",
-      itens: {
-        create: [
-          {
-            produtoId: shampoo.id,
-            quantidade: 1,
-            preco: 49.9,
-            subtotal: 49.9,
-          },
-          {
-            servicoId: corte.id,
-            quantidade: 1,
-            preco: 60,
-            subtotal: 60,
-          },
-        ],
-      },
-      pagamentos: {
-        create: [
-          {
-            metodoDePagamentoId: dinheiro.id,
-            valor: 50,
-          },
-          {
-            metodoDePagamentoId: pix.id,
-            valor: 49.9,
-          },
-        ],
-      },
-    },
-  });
-
-  console.log("✅ Venda criada com sucesso!");
   console.log("\n🎉 Seed concluído com sucesso!");
 }
 

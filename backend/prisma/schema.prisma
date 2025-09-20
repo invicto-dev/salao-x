@@ -153,7 +153,9 @@ model Sale {
   funcionarioId      String?  // Funcionario optional (e.g sale avulso)
   funcionario        Employee? @relation(fields: [funcionarioId], references: [id])
 
+  subtotal           Decimal
   total              Decimal
+  troco              Decimal?
   desconto           Decimal?
   acrescimo          Decimal?
   status             SaleStatus @default(PENDENTE)
