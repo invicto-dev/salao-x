@@ -17,8 +17,8 @@ export const createSale = async (body: Sale.Props): Promise<Sale.Props> => {
 
 export const updatesale = async (
   id: string,
-  body: Sale.Props
+  body: { status: Sale.Props["status"] }
 ): Promise<Sale.Props> => {
-  const response = await http.put(`/sales/${id}`, body);
+  const response = await http.patch(`/sales/${id}/status`, body);
   return response.data.data;
 };

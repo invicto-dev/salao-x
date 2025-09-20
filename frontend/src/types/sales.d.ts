@@ -16,7 +16,10 @@ declare global {
 
     interface ItemProps {
       produtoId?: string;
+      produto?: Product.Props;
       servicoId?: string;
+      servico?: Service.Props;
+      subtotal?: number;
       quantidade: number;
       preco: number;
     }
@@ -24,16 +27,23 @@ declare global {
     interface Props {
       id?: string;
       clienteId?: string;
+      cliente?: Customer.Props;
       funcionarioId?: string;
       itens: ItemProps[];
       pagamentos: {
         metodoDePagamentoId: string;
+        metodoDePagamento?: PaymentMethod.Props;
         valor: number;
         observacao?: string;
       }[];
       desconto: number;
       acrescimo: number;
+      total?: number;
+      subtotal?: number;
+      troco?: number;
       status: "PENDENTE" | "PAGO" | "CANCELADO";
+      createdAt?: string;
+      updatedAt?: string;
     }
   }
 }
