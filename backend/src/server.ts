@@ -1,4 +1,5 @@
 import express from "express";
+import "express-async-errors";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -12,6 +13,8 @@ import { productRoutes } from "./routes/products";
 import { paymentMethodRoutes } from "./routes/paymentMethods";
 import { categoryRoutes } from "./routes/categories";
 import { salesRoutes } from "./routes/sales";
+import { errorHandler } from "./middlewares/errorHandler";
+import { stockRoutes } from "./routes/stock";
 
 const app = express();
 
@@ -52,24 +55,6 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Middleware de erro global
-app.use(
-  (
-    err: any,
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    console.error("Erro não tratado:", err);
-
-    res.status(err.status || 500).json({
-      success: false,
-      error:
-        NODE_ENV === "production" ? "Erro interno do servidor" : err.message,
-    });
-  }
-);
-
 app.use("/api/configuracoes", settingsRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/customers", customerRoutes);
@@ -78,6 +63,10 @@ app.use("/api/products", productRoutes);
 app.use("/api/payment-methods", paymentMethodRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/sales", salesRoutes);
+app.use("/api/stock", stockRoutes);
+
+// Middleware para tratar erros
+app.use(errorHandler);
 
 // Middleware para rotas não encontradas
 app.use("*", (req, res) => {

@@ -12,6 +12,7 @@ declare global {
       quantidade: number;
       funcionario?: string;
       comissao?: number;
+      contarEstoque?: boolean;
     }
 
     interface ItemProps {

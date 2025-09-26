@@ -21,12 +21,15 @@ export const useSale = (id: string) => {
   });
 };
 
-export const useSaleCreate = () =>
-  useMutation({
+export const useSaleCreate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: async (body: Sale.Props) => {
       return await createSale(body);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get-stock-products"] });
       message.success("Venda registrada com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
@@ -34,6 +37,7 @@ export const useSaleCreate = () =>
       return error;
     },
   });
+};
 
 export const useSaleUpdateStatus = () => {
   const queryCliente = useQueryClient();

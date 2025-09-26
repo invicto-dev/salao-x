@@ -9,8 +9,10 @@ declare global {
       categoria: string;
       preco: number;
       custo: number;
+      valorEmAberto?: boolean;
+      estoqueMinimo?: number;
+      unidadeMedida: string;
       contarEstoque: boolean;
-      estoque?: number;
       ativo: boolean;
       descricao?: string;
     }
