@@ -8,7 +8,6 @@ import {
   Form,
   Space,
   Typography,
-  message,
   Row,
   Col,
   DatePicker,
@@ -19,7 +18,6 @@ import {
   Switch,
 } from "antd";
 import {
-  Users,
   Plus,
   Search,
   Edit,
@@ -113,11 +111,7 @@ const Clientes = () => {
       render: (_, record) => (
         <div className="flex items-center gap-3">
           <Avatar size={40} icon={<User size={20} />}>
-            {record.nome
-              .split(" ")
-              .map((n: string) => n[0])
-              .join("")
-              .slice(0, 2)}
+            {record.nome}
           </Avatar>
           <div>
             <div className="font-medium">{record.nome}</div>
@@ -136,25 +130,23 @@ const Clientes = () => {
       key: "contato",
       render: (_, record) => (
         <div className="space-y-1">
-          {record.telefone && (
-            <div className="text-sm flex items-center gap-2">
-              <Phone size={12} className="text-muted-foreground" />
-              {record.telefone}
-            </div>
-          )}
-          {record.email && (
-            <div className="text-sm flex items-center gap-2">
-              <Mail size={12} className="text-muted-foreground" />
-              {record.email}
-            </div>
-          )}
+          <div className="text-sm flex items-center gap-2">
+            <Phone size={12} className="text-muted-foreground" />
+            {record.telefone || "Não informado"}
+          </div>
+          <div className="text-sm flex items-center gap-2">
+            <Mail size={12} className="text-muted-foreground" />
+            <span>{record.email || "Não informado"}</span>
+          </div>
 
-          {record.aniversario && (
-            <div className="text-sm flex items-center gap-2">
-              <Calendar size={12} className="text-muted-foreground" />
-              {dayjs(record.aniversario).format("DD/MM")}
-            </div>
-          )}
+          <div className="text-sm flex items-center gap-2">
+            <Calendar size={12} className="text-muted-foreground" />
+            <span>
+              {(record.aniversario &&
+                dayjs(record.aniversario).format("DD/MM")) ||
+                "Não informado"}
+            </span>
+          </div>
         </div>
       ),
     },
@@ -390,7 +382,6 @@ const Clientes = () => {
                 label="Telefone"
                 name="telefone"
                 rules={[
-                  { required: true, message: "Telefone é obrigatório" },
                   {
                     pattern: /^\(\d{2}\)\s\d{4,5}-\d{4}$/,
                     message: "Formato inválido. Use (11) 99999-9999",
@@ -414,7 +405,7 @@ const Clientes = () => {
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item
-                label="CPF (opcional)"
+                label="CPF"
                 name="cpf"
                 rules={[
                   {

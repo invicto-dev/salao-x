@@ -19,6 +19,7 @@ import {
   Image,
   Checkbox,
   TableColumnProps,
+  Tooltip,
 } from "antd";
 import {
   Package,
@@ -33,6 +34,8 @@ import {
   useProductUpdate,
 } from "@/hooks/use-products";
 import { NameInput } from "@/components/inputs/NameInput";
+import { useCategories } from "@/hooks/use-categories";
+import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -42,52 +45,41 @@ const Produtos = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [filtroCategoria, setFiltroCategoria] = useState(undefined);
-  const [countStock, setCountStock] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState(undefined);
   const [busca, setBusca] = useState("");
   const [form] = Form.useForm();
-  const { data: products } = useProducts();
-  const { mutate: createProduct } = useProductCreate();
-  const { mutate: updateProduct } = useProductUpdate();
+  const { data: products, isFetching: isFetchingProducts } = useProducts({
+    search: busca,
+    categoryId: filtroCategoria,
+  });
+  const { data: categories } = useCategories();
+  const { mutateAsync: createProduct } = useProductCreate();
+  const { mutateAsync: updateProduct } = useProductUpdate();
 
-  const categorias = ["Cabelo", "Unhas", "Pele", "Maquiagem", "Acessórios"];
+  const unidadeMedidas = ["un", "m", "kg", "g", "mg", "cm", "mm"];
 
   const productsFiltered = (products || []).filter((produto) => {
-    const matchBusca =
-      produto.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      (produto.codigo || "").toLowerCase().includes(busca.toLowerCase());
-    const matchCategoria =
-      !(filtroCategoria || "") || produto.categoria === (filtroCategoria || "");
     const matchStatus =
       (filtroStatus || "") === "" ||
       (filtroStatus === "ativo" && produto.ativo) ||
       (filtroStatus === "inativo" && !produto.ativo);
-    return matchBusca && matchCategoria && matchStatus;
+    return matchStatus;
   });
 
   const columns: TableColumnProps<Product.Props>[] = [
     {
       title: "Produto",
       key: "produto",
-      render: (_: any, record: any) => (
+      render: (_: any, record) => (
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-            {record.imagem ? (
-              <Image
-                src={record.imagem}
-                width={48}
-                height={48}
-                className="rounded-lg object-cover"
-                preview={false}
-              />
-            ) : (
-              <Package size={20} className="text-muted-foreground" />
-            )}
+            <Package size={20} className="text-muted-foreground" />
           </div>
           <div>
             <div className="font-medium">{record.nome}</div>
             <div className="text-sm text-muted-foreground">
-              {record.codigo} • {record.categoria}
+              {record.codigo || "Sem código"} •{" "}
+              {record.categoria || "Sem categoria"}
             </div>
           </div>
         </div>
@@ -96,38 +88,48 @@ const Produtos = () => {
     {
       title: "Preços",
       key: "precos",
-      render: (_: any, record: any) => (
+      render: (_, record) => (
         <div>
           <div className="font-semibold text-salao-primary">
-            R$ {record.preco}
+            {record.preco ? `R$ ${record.preco}` : "Valor em aberto"}
           </div>
-          <div className="text-sm text-muted-foreground">
-            Custo: R$ {record.custo}
-          </div>
-          <div className="text-xs text-salao-success">
-            Margem:{" "}
-            {(((record.preco - record.custo) / record.preco) * 100).toFixed(1)}%
-          </div>
+          {record.custo && record.custo > 0 && (
+            <div className="text-sm text-muted-foreground">
+              Custo: R$ {record.custo}
+            </div>
+          )}
+
+          {record.custo && record.custo > 0 && record.preco && (
+            <div className="text-xs text-salao-success">{`Margem: ${(
+              ((record.preco - record.custo) / record.custo) *
+              100
+            ).toFixed(2)} %`}</div>
+          )}
         </div>
       ),
     },
     {
       title: "Estoque",
-      dataIndex: "estoque",
+      dataIndex: "estoqueAtual",
       key: "estoque",
-      render: (estoque: number, record) =>
+      render: (estoqueAtual: number, record) =>
         record.contarEstoque ? (
-          <Tag color={estoque > 10 ? "green" : estoque > 0 ? "orange" : "red"}>
-            {estoque} un
+          <Tag
+            color={
+              estoqueAtual > 10 ? "green" : estoqueAtual > 0 ? "orange" : "red"
+            }
+          >
+            {estoqueAtual} un
           </Tag>
         ) : (
-          <>Não habilitado</>
+          <div className="text-sm text-muted-foreground">Não habilitado</div>
         ),
     },
     {
       title: "Status",
       dataIndex: "ativo",
       key: "ativo",
+      align: "center",
       render: (ativo: boolean) => (
         <Tag color={ativo ? "green" : "red"}>{ativo ? "Ativo" : "Inativo"}</Tag>
       ),
@@ -135,7 +137,8 @@ const Produtos = () => {
     {
       title: "Ações",
       key: "acoes",
-      render: (_: any, record: any) => (
+      align: "center",
+      render: (_, record) => (
         <Space>
           <Button
             type="text"
@@ -151,7 +154,6 @@ const Produtos = () => {
 
   const editarProduto = (produto: Product.Props) => {
     setEditingProduct(produto);
-    setCountStock(produto.contarEstoque);
     form.setFieldsValue(produto);
     setModalVisible(true);
   };
@@ -162,23 +164,28 @@ const Produtos = () => {
     setModalVisible(true);
   };
 
+  const clearForm = () => {
+    setModalVisible(false);
+    setEditingProduct(null);
+    form.resetFields();
+  };
+
+  const handleCreate = async (values: Product.Props) => {
+    await createProduct(values);
+    clearForm();
+  };
+
+  const handleUpdate = async (values: Product.Props) => {
+    await updateProduct({
+      id: editingProduct.id,
+      body: values,
+    });
+    clearForm();
+  };
+
   const handleSubmit = (values: Product.Props) => {
     try {
-      if (!editingProduct) {
-        createProduct(values);
-        setModalVisible(false);
-        form.resetFields();
-        setCountStock(false);
-      } else {
-        updateProduct({
-          id: editingProduct.id,
-          body: values,
-        });
-        setModalVisible(false);
-        form.resetFields();
-        setEditingProduct(null);
-        setCountStock(false);
-      }
+      editingProduct ? handleUpdate(values) : handleCreate(values);
     } catch (error) {
       console.error(error);
     }
@@ -200,6 +207,35 @@ const Produtos = () => {
       return false; // Simular upload (não enviar arquivo)
     },
   };
+
+  const SelectCategory = ({
+    value,
+    placeholder,
+    onChange,
+  }: {
+    value?: string;
+    placeholder: string;
+    onChange?: (value: string) => void;
+  }) => (
+    <Select
+      placeholder={placeholder}
+      allowClear
+      value={value}
+      onChange={onChange}
+      className="min-w-[250px]"
+      showSearch
+      optionFilterProp="label"
+      filterSort={(optionA, optionB) =>
+        (optionA?.label ?? "")
+          .toLowerCase()
+          .localeCompare((optionB?.label ?? "").toLowerCase())
+      }
+      options={categories?.map((cat) => ({
+        value: cat.id,
+        label: cat.nome,
+      }))}
+    />
+  );
 
   return (
     <div className="space-y-6">
@@ -223,19 +259,12 @@ const Produtos = () => {
               onChange={(e) => setBusca(e.target.value)}
               className="max-w-xs"
             />
-            <Select
-              placeholder="Categoria"
-              allowClear
-              value={filtroCategoria}
+            <SelectCategory
               onChange={setFiltroCategoria}
-              className="min-w-[150px]"
-            >
-              {categorias.map((cat) => (
-                <Option key={cat} value={cat}>
-                  {cat}
-                </Option>
-              ))}
-            </Select>
+              value={filtroCategoria}
+              placeholder="Categoria"
+            />
+
             <Select
               placeholder="Status"
               allowClear
@@ -263,6 +292,7 @@ const Produtos = () => {
           dataSource={productsFiltered}
           columns={columns}
           rowKey="id"
+          loading={{ spinning: isFetchingProducts }}
           pagination={{ pageSize: 10 }}
         />
       </Card>
@@ -271,12 +301,7 @@ const Produtos = () => {
       <Modal
         title={editingProduct ? "Editar Produto" : "Novo Produto"}
         open={modalVisible}
-        onCancel={() => {
-          setModalVisible(false);
-          form.resetFields();
-          setEditingProduct(null);
-          setCountStock(true);
-        }}
+        onCancel={clearForm}
         onOk={() => form.submit()}
         okText={editingProduct ? "Salvar" : "Cadastrar"}
         width={800}
@@ -285,7 +310,11 @@ const Produtos = () => {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
-          initialValues={{ ativo: true, estoque: 0, contarEstoque: countStock }}
+          initialValues={{
+            ativo: true,
+            contarEstoque: true,
+            unidadeMedida: "un",
+          }}
         >
           <Row gutter={16}>
             <Col xs={24} lg={16}>
@@ -306,15 +335,27 @@ const Produtos = () => {
                 </Col>
               </Row>
 
-              <Form.Item label="Categoria" name="categoria">
-                <Select placeholder="Selecionar categoria">
-                  {categorias.map((cat) => (
-                    <Option key={cat} value={cat}>
-                      {cat}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
+              <Row gutter={16}>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Categoria" name="categoriaId">
+                    <SelectCategory placeholder="Selecionar categoria" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Unidade de Medida" name="unidadeMedida">
+                    <Select
+                      defaultValue="un"
+                      placeholder="Selecionar unidade de medida"
+                    >
+                      {unidadeMedidas.map((cat) => (
+                        <Option key={cat} value={cat}>
+                          {cat}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
 
               <Form.Item label="Descrição" name="descricao">
                 <TextArea rows={3} placeholder="Descreva o produto..." />
@@ -347,56 +388,94 @@ const Produtos = () => {
             <Col xs={24} sm={8}>
               <Form.Item
                 label="Preço de Venda"
-                name="preco"
-                rules={[{ required: true, message: "Preço é obrigatório" }]}
+                shouldUpdate={(prevValues, currentValues) =>
+                  prevValues.valorEmAberto !== currentValues.valorEmAberto
+                }
               >
-                <InputNumber
-                  min={0}
-                  precision={2}
-                  style={{ width: "100%" }}
-                  addonBefore="R$"
-                  placeholder="0,00"
-                />
+                {({ getFieldValue }) => {
+                  const valorAberto = getFieldValue("valorEmAberto");
+                  return (
+                    <Form.Item
+                      name="preco"
+                      rules={[
+                        {
+                          required: !valorAberto,
+                          message: "Preço é obrigatório",
+                        },
+                      ]}
+                      className="m-0"
+                    >
+                      <CurrencyInput
+                        min={0}
+                        placeholder="0,00"
+                        addonAfter={
+                          <Tooltip title="Valor em aberto?">
+                            <Form.Item
+                              className="m-0"
+                              name="valorEmAberto"
+                              valuePropName="checked"
+                            >
+                              <Checkbox />
+                            </Form.Item>
+                          </Tooltip>
+                        }
+                      />
+                    </Form.Item>
+                  );
+                }}
               </Form.Item>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Form.Item
-                label="Preço de Custo"
-                name="custo"
-                rules={[{ required: true, message: "Custo é obrigatório" }]}
-              >
-                <InputNumber
-                  min={0}
-                  precision={2}
-                  style={{ width: "100%" }}
-                  addonBefore="R$"
-                  placeholder="0,00"
-                />
-              </Form.Item>
-
-              <Form.Item label="Status" name="ativo" valuePropName="checked">
-                <Switch checkedChildren="Ativo" unCheckedChildren="Inativo" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Form.Item
-                label="Estoque Inicial"
-                name="estoque"
-                rules={[{ required: countStock }]}
-              >
+              <Form.Item label="Estoque Mínimo" name="estoqueMinimo">
                 <InputNumber
                   min={0}
                   style={{ width: "100%" }}
                   placeholder="0"
-                  disabled={!countStock}
                 />
               </Form.Item>
-              <Form.Item name="contarEstoque" valuePropName="checked">
-                <Checkbox
-                  checked={countStock}
-                  onChange={(e) => setCountStock(e.target.checked)}
-                  children="Contar estoque?"
-                />
+            </Col>
+            <Col xs={24} sm={8}>
+              <Form.Item label="Preço de Custo" name="custo">
+                <CurrencyInput min={0} placeholder="0,00" />
+              </Form.Item>
+              {!editingProduct && (
+                <Form.Item
+                  label="Estoque Inicial"
+                  name="estoqueInicial"
+                  dependencies={["contarEstoque"]}
+                  rules={[
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (
+                          getFieldValue("contarEstoque") &&
+                          !value &&
+                          !editingProduct
+                        ) {
+                          return Promise.reject(
+                            new Error("Estoque inicial é obrigatório")
+                          );
+                        }
+                        return Promise.resolve();
+                      },
+                    }),
+                  ]}
+                >
+                  <InputNumber
+                    min={0}
+                    style={{ width: "100%" }}
+                    placeholder="0"
+                  />
+                </Form.Item>
+              )}
+            </Col>
+            <Col xs={24} sm={8}>
+              <Form.Item label="Status" name="ativo" valuePropName="checked">
+                <Switch checkedChildren="Ativo" unCheckedChildren="Inativo" />
+              </Form.Item>
+              <Form.Item
+                label="Contar Estoque?"
+                name="contarEstoque"
+                valuePropName="checked"
+              >
+                <Switch checkedChildren="Sim" unCheckedChildren="Não" />
               </Form.Item>
             </Col>
           </Row>

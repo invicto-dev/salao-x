@@ -8,136 +8,199 @@ datasource db {
 }
 
 model Setting {
-  id                 String   @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Informações da Empresa
-  nomeEmpresa        String
-  cnpj               String   @unique
-  endereco           String
-  bairro             String
-  cidade             String
-  cep                String
-  telefone           String
-  email              String   @unique
-  site               String?
+  nomeEmpresa String
+  cnpj        String  @unique
+  endereco    String
+  bairro      String
+  cidade      String
+  cep         String
+  telefone    String
+  email       String  @unique
+  site        String?
 
   // Configurações de Negócio
-  horarioFuncionamento Json     // Armazena Record<DiaSemana, Horario>
-  intervaloPadrao     Int       // minutos
-  antecedenciaMinima  Int       // minutos
+  horarioFuncionamento Json // Armazena Record<DiaSemana, Horario>
+  intervaloPadrao      Int // minutos
+  antecedenciaMinima   Int // minutos
 
   // Notificações
-  notificarAgendamentos  Boolean
-  notificarEstoqueBaixo  Boolean
-  notificarAniversarios  Boolean
-  whatsappAtivo          Boolean
-  emailAtivo             Boolean
+  notificarAgendamentos Boolean
+  notificarEstoqueBaixo Boolean
+  notificarAniversarios Boolean
+  whatsappAtivo         Boolean
+  emailAtivo            Boolean
 
   // Sistema
-  backupAutomatico    Boolean
-  manterHistorico     Int      // meses
-  timezone            String
+  backupAutomatico       Boolean
+  manterHistorico        Int // meses
+  timezone               String
+  exigirAprovacaoEstoque Boolean @default(false)
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  FUNCIONARIO
 }
 
 model Employee {
-  id                 String   @id @default(uuid())
-  nome               String
-  email              String   @unique
-  telefone           String
-  funcao             String
-  comissao           Decimal
-  ativo              Boolean
+  id       String  @id @default(uuid())
+  nome     String
+  email    String  @unique
+  telefone String
+  funcao   String
+  comissao Decimal
+  ativo    Boolean
+  Role     Role
 
-  vendas             Sale[]
+  vendas                   Sale[]
+  movimentacoesSolicitadas StockMovement[] @relation("SolicitadoPor")
+  movimentacoesAprovadas   StockMovement[] @relation("AprovadoPor")
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Customer {
-  id                 String   @id @default(uuid())
-  nome               String
-  telefone           String
-  email              String?  @unique
-  cpf                String?  @unique
-  aniversario        DateTime?
-  observacoes        String?  
-  ativo              Boolean  @default(true)
+  id          String    @id @default(uuid())
+  nome        String
+  telefone    String?
+  email       String?   @unique
+  cpf         String?   @unique
+  aniversario DateTime?
+  observacoes String?
+  ativo       Boolean   @default(true)
 
-  vendas             Sale[]
+  vendas Sale[]
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-}
-
-model Product {
-  id                 String   @id @default(uuid())
-  nome               String
-  codigo             String?  @unique
-  preco              Decimal?  
-  custo              Decimal?  
-  contarEstoque      Boolean  @default(true)
-  estoque            Int?
-  ativo              Boolean  @default(true)
-  descricao          String?
-
-  // Relation with Category
-  categoriaId        String?
-  categoria          Category? @relation(fields: [categoriaId], references: [id])
-
-  itensVenda         SaleItem[]
-
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Service {
-  id                 String   @id @default(uuid())
-  nome               String
-  codigo             String?  @unique
-  valorEmAberto      Boolean  @default(false)
-  preco              Decimal?  
-  duracao            Int?
-  ativo              Boolean  @default(true)
-  descricao          String?
+  id            String   @id @default(uuid())
+  nome          String
+  codigo        String?  @unique
+  valorEmAberto Boolean  @default(false)
+  preco         Decimal?
+  duracao       Int?
+  ativo         Boolean  @default(true)
+  descricao     String?
 
-  // Relação with Category
-  categoriaId        String?
-  categoria          Category? @relation(fields: [categoriaId], references: [id])
+  categoriaId String?
+  categoria   Category? @relation(fields: [categoriaId], references: [id])
 
-  itensVenda         SaleItem[]
+  itensVenda SaleItem[]
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  nome          String
+  codigo        String?  @unique
+  preco         Decimal?
+  custo         Decimal?
+  valorEmAberto Boolean  @default(false)
+  contarEstoque Boolean  @default(true)
+  estoqueMinimo Int?     @default(1)
+  unidadeMedida String   @default("un")
+  ativo         Boolean  @default(true)
+  descricao     String?
+
+  // Relation with Category
+  categoriaId String?
+  categoria   Category? @relation(fields: [categoriaId], references: [id])
+
+  itensVenda    SaleItem[]
+  movimentacoes StockMovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum StockMovementType {
+  ENTRADA
+  SAIDA
+  AJUSTE
+}
+
+enum StockMovementReason {
+  COMPRA
+  VENDA
+  QUEBRA
+  VENCIMENTO
+  DEVOLUCAO
+  AJUSTE_INVENTARIO
+  INSUMO_PARA_USO
+  CANCELAMENTO_VENDA
+}
+
+enum ApprovalStatus {
+  PENDENTE
+  APROVADO
+  REJEITADO
+}
+
+model StockMovement {
+  id String @id @default(uuid())
+
+  produtoId String
+  produto   Product @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  tipo       StockMovementType
+  motivo     StockMovementReason
+  quantidade Decimal
+
+  saleId String? // Opcional, pois nem toda movimentação vem de uma venda
+  sale   Sale?   @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  custoUnitario   Decimal?
+  observacao      String?
+  status          ApprovalStatus @default(PENDENTE)
+  solicitadoPorId String
+  solicitadoPor   Employee       @relation("SolicitadoPor", fields: [solicitadoPorId], references: [id])
+
+  aprovadoPorId String?
+  aprovadoPor   Employee? @relation("AprovadoPor", fields: [aprovadoPorId], references: [id])
+
+  dataAprovacao  DateTime?
+  motivoRejeicao String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PaymentMethod {
-  id                 String   @id @default(uuid())
-  nome               String
-  descricao          String?
-  ativo              Boolean  @default(true)
-  chavePix           String?
+  id        String  @id @default(uuid())
+  nome      String
+  descricao String?
+  ativo     Boolean @default(true)
+  chavePix  String?
 
-  pagamentos         SalePayment[]
+  pagamentos SalePayment[]
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Category {
-  id                 String   @id @default(uuid())
-  nome               String
-  descricao          String?
-  ativo              Boolean  @default(true)
+  id        String  @id @default(uuid())
+  nome      String
+  descricao String?
+  ativo     Boolean @default(true)
 
-  products           Product[]
-  services           Service[]
+  products Product[]
+  services Service[]
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum SaleStatus {
@@ -147,56 +210,57 @@ enum SaleStatus {
 }
 
 model Sale {
-  id                 String   @id @default(uuid())
-  clienteId          String?  // Customer optional (e.g sale avulso)
-  cliente            Customer? @relation(fields: [clienteId], references: [id])
-  funcionarioId      String?  // Funcionario optional (e.g sale avulso)
-  funcionario        Employee? @relation(fields: [funcionarioId], references: [id])
+  id            String    @id @default(uuid())
+  clienteId     String? // Customer optional (e.g sale avulso)
+  cliente       Customer? @relation(fields: [clienteId], references: [id])
+  funcionarioId String? // Funcionario optional (e.g sale avulso)
+  funcionario   Employee? @relation(fields: [funcionarioId], references: [id])
 
-  subtotal           Decimal
-  total              Decimal
-  troco              Decimal?
-  desconto           Decimal?
-  acrescimo          Decimal?
-  status             SaleStatus @default(PENDENTE)
+  subtotal  Decimal
+  total     Decimal
+  troco     Decimal?
+  desconto  Decimal?
+  acrescimo Decimal?
+  status    SaleStatus @default(PENDENTE)
 
-  itens              SaleItem[]
-  pagamentos         SalePayment[]
+  itens         SaleItem[]
+  pagamentos    SalePayment[]
+  movimentacoes StockMovement[]
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SaleItem {
-  id                 String   @id @default(uuid())
-  vendaId            String
-  venda              Sale     @relation(fields: [vendaId], references: [id])
+  id      String @id @default(uuid())
+  vendaId String
+  venda   Sale   @relation(fields: [vendaId], references: [id])
 
-  produtoId          String?
-  produto            Product? @relation(fields: [produtoId], references: [id])
+  produtoId String?
+  produto   Product? @relation(fields: [produtoId], references: [id])
 
-  servicoId          String?
-  servico            Service? @relation(fields: [servicoId], references: [id])
+  servicoId String?
+  servico   Service? @relation(fields: [servicoId], references: [id])
 
-  quantidade         Int      @default(1)
-  preco              Decimal
-  subtotal           Decimal
+  quantidade Int     @default(1)
+  preco      Decimal
+  subtotal   Decimal
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SalePayment {
-  id                 String   @id @default(uuid())
-  vendaId            String
-  venda              Sale     @relation(fields: [vendaId], references: [id])
+  id      String @id @default(uuid())
+  vendaId String
+  venda   Sale   @relation(fields: [vendaId], references: [id])
 
   metodoDePagamentoId String
   metodoDePagamento   PaymentMethod @relation(fields: [metodoDePagamentoId], references: [id])
 
-  valor              Decimal
-  observacao         String?
+  valor      Decimal
+  observacao String?
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

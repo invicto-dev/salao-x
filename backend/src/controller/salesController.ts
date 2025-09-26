@@ -1,52 +1,43 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
+import {
+  ApprovalStatus,
+  StockMovementReason,
+  StockMovementType,
+} from "@prisma/client";
 
 export class SalesController {
-  // Listar todas as vendas
   static async getAll(req: Request, res: Response) {
-    try {
-      const vendas = await prisma.sale.findMany({
-        include: {
-          cliente: true,
-          funcionario: true,
-          itens: {
-            include: { produto: true, servico: true },
-          },
-          pagamentos: { include: { metodoDePagamento: true } },
+    const vendas = await prisma.sale.findMany({
+      include: {
+        cliente: true,
+        funcionario: true,
+        itens: {
+          include: { produto: true, servico: true },
         },
-        orderBy: { createdAt: "desc" },
-      });
-      res.status(200).json({ sucess: true, data: vendas });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao buscar vendas" });
-    }
+        pagamentos: { include: { metodoDePagamento: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    res.status(200).json({ sucess: true, data: vendas });
   }
 
-  // Buscar venda por ID
   static async getById(req: Request, res: Response) {
     const { id } = req.params;
-    try {
-      const venda = await prisma.sale.findUnique({
-        where: { id },
-        include: {
-          cliente: true,
-          funcionario: true,
-          itens: { include: { produto: true, servico: true } },
-          pagamentos: { include: { metodoDePagamento: true } },
-        },
-      });
-      if (!venda)
-        return res.status(404).json({ error: "Venda não encontrada" });
+    const venda = await prisma.sale.findUnique({
+      where: { id },
+      include: {
+        cliente: true,
+        funcionario: true,
+        itens: { include: { produto: true, servico: true } },
+        pagamentos: { include: { metodoDePagamento: true } },
+      },
+    });
+    if (!venda) return res.status(404).json({ error: "Venda não encontrada" });
 
-      res.status(200).json({ sucess: true, data: venda });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao buscar venda" });
-    }
+    res.status(200).json({ sucess: true, data: venda });
   }
 
-  // Criar nova venda
   static async create(req: Request, res: Response) {
     const {
       clienteId,
@@ -61,8 +52,8 @@ export class SalesController {
       status,
     } = req.body;
 
-    try {
-      const venda = await prisma.sale.create({
+    const novaVenda = await prisma.$transaction(async (tx) => {
+      const venda = await tx.sale.create({
         data: {
           clienteId,
           funcionarioId,
@@ -89,20 +80,40 @@ export class SalesController {
             })),
           },
         },
-        include: {
-          itens: true,
-          pagamentos: true,
-        },
       });
 
-      res.status(201).json({ sucess: true, data: venda });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao criar venda" });
-    }
+      const itensDeProduto = itens.filter((item: any) => item.produtoId);
+
+      if (itensDeProduto.length > 0) {
+        const movimentacoesDeEstoque = itensDeProduto.map((item: any) => ({
+          produtoId: item.produtoId,
+          saleId: venda.id,
+          quantidade: item.contarEstoque ? -Math.abs(item.quantidade) : 0,
+          tipo: "SAIDA",
+          motivo: "VENDA",
+          status: ApprovalStatus.APROVADO,
+          solicitadoPorId: "46448838-d1c4-4078-aead-db6442882e2e",
+        }));
+
+        await tx.stockMovement.createMany({
+          data: movimentacoesDeEstoque,
+        });
+      }
+
+      return venda;
+    });
+
+    const vendaCompleta = await prisma.sale.findUnique({
+      where: { id: novaVenda.id },
+      include: {
+        itens: true,
+        pagamentos: true,
+      },
+    });
+
+    res.status(201).json({ success: true, data: vendaCompleta });
   }
 
-  // Atualizar venda (ex: apenas status)
   static async updateStatus(req: Request, res: Response) {
     const { id } = req.params;
     const { status } = req.body;
@@ -111,15 +122,55 @@ export class SalesController {
       return res.status(400).json({ error: "Status inválido" });
     }
 
-    try {
+    if (status === "CANCELADO") {
+      const vendaCancelada = await prisma.$transaction(async (tx) => {
+        const vendaExistente = await tx.sale.findUnique({
+          where: { id },
+          include: {
+            itens: {
+              where: { produtoId: { not: null } },
+            },
+          },
+        });
+
+        if (!vendaExistente) {
+          throw new Error("Venda não encontrada.");
+        }
+        if (vendaExistente.status === "CANCELADO") {
+          throw new Error("Esta venda já foi cancelada anteriormente.");
+        }
+
+        if (vendaExistente.itens.length > 0) {
+          const movimentacoesDeRetorno = vendaExistente.itens.map((item) => ({
+            produtoId: item.produtoId!,
+            saleId: vendaExistente.id,
+            quantidade: Math.abs(item.quantidade),
+            tipo: StockMovementType.ENTRADA,
+            motivo: StockMovementReason.CANCELAMENTO_VENDA,
+            status: ApprovalStatus.APROVADO,
+            solicitadoPorId: "46448838-d1c4-4078-aead-db6442882e2e",
+          }));
+
+          await tx.stockMovement.createMany({
+            data: movimentacoesDeRetorno,
+          });
+        }
+
+        const vendaAtualizada = await tx.sale.update({
+          where: { id },
+          data: { status: "CANCELADO" },
+        });
+
+        return vendaAtualizada;
+      });
+
+      return res.status(200).json({ success: true, data: vendaCancelada });
+    } else {
       const venda = await prisma.sale.update({
         where: { id },
         data: { status },
       });
       res.status(200).json({ sucess: true, data: venda });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao atualizar venda" });
     }
   }
 }

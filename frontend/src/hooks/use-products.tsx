@@ -9,10 +9,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { message } from "antd";
 import { AxiosError } from "axios";
 
-export const useProducts = () => {
+export const useProducts = (filters: {
+  search?: string;
+  categoryId?: string;
+  contarEstoque?: boolean;
+}) => {
   return useQuery<Product.Props[]>({
-    queryKey: ["get-products"],
-    queryFn: getProducts,
+    queryKey: ["get-products", filters],
+    queryFn: () => getProducts(filters),
   });
 };
 
@@ -25,12 +29,15 @@ export const useProduct = (id: string) => {
 
 export const useProductCreate = () => {
   const queryClient = useQueryClient();
-  const res = useMutation({
+
+  return useMutation({
     mutationFn: async (body: Product.Props) => {
       return await createProduct(body);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["get-products"] });
+      queryClient.invalidateQueries({
+        queryKey: ["get-products"],
+      });
       message.success("Produto criado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
@@ -38,8 +45,6 @@ export const useProductCreate = () => {
       return error;
     },
   });
-
-  return res;
 };
 
 export const useProductUpdate = () => {
@@ -49,7 +54,9 @@ export const useProductUpdate = () => {
       return await updateProduct(id, body);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["get-products"] });
+      queryClient.invalidateQueries({
+        queryKey: ["get-products"],
+      });
       message.success("Produto atualizado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {

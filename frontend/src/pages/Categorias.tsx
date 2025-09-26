@@ -72,11 +72,17 @@ const Categorias = () => {
       title: "Descrição",
       dataIndex: "descricao",
       key: "descricao",
+      render: (_: any, record) => (
+        <div className="text-muted-foreground">
+          {record.description || "Sem descrição"}
+        </div>
+      ),
     },
     {
       title: "Status",
       dataIndex: "ativo",
       key: "ativo",
+      align: "center",
       render: (ativo: boolean) => (
         <Tag color={ativo ? "green" : "red"}>{ativo ? "Ativo" : "Inativo"}</Tag>
       ),
@@ -84,6 +90,7 @@ const Categorias = () => {
     {
       title: "Ações",
       key: "acoes",
+      align: "center",
       render: (_: any, record: any) => (
         <Space>
           <Button

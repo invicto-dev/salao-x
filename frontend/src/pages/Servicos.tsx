@@ -8,11 +8,9 @@ import {
   Tag,
   Modal,
   Form,
-  InputNumber,
   Switch,
   Space,
   Typography,
-  message,
   Row,
   Col,
   TimePicker,
@@ -20,19 +18,7 @@ import {
   Checkbox,
   Tooltip,
 } from "antd";
-import {
-  Scissors,
-  Plus,
-  Search,
-  Edit,
-  Eye,
-  EyeOff,
-  Clock,
-  Check,
-  Type,
-  Album,
-  Barcode,
-} from "lucide-react";
+import { Scissors, Plus, Search, Edit, Clock } from "lucide-react";
 import dayjs from "dayjs";
 import {
   useServiceCreate,
@@ -40,6 +26,8 @@ import {
   useServiceUpdate,
 } from "@/hooks/use-services";
 import { NameInput } from "@/components/inputs/NameInput";
+import { useCategories } from "@/hooks/use-categories";
+import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -48,23 +36,14 @@ const { TextArea } = Input;
 const Servicos = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
-  const [openValue, setOpenValue] = useState(false);
   const [filtroCategoria, setFiltroCategoria] = useState(undefined);
   const [filtroStatus, setFiltroStatus] = useState(undefined);
   const [busca, setBusca] = useState("");
   const [form] = Form.useForm();
   const { data: servicos } = useServices();
-  const { mutate: createService } = useServiceCreate();
-  const { mutate: updateService } = useServiceUpdate();
-
-  const categorias = [
-    "Cabelo",
-    "Unhas",
-    "Pele",
-    "Maquiagem",
-    "Depilação",
-    "Massagem",
-  ];
+  const { data: categorias = [] } = useCategories();
+  const { mutateAsync: createService } = useServiceCreate();
+  const { mutateAsync: updateService } = useServiceUpdate();
 
   const servicosFiltrados = (servicos || []).filter((servico) => {
     const matchBusca =
@@ -88,42 +67,43 @@ const Servicos = () => {
     return mins > 0 ? `${horas}h ${mins}min` : `${horas}h`;
   };
 
+  const categoriasOptions = categorias.map((c) => ({
+    value: c.id,
+    label: c.nome,
+  }));
+
   const columns: TableColumnProps<Service.Props>[] = [
     {
       title: "Serviço",
       key: "servico",
       render: (_, record) => (
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-salao-primary-light rounded-lg flex items-center justify-center">
-            <Scissors size={20} className="text-salao-primary" />
+          <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+            <Scissors size={20} className="text-muted-foreground" />
           </div>
           <div>
             <div className=" font-medium">{record.nome}</div>
-
-            {record.categoria && (
-              <div className="text-xs text-muted-foreground flex items-center gap-2">
-                <Album size={12} />
-                {record.categoria}
-              </div>
-            )}
-            {record.codigo && (
-              <div className="text-xs text-muted-foreground flex items-center gap-2">
-                <Barcode size={12} />
-                {record.codigo}
-              </div>
-            )}
+            <div className="text-sm text-muted-foreground">
+              {record.codigo || "Sem código"} •{" "}
+              {record.categoria || "Sem categoria"}
+            </div>
           </div>
         </div>
       ),
     },
     {
-      title: "Preço",
+      title: "Preços",
       dataIndex: "preco",
       key: "preco",
       render: (preco: number, record) => (
-        <div className="font-semibold text-salao-primary">
-          {record.valorEmAberto ? "Valor em aberto" : `R$ ${preco}`}
-        </div>
+        <>
+          <div className="font-semibold text-salao-primary">
+            {`R$ ${preco}`}
+          </div>
+          {record.valorEmAberto && (
+            <div className="text-sm text-muted-foreground">Valor em aberto</div>
+          )}
+        </>
       ),
     },
     {
@@ -141,6 +121,7 @@ const Servicos = () => {
       title: "Status",
       dataIndex: "ativo",
       key: "ativo",
+      align: "center",
       render: (ativo: boolean) => (
         <Tag color={ativo ? "green" : "red"}>{ativo ? "Ativo" : "Inativo"}</Tag>
       ),
@@ -148,6 +129,7 @@ const Servicos = () => {
     {
       title: "Ações",
       key: "acoes",
+      align: "center",
       render: (_, record) => (
         <Space>
           <Button
@@ -168,7 +150,6 @@ const Servicos = () => {
       ...servico,
       duracao: dayjs().startOf("day").add(servico.duracao, "minute"),
     };
-    setOpenValue(servico.valorEmAberto);
     form.setFieldsValue(formData);
     setModalVisible(true);
   };
@@ -178,29 +159,28 @@ const Servicos = () => {
     form.resetFields();
     form.setFieldsValue({
       ativo: true,
+      preco: 1,
       duracao: dayjs().startOf("day").add(60, "minute"),
     });
     setModalVisible(true);
   };
 
-  const handleSubmit = (values: Service.Props) => {
+  const handleSubmit = async (values: Service.Props) => {
     try {
       const duracaoMinutos =
         values?.duracao?.hour() * 60 + values?.duracao?.minute();
       if (!editingService) {
-        createService({ ...values, duracao: duracaoMinutos });
+        await createService({ ...values, duracao: duracaoMinutos });
         setModalVisible(false);
         form.resetFields();
-        setOpenValue(false);
       } else {
-        updateService({
+        await updateService({
           id: editingService.id,
           body: { ...values, duracao: duracaoMinutos || undefined },
         });
         setModalVisible(false);
         form.resetFields();
         setEditingService(null);
-        setOpenValue(false);
       }
     } catch (error) {
       console.error(error);
@@ -230,18 +210,16 @@ const Servicos = () => {
               className="max-w-xs"
             />
             <Select
+              showSearch
+              optionFilterProp="label"
               placeholder="Categoria"
               allowClear
               value={filtroCategoria}
               onChange={setFiltroCategoria}
-              className="min-w-[150px]"
-            >
-              {categorias.map((cat) => (
-                <Option key={cat} value={cat}>
-                  {cat}
-                </Option>
-              ))}
-            </Select>
+              className="min-w-[250px]"
+              options={categoriasOptions}
+            />
+
             <Select
               placeholder="Status"
               allowClear
@@ -281,7 +259,6 @@ const Servicos = () => {
           setModalVisible(false);
           form.resetFields();
           setEditingService(null);
-          setOpenValue(false);
         }}
         onOk={() => form.submit()}
         okText={editingService ? "Salvar" : "Cadastrar"}
@@ -305,48 +282,61 @@ const Servicos = () => {
             </Col>
           </Row>
 
-          <Form.Item label="Categoria" name="categoria">
-            <Select placeholder="Selecionar categoria">
-              {categorias.map((cat) => (
-                <Option key={cat} value={cat}>
-                  {cat}
-                </Option>
-              ))}
-            </Select>
+          <Form.Item label="Categoria" name="categoriaId">
+            <Select
+              showSearch
+              optionFilterProp="label"
+              placeholder="Selecione uma categoria"
+              allowClear
+              options={categoriasOptions}
+            />
           </Form.Item>
 
           <Form.Item label="Descrição" name="descricao">
             <TextArea rows={3} placeholder="Descreva o serviço..." />
           </Form.Item>
-          <Form.Item name="valorEmAberto" valuePropName="checked">
-            <Checkbox
-              checked={openValue}
-              onChange={(e) => setOpenValue(e.target.checked)}
-              children="Valor em aberto?"
-            />
-          </Form.Item>
 
           <Row gutter={16}>
-            {!openValue && (
-              <Col xs={24} sm={8}>
-                <Form.Item
-                  label="Preço"
-                  name="preco"
-                  rules={[
-                    { required: !openValue, message: "Preço é obrigatório" },
-                  ]}
-                  className="flex-1"
-                >
-                  <InputNumber
-                    min={0}
-                    precision={2}
-                    style={{ width: "100%" }}
-                    addonBefore="R$"
-                    placeholder="0,00"
-                  />
-                </Form.Item>
-              </Col>
-            )}
+            <Col xs={24} sm={8}>
+              <Form.Item
+                label="Preço"
+                shouldUpdate={(prevValues, currentValues) =>
+                  prevValues.valorEmAberto !== currentValues.valorEmAberto
+                }
+              >
+                {({ getFieldValue }) => {
+                  const valorAberto = getFieldValue("valorEmAberto");
+                  return (
+                    <Form.Item
+                      name="preco"
+                      rules={[
+                        {
+                          required: !valorAberto,
+                          message: "Preço é obrigatório",
+                        },
+                      ]}
+                      className="m-0"
+                    >
+                      <CurrencyInput
+                        min={0}
+                        placeholder="0,00"
+                        addonAfter={
+                          <Tooltip title="Valor em aberto?">
+                            <Form.Item
+                              className="m-0"
+                              name="valorEmAberto"
+                              valuePropName="checked"
+                            >
+                              <Checkbox />
+                            </Form.Item>
+                          </Tooltip>
+                        }
+                      />
+                    </Form.Item>
+                  );
+                }}
+              </Form.Item>
+            </Col>
             <Col xs={24} sm={8}>
               <Form.Item label="Duração Estimada" name="duracao">
                 <TimePicker

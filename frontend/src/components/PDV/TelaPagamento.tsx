@@ -16,10 +16,8 @@ const { Title, Text } = Typography;
 interface TelaPagamentoProps {
   totalAPagar: number;
   formasDePagamento: PaymentMethod.Props[];
-  pagamentos: { metodoDePagamentoId: string; valor: number }[];
-  setPagamentos: React.Dispatch<
-    React.SetStateAction<{ metodoDePagamentoId: string; valor: number }[]>
-  >;
+  pagamentos: Sale.Props["pagamentos"];
+  setPagamentos: React.Dispatch<React.SetStateAction<Sale.Props["pagamentos"]>>;
   onFinalizar: (troco: number) => void;
   onVoltar: () => void;
 }
