@@ -1,5 +1,14 @@
-import { Layout, Menu, Button, Breadcrumb, Switch, Drawer } from "antd";
-import { useState } from "react";
+import {
+  Layout,
+  Menu,
+  Button,
+  Breadcrumb,
+  Drawer,
+  Dropdown,
+  Segmented,
+  MenuProps,
+} from "antd";
+import { useMemo, useState } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
@@ -18,6 +27,8 @@ import {
   Scissors,
   WalletCards,
   DollarSign,
+  LogOut,
+  User2,
 } from "lucide-react";
 
 // Pages
@@ -34,6 +45,8 @@ import Configuracoes from "../../pages/Configuracoes";
 import Categorias from "@/pages/Categorias";
 import MetodoDePagamentos from "@/pages/Pagamentos";
 import Vendas from "@/pages/Vendas";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissions";
 
 const { Header, Sider, Content } = Layout;
 
@@ -43,52 +56,51 @@ interface AppLayoutProps {
 }
 
 const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
+  const { logout, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   const menuItems = [
-    {
+    /* {
       key: "/",
       icon: <BarChart3 size={16} />,
       label: "Dashboard",
-      path: "/",
-    },
+      permission: "GERENTE",
+    }, */
     {
       key: "/pdv",
       icon: <ShoppingCart size={16} />,
       label: "PDV",
-      path: "/pdv",
+      permission: "FUNCIONARIO",
     },
     {
       key: "/vendas",
       icon: <DollarSign size={16} />,
       label: "Vendas",
-      path: "/vendas",
+      permission: "FUNCIONARIO",
     },
     {
       key: "produtos-servicos",
       label: "Produtos & Serviços",
       icon: <Package size={16} />,
+      permission: "FUNCIONARIO",
       children: [
         {
           key: "/produtos",
           icon: <Package size={14} />,
           label: "Produtos",
-          path: "/produtos",
         },
         {
           key: "/servicos",
           icon: <Scissors size={14} />,
           label: "Serviços",
-          path: "/servicos",
         },
         {
           key: "/estoque",
           icon: <Store size={14} />,
           label: "Estoque",
-          path: "/estoque",
         },
       ],
     },
@@ -96,56 +108,79 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
       key: "gestao",
       label: "Gestão",
       icon: <Users size={16} />,
+      permission: "SECRETARIO",
       children: [
-        {
+        /* {
           key: "/agendamentos",
           icon: <Calendar size={14} />,
           label: "Agendamentos",
-          path: "/agendamentos",
-        },
+        }, */
         {
           key: "/categorias",
           icon: <ListIcon size={14} />,
           label: "Categorias",
-          path: "/categorias",
         },
         {
           key: "/clientes",
           icon: <Users size={14} />,
           label: "Clientes",
-          path: "/clientes",
         },
         {
           key: "/funcionarios",
           icon: <UserCheck size={14} />,
           label: "Funcionários",
-          path: "/funcionarios",
         },
         {
           key: "/metodos-de-pagamento",
           icon: <WalletCards size={14} />,
           label: "Métodos de Pagamento",
-          path: "/metodos-de-pagamento",
         },
       ],
     },
-    {
+    /* {
       key: "/fidelidade",
       icon: <Gift size={16} />,
       label: "Fidelidade",
-      path: "/fidelidade",
-    },
+      permission: "SECRETARIO",
+    }, */
     {
       key: "/configuracoes",
       icon: <Settings size={16} />,
       label: "Configurações",
-      path: "/configuracoes",
+      permission: "ADMIN",
     },
   ];
 
+  const filteredMenuItems = useMemo(() => {
+    if (!user?.role) return []; // Se não houver usuário ou role, retorna menu vazio
+
+    // Função recursiva para filtrar os itens e seus filhos
+    const filter = (items) => {
+      return items.reduce((acc, item) => {
+        // 1. Verifica se o usuário tem permissão para o item atual
+        if (hasPermission(user.role, item.permission)) {
+          // 2. Se o item tiver filhos, filtra os filhos recursivamente
+          if (item.children) {
+            const filteredChildren = filter(item.children);
+            // 3. Só adiciona o item pai se ele ainda tiver filhos visíveis após o filtro
+            if (filteredChildren.length > 0) {
+              acc.push({ ...item, children: filteredChildren });
+            }
+          } else {
+            // 4. Se não tiver filhos, apenas adiciona o item
+            acc.push(item);
+          }
+        }
+        return acc;
+      }, []);
+    };
+
+    return filter(menuItems);
+  }, [user]);
+
   const handleMenuClick = (item: any) => {
-    if (item.path) {
-      navigate(item.path);
+    if (item.key) {
+      navigate(item.key);
       setMobileMenuOpen(false);
     }
   };
@@ -178,8 +213,8 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
     const currentPath = location.pathname;
     const breadcrumbs = [{ title: "Salão X" }];
 
-    const menuItem = menuItems.find((item) => {
-      if (item.path === currentPath) return true;
+    const menuItem = filteredMenuItems.find((item) => {
+      if (item.key === currentPath) return true;
       return item.children?.some((child) => child.path === currentPath);
     });
 
@@ -204,7 +239,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
       selectedKeys={getSelectedKeys()}
       defaultOpenKeys={getOpenKeys()}
       style={{ borderRight: 0, background: "transparent" }}
-      items={menuItems.map((item) => ({
+      items={filteredMenuItems.map((item) => ({
         key: item.key,
         icon: item.icon,
         label: item.label,
@@ -214,13 +249,14 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
           label: child.label,
           onClick: () => handleMenuClick(child),
         })),
-        onClick: item.path ? () => handleMenuClick(item) : undefined,
+        onClick:
+          item.key && !item.children ? () => handleMenuClick(item) : undefined,
       }))}
     />
   );
 
   return (
-    <Layout className="min-h-screen">
+    <Layout className="flex-1 min-h-screen">
       {/* Desktop Sidebar */}
       <Sider
         trigger={null}
@@ -256,7 +292,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
 
       <Layout>
         {/* Header */}
-        <Header className="bg-header border-b border-sidebar-border px-4 flex items-center justify-between">
+        <Header className=" bg-header border-b border-sidebar-border px-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
               type="text"
@@ -272,14 +308,34 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
             />
             <Breadcrumb items={getBreadcrumb()} />
           </div>
-
           <div className="flex items-center gap-2">
-            <Switch
-              checked={isDarkMode}
+            <Segmented
+              shape="round"
               onChange={onToggleTheme}
-              checkedChildren={<Moon size={12} />}
-              unCheckedChildren={<Sun size={12} />}
+              value={isDarkMode ? "dark" : "light"}
+              options={[
+                { value: "light", icon: <Sun className="mt-1.5" size={14} /> },
+                { value: "dark", icon: <Moon className="mt-1.5" size={14} /> },
+              ]}
             />
+
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: "logout",
+                    icon: <LogOut size={14} />,
+                    label: "Sair",
+                    onClick: logout,
+                  },
+                ],
+              }}
+              trigger={["click"]}
+            >
+              <Button type="text" icon={<User2 size={14} />}>
+                {user?.nome}
+              </Button>
+            </Dropdown>
           </div>
         </Header>
 

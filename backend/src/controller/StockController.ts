@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database"; // Assumindo que seu prisma client está aqui
 import { ApprovalStatus, Role } from "@prisma/client";
+import { AuthRequest } from "../middlewares/auth";
 
 export class StockController {
   /**
@@ -139,13 +140,20 @@ export class StockController {
   /**
    * Cria uma nova movimentação de estoque.
    */
-  static async createMovement(req: Request, res: Response) {
+  static async createMovement(req: AuthRequest, res: Response) {
     const body = req.body;
 
     if (!body || Object.keys(body).length === 0) {
       return res
         .status(400)
         .json({ success: false, error: "Nenhuma informação fornecida." });
+    }
+
+    const user = req.user;
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Usuário não autenticado." });
     }
 
     const settings = await prisma.setting.findFirst();
@@ -163,7 +171,7 @@ export class StockController {
     const newMovement = await prisma.stockMovement.create({
       data: {
         ...body,
-        solicitadoPorId: "46448838-d1c4-4078-aead-db6442882e2e",
+        solicitadoPorId: user.id,
         status: status,
       },
     });

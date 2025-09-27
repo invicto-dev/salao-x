@@ -26,6 +26,8 @@ import {
   CreditCard,
   User,
   X,
+  Package,
+  Scissors,
 } from "lucide-react";
 import { useServices } from "@/hooks/use-services";
 import { useCustomers } from "@/hooks/use-customer";
@@ -38,6 +40,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getSale } from "@/api/sales";
 import { useStockProducts } from "@/hooks/use-stock";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
+import { useNavigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -62,6 +65,7 @@ const INITIAL_STATE = {
 const PDV = () => {
   const [formModal] = Form.useForm();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [saleSession, setSaleSession] = useState<typeof INITIAL_STATE>(() => {
     try {
@@ -401,10 +405,28 @@ const PDV = () => {
               className="mb-4"
             />
             {!filteredProdutos.length && !filteredServicos.length ? (
-              <div className="flex justify-center items-center h-48">
+              <div className="flex flex-col gap-4 justify-center items-center h-48">
                 <p className="text-center text-sm text-muted-foreground">
                   Nenhum item encontrado
                 </p>
+                <div className="flex gap-2">
+                  <Button
+                    size="large"
+                    onClick={() => navigate("/produtos")}
+                    type="dashed"
+                    icon={<Package size={16} />}
+                  >
+                    Adicionar Produtos
+                  </Button>
+                  <Button
+                    size="large"
+                    onClick={() => navigate("/servicos")}
+                    type="dashed"
+                    icon={<Scissors size={16} />}
+                  >
+                    Adicionar Serviços
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="space-y-4 p-4 max-h-[50vh] overflow-y-auto overflow-x-hidden">
@@ -533,7 +555,7 @@ const PDV = () => {
                           <InputNumber
                             disabled={carrinhoVazio}
                             value={desconto.valor}
-                            placeholder="0.00%"
+                            placeholder="0.00"
                             onChange={(v) =>
                               updateSaleSession({
                                 desconto: { ...desconto, valor: v || 0 },
@@ -592,7 +614,7 @@ const PDV = () => {
                           <InputNumber
                             disabled={carrinhoVazio}
                             value={acrescimo.valor}
-                            placeholder="0%"
+                            placeholder="0.00"
                             onChange={(v) =>
                               updateSaleSession({
                                 acrescimo: { ...acrescimo, valor: v || 0 },

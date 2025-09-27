@@ -5,6 +5,7 @@ import {
   StockMovementReason,
   StockMovementType,
 } from "@prisma/client";
+import { AuthRequest } from "../middlewares/auth";
 
 export class SalesController {
   static async getAll(req: Request, res: Response) {
@@ -38,7 +39,7 @@ export class SalesController {
     res.status(200).json({ sucess: true, data: venda });
   }
 
-  static async create(req: Request, res: Response) {
+  static async create(req: AuthRequest, res: Response) {
     const {
       clienteId,
       funcionarioId,
@@ -51,6 +52,13 @@ export class SalesController {
       acrescimo,
       status,
     } = req.body;
+
+    const user = req.user;
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Usuário não autenticado." });
+    }
 
     const novaVenda = await prisma.$transaction(async (tx) => {
       const venda = await tx.sale.create({
@@ -92,7 +100,7 @@ export class SalesController {
           tipo: "SAIDA",
           motivo: "VENDA",
           status: ApprovalStatus.APROVADO,
-          solicitadoPorId: "46448838-d1c4-4078-aead-db6442882e2e",
+          solicitadoPorId: user.id,
         }));
 
         await tx.stockMovement.createMany({
@@ -114,9 +122,16 @@ export class SalesController {
     res.status(201).json({ success: true, data: vendaCompleta });
   }
 
-  static async updateStatus(req: Request, res: Response) {
+  static async updateStatus(req: AuthRequest, res: Response) {
     const { id } = req.params;
     const { status } = req.body;
+
+    const user = req.user;
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Usuário não autenticado." });
+    }
 
     if (!["PENDENTE", "PAGO", "CANCELADO"].includes(status)) {
       return res.status(400).json({ error: "Status inválido" });
@@ -148,7 +163,7 @@ export class SalesController {
             tipo: StockMovementType.ENTRADA,
             motivo: StockMovementReason.CANCELAMENTO_VENDA,
             status: ApprovalStatus.APROVADO,
-            solicitadoPorId: "46448838-d1c4-4078-aead-db6442882e2e",
+            solicitadoPorId: user.id,
           }));
 
           await tx.stockMovement.createMany({

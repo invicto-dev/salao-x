@@ -10,6 +10,7 @@ import {
 } from "antd";
 import { ArrowLeft, Receipt, X } from "lucide-react";
 import React from "react";
+import { CurrencyInput } from "../inputs/CurrencyInput";
 
 const { Title, Text } = Typography;
 
@@ -118,12 +119,13 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
               <div className="w-full flex items-center justify-between gap-4">
                 <Text className="font-medium flex-1">{forma.nome}</Text>
                 <div className="flex items-center gap-2">
-                  <InputNumber
+                  <CurrencyInput
                     min={0}
-                    prefix={"R$"}
                     value={pagamentoAtual?.valor}
                     className="w-40"
-                    onChange={(valor) => handlePaymentChange(forma.id, valor)}
+                    onChange={(valor) =>
+                      handlePaymentChange(forma.id, Number(valor))
+                    }
                   />
 
                   <div className="w-8 h-8 flex items-center justify-center">

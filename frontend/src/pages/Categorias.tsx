@@ -234,7 +234,7 @@ const Categorias = () => {
               </Form.Item>
 
               <Form.Item label="Descrição" name="descricao">
-                <TextArea rows={3} placeholder="Descreva o produto..." />
+                <TextArea rows={3} placeholder="Descreva a categoria..." />
               </Form.Item>
             </Col>
 
