@@ -279,7 +279,7 @@ const Estoque = () => {
       </Card>
 
       {/* Tabela de Produtos */}
-      <Card title="📦 Produtos em Estoque">
+      <Card title="Produtos em Estoque">
         <Table
           dataSource={products}
           columns={columns}
@@ -289,7 +289,7 @@ const Estoque = () => {
       </Card>
 
       {/* Tabela de Movimentações */}
-      <Card title="📋 Últimas Movimentações">
+      <Card title="Últimas Movimentações">
         <Table
           dataSource={recentMovements}
           columns={movimentacoesColumns}

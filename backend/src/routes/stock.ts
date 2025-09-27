@@ -1,15 +1,24 @@
 import { Router } from "express";
-import { StockController } from "../controller/stockController";
+import { StockController } from "../controller/StockController";
+import { authenticateToken } from "../middlewares/auth";
 
 const router = Router();
 
 // --- ROTAS DE CONSULTA (GET) ---
-router.get("/products", StockController.getProductsStock);
-router.get("/movements/recent:limit?", StockController.getRecentMovements);
-router.get("/kpis", StockController.getKpis);
+router.get("/products", authenticateToken, StockController.getProductsStock);
+router.get(
+  "/movements/recent:limit?",
+  authenticateToken,
+  StockController.getRecentMovements
+);
+router.get("/kpis", authenticateToken, StockController.getKpis);
 
 // --- ROTAS DE AÇÃO (POST, PUT) ---
-router.post("/movements", StockController.createMovement);
-router.put("/movements/:id/status", StockController.approveOrRejectMovement);
+router.post("/movements", authenticateToken, StockController.createMovement);
+router.put(
+  "/movements/:id/status",
+  authenticateToken,
+  StockController.approveOrRejectMovement
+);
 
 export { router as stockRoutes };

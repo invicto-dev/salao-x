@@ -36,6 +36,7 @@ import {
 import { NameInput } from "@/components/inputs/NameInput";
 import { useCategories } from "@/hooks/use-categories";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -91,11 +92,13 @@ const Produtos = () => {
       render: (_, record) => (
         <div>
           <div className="font-semibold text-salao-primary">
-            {record.preco ? `R$ ${record.preco}` : "Valor em aberto"}
+            {record.preco
+              ? `${formatCurrency(record.preco)}`
+              : "Valor em aberto"}
           </div>
           {record.custo && record.custo > 0 && (
             <div className="text-sm text-muted-foreground">
-              Custo: R$ {record.custo}
+              Custo: {formatCurrency(record.custo)}
             </div>
           )}
 

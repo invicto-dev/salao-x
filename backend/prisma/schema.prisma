@@ -44,7 +44,10 @@ model Setting {
 }
 
 enum Role {
+  ROOT
   ADMIN
+  GERENTE
+  SECRETARIO
   FUNCIONARIO
 }
 
@@ -56,7 +59,8 @@ model Employee {
   funcao   String
   comissao Decimal
   ativo    Boolean
-  Role     Role
+  senha    String
+  role     Role
 
   vendas                   Sale[]
   movimentacoesSolicitadas StockMovement[] @relation("SolicitadoPor")

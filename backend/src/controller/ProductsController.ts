@@ -6,6 +6,7 @@ import {
   StockMovementReason,
   StockMovementType,
 } from "@prisma/client";
+import { AuthRequest } from "../middlewares/auth";
 
 export class ProductsController {
   static async getProducts(req: Request, res: Response) {
@@ -79,7 +80,7 @@ export class ProductsController {
     });
   }
 
-  static async createProduct(req: Request, res: Response) {
+  static async createProduct(req: AuthRequest, res: Response) {
     const { estoqueInicial, ...productData } = req.body;
 
     if (!req.body) {
@@ -87,6 +88,13 @@ export class ProductsController {
         success: false,
         error: "Nenhuma informação do produto fornecida",
       });
+    }
+
+    const user = req.user;
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Usuário não autenticado." });
     }
 
     const newProduct = await prisma.$transaction(async (tx) => {
@@ -103,7 +111,7 @@ export class ProductsController {
             motivo: StockMovementReason.COMPRA,
             status: ApprovalStatus.APROVADO,
             observacao: "Estoque inicial criado automaticamente",
-            solicitadoPorId: "46448838-d1c4-4078-aead-db6442882e2e",
+            solicitadoPorId: user.id,
           },
         });
       }

@@ -21,7 +21,14 @@ export function errorHandler(
     if (error.code === "P2025") {
       return res.status(404).json({
         success: false,
-        error: "Operação falhou: O registro necessário não foi encontrado.",
+        error: "O item necessário não foi encontrado.",
+      });
+    }
+
+    if (error.code === "P2003") {
+      return res.status(400).json({
+        success: false,
+        error: `O item não pode ser excluído pois possui relacionamentos.`,
       });
     }
   }

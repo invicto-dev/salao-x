@@ -62,7 +62,6 @@ async function main() {
       custo: 20,
       descricao: "Shampoo para todos os tipos de cabelo",
       contarEstoque: true,
-      estoque: 100,
     },
   });
 
