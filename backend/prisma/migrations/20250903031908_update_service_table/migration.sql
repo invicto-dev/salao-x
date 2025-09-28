@@ -1,4 +1,0 @@
--- AlterTable
-ALTER TABLE "Service" ADD COLUMN     "valorEmAberto" BOOLEAN NOT NULL DEFAULT false,
-ALTER COLUMN "preco" DROP NOT NULL,
-ALTER COLUMN "duracao" DROP NOT NULL;
