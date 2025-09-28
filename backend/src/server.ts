@@ -16,6 +16,7 @@ import { salesRoutes } from "./routes/sales";
 import { errorHandler } from "./middlewares/errorHandler";
 import { stockRoutes } from "./routes/stock";
 import { authRoutes } from "./routes/auth";
+import { caixaRoutes } from "./routes/caixa";
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/caixa", caixaRoutes);
 app.use("/api/configuracoes", settingsRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/customers", customerRoutes);

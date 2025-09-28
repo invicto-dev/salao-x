@@ -67,6 +67,10 @@ model Employee {
   movimentacoesSolicitadas StockMovement[] @relation("SolicitadoPor")
   movimentacoesAprovadas   StockMovement[] @relation("AprovadoPor")
 
+  caixasAbertos      Caixa[]             @relation("CaixaAbertoPor")
+  caixasFechados     Caixa[]             @relation("CaixaFechadoPor")
+  caixaMovimentacoes CaixaMovimentacao[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -98,7 +102,7 @@ model Service {
   descricao     String?
 
   categoriaId String?
-  categoria   Category? @relation(fields: [categoriaId], references: [id])
+  categoria   Category? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
 
   itensVenda SaleItem[]
 
@@ -121,7 +125,7 @@ model Product {
 
   // Relation with Category
   categoriaId String?
-  categoria   Category? @relation(fields: [categoriaId], references: [id])
+  categoria   Category? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
 
   itensVenda    SaleItem[]
   movimentacoes StockMovement[]
@@ -157,7 +161,7 @@ model StockMovement {
   id String @id @default(uuid())
 
   produtoId String
-  produto   Product @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  produto   Product @relation(fields: [produtoId], references: [id], onDelete: Restrict)
 
   tipo       StockMovementType
   motivo     StockMovementReason
@@ -184,10 +188,11 @@ model StockMovement {
 
 model PaymentMethod {
   id        String  @id @default(uuid())
-  nome      String
+  nome      String  @unique
   descricao String?
   ativo     Boolean @default(true)
   chavePix  String?
+  isCash    Boolean @default(false)
 
   pagamentos SalePayment[]
 
@@ -197,7 +202,7 @@ model PaymentMethod {
 
 model Category {
   id        String  @id @default(uuid())
-  nome      String
+  nome      String  @unique
   descricao String?
   ativo     Boolean @default(true)
 
@@ -232,6 +237,9 @@ model Sale {
   pagamentos    SalePayment[]
   movimentacoes StockMovement[]
 
+  caixaId String?
+  caixa   Caixa?  @relation(fields: [caixaId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -239,13 +247,13 @@ model Sale {
 model SaleItem {
   id      String @id @default(uuid())
   vendaId String
-  venda   Sale   @relation(fields: [vendaId], references: [id])
+  venda   Sale   @relation(fields: [vendaId], references: [id], onDelete: Cascade)
 
   produtoId String?
-  produto   Product? @relation(fields: [produtoId], references: [id])
+  produto   Product? @relation(fields: [produtoId], references: [id], onDelete: SetNull)
 
   servicoId String?
-  servico   Service? @relation(fields: [servicoId], references: [id])
+  servico   Service? @relation(fields: [servicoId], references: [id], onDelete: SetNull)
 
   quantidade Int     @default(1)
   preco      Decimal
@@ -258,13 +266,64 @@ model SaleItem {
 model SalePayment {
   id      String @id @default(uuid())
   vendaId String
-  venda   Sale   @relation(fields: [vendaId], references: [id])
+  venda   Sale   @relation(fields: [vendaId], references: [id], onDelete: Cascade)
 
   metodoDePagamentoId String
   metodoDePagamento   PaymentMethod @relation(fields: [metodoDePagamentoId], references: [id])
 
   valor      Decimal
   observacao String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum CaixaStatus {
+  ABERTO
+  FECHADO
+}
+
+enum CaixaMovimentacaoTipo {
+  ENTRADA // Suprimento, reforço de caixa
+  SAIDA // Sangria, pagamento de despesas
+}
+
+// Representa uma sessão de trabalho do caixa
+model Caixa {
+  id String @id @default(uuid())
+
+  dataAbertura             DateTime    @default(now())
+  dataFechamento           DateTime?
+  valorAbertura            Decimal // Fundo de troco inicial
+  valorFechamentoInformado Decimal? // Valor contado pelo funcionário no final
+  valorFechamentoCalculado Decimal? // Valor que o sistema calculou que deveria ter
+  diferenca                Decimal? // (Informado - Calculado) pode ser positivo (sobra) ou negativo (quebra)
+  status                   CaixaStatus @default(ABERTO)
+  observacoes              String?
+
+  funcionarioAberturaId   String
+  funcionarioAbertura     Employee  @relation("CaixaAbertoPor", fields: [funcionarioAberturaId], references: [id])
+  funcionarioFechamentoId String?
+  funcionarioFechamento   Employee? @relation("CaixaFechadoPor", fields: [funcionarioFechamentoId], references: [id])
+
+  // Relações com outras partes do sistema
+  vendas        Sale[]
+  movimentacoes CaixaMovimentacao[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CaixaMovimentacao {
+  id     String                @id @default(uuid())
+  valor  Decimal
+  tipo   CaixaMovimentacaoTipo
+  motivo String // Ex: "Pagamento fornecedor de limpeza", "Reforço de troco"
+
+  caixaId       String
+  caixa         Caixa    @relation(fields: [caixaId], references: [id], onDelete: Cascade)
+  funcionarioId String
+  funcionario   Employee @relation(fields: [funcionarioId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -8,6 +8,17 @@ async function main() {
 
   console.log("Gerando configuração padrão...");
 
+  await prisma.paymentMethod.upsert({
+    where: { nome: "Dinheiro" },
+    update: {},
+    create: {
+      nome: "Dinheiro",
+      descricao: "Pagamento em espécie",
+      isCash: true,
+      ativo: true,
+    },
+  });
+
   await prisma.setting.upsert({
     where: { id: "configuracao-padrao" },
     update: {},

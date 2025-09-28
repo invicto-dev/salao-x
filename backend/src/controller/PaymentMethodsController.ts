@@ -77,6 +77,17 @@ export class PaymentMethodsController {
       });
     }
 
+    const paymentMethodToDelete = await prisma.paymentMethod.findUnique({
+      where: { id },
+    });
+    if (paymentMethodToDelete?.isCash) {
+      return res.status(403).json({
+        success: false,
+        error:
+          "O método de pagamento 'Dinheiro' é um padrão do sistema e não pode ser excluído.",
+      });
+    }
+
     const paymentMethod = await prisma.paymentMethod.delete({
       where: { id },
     });
@@ -110,6 +121,16 @@ export class PaymentMethodsController {
       return res.status(400).json({
         success: false,
         error: "Nenhuma informação do metodo de pagamento fornecida",
+      });
+    }
+
+    const paymentMethodToUpdate = await prisma.paymentMethod.findUnique({
+      where: { id },
+    });
+    if (paymentMethodToUpdate?.isCash) {
+      return res.status(403).json({
+        success: false,
+        error: "Não é possível atualizar o método de pagamento 'Dinheiro'.",
       });
     }
 
