@@ -1,24 +1,26 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Iniciando seed do banco de dados...");
+  console.log("🌱 Iniciando seed de usuarios no banco de dados...");
 
-  // Criar configuração padrão
+  console.log("Gerando configuração padrão...");
+
   await prisma.setting.upsert({
     where: { id: "configuracao-padrao" },
     update: {},
     create: {
       id: "configuracao-padrao",
-      nomeEmpresa: "Salão da Rafa",
+      nomeEmpresa: "Salão X Dev",
       cnpj: "13.123.456/0001-90",
       endereco: "Tv. Santa Luzia, 123",
       bairro: "Santa Luzia",
       cidade: "Oriximiná",
       cep: "13.123.456-000",
       telefone: "(11) 1234-5678",
-      email: "salao@rafa.com",
+      email: "salaox@dev.com",
       site: "https://salao-x.vercel.app",
       horarioFuncionamento: {
         "segunda-feira": "08:00",
@@ -44,41 +46,47 @@ async function main() {
 
   console.log("✅ Configuração padrão criada com sucesso!");
 
-  // Criar categoria
-  const categoriaCabelo = await prisma.category.create({
-    data: {
-      nome: "Cabelo",
-      descricao: "Serviços relacionados a cabelo",
+  console.log("Gerando usuários: root e funcionário...");
+
+  const hashedRootPassword = await bcrypt.hash("root123", 10);
+  const hashedFuncionarioPassword = await bcrypt.hash("funcionario123", 10);
+
+  const users = [
+    {
+      nome: "Usuário Root",
+      ativo: true,
+      email: "usuario@root.com",
+      senha: hashedRootPassword,
+      role: Role.ROOT,
+      funcao: "Usuário Root",
+      telefone: "(11) 1234-5678",
+      comissao: 0,
     },
+    {
+      nome: "Usuario Funcionário",
+      ativo: true,
+      email: "usuario@funcionario.com",
+      senha: hashedFuncionarioPassword,
+      role: Role.FUNCIONARIO,
+      funcao: "Cabeleireira",
+      telefone: "(11) 1234-5678",
+      comissao: 0,
+    },
+  ];
+
+  await prisma.employee.createMany({
+    data: users,
   });
 
-  console.log("✅ Categoria criada com sucesso!");
+  console.log("✅ Usuários criados com sucesso!");
 
-  // Criar produtos
-  const shampoo = await prisma.product.create({
-    data: {
-      nome: "Shampoo Premium",
-      preco: 49.9,
-      custo: 20,
-      descricao: "Shampoo para todos os tipos de cabelo",
-      contarEstoque: true,
-    },
-  });
+  console.log("Root credenciais:");
+  console.log("Email: usuario@root.com");
+  console.log("Senha: root123");
 
-  console.log("✅ Produto criado com sucesso!");
-
-  // Criar serviços
-  const corte = await prisma.service.create({
-    data: {
-      nome: "Corte de Cabelo",
-      preco: 60,
-      duracao: 45,
-      descricao: "Corte de cabelo masculino/feminino",
-      categoriaId: categoriaCabelo.id,
-    },
-  });
-
-  console.log("✅ Serviço criado com categoria!");
+  console.log("Funcionário credenciais:");
+  console.log("Email: usuario@funcionario.com");
+  console.log("Senha: funcionario123");
 
   console.log("\n🎉 Seed concluído com sucesso!");
 }
