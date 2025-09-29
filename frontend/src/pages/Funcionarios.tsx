@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import {
   Card,
   Table,
@@ -53,6 +54,8 @@ const Funcionarios = () => {
   const [busca, setBusca] = useState("");
   const [form] = Form.useForm();
   const [comissaoForm] = Form.useForm();
+  const [password, setPassword] = useState("");
+
 
   const {
     data: funcionarios,
@@ -91,6 +94,16 @@ const Funcionarios = () => {
       funcionario.funcao.toLowerCase().includes(busca.toLowerCase()) ||
       funcionario.telefone.includes(busca)
   );
+
+  // Validação de senha
+  const rules = [
+    { test: /.{8,}/, message: "Mínimo 8 caracteres" },
+    { test: /[a-z]/, message: "Pelo menos uma letra minúscula" },
+    { test: /[A-Z]/, message: "Pelo menos uma letra maiúscula" },
+    { test: /[0-9]/, message: "Pelo menos um número" },
+    { test: /[!@#$%^&*(),.?":{}|<>]/, message: "Pelo menos um caractere especial" },
+    { test: /^\S*$/, message: "Sem espaços" },
+  ];
 
   const columns: TableColumnsType<Employee.Props> = [
     {
@@ -426,13 +439,26 @@ const Funcionarios = () => {
                 />
               </Form.Item>
               {!editingEmployee && (
-                <Form.Item
-                  label="Senha"
-                  name="senha"
-                  rules={[{ required: true }]}
-                >
-                  <Input.Password />
-                </Form.Item>
+                <Form.Item label="Senha" name="senha" rules={[{ required: true, message: "A senha é obrigatória" }]}>
+                <>
+                  <Input.Password value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <div className="mt-2 space-y-1">
+                    {rules.map((rule, index) => {
+                      const passed = rule.test.test(password);
+                      return (
+                        <div key={index} className="flex items-center gap-2 text-sm">
+                          {passed ? (
+                            <CheckCircleOutlined style={{ color: "green" }} />
+                          ) : (
+                            <CloseCircleOutlined style={{ color: "red" }} />
+                          )}
+                          <span className={passed ? "text-green-600" : "text-red-600"}>{rule.message}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              </Form.Item>
               )}
             </Col>
           </Row>
