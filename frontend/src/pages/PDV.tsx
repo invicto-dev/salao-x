@@ -16,6 +16,8 @@ import {
   Modal,
   Tooltip,
   Alert,
+  Spin,
+  Tag,
 } from "antd";
 import {
   ShoppingCart,
@@ -28,6 +30,12 @@ import {
   X,
   Package,
   Scissors,
+  DollarSign,
+  CheckCircle2,
+  XCircle,
+  Banknote,
+  BanknoteIcon,
+  CircleX,
 } from "lucide-react";
 import { useServices } from "@/hooks/use-services";
 import { useCustomers } from "@/hooks/use-customer";
@@ -41,6 +49,7 @@ import { getSale } from "@/api/sales";
 import { useStockProducts } from "@/hooks/use-stock";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { useNavigate } from "react-router-dom";
+import { useCaixaManager, useHasOpenCaixa } from "@/hooks/use-caixa";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -100,10 +109,16 @@ const PDV = () => {
   const { data: produtos, isLoading: isLoadingProdutos } = useStockProducts({
     search: "",
   });
+  const { data: hasOpenCaixa, isFetching: isFetchingCaixa } = useHasOpenCaixa();
+  const { openCaixaModal, closeCaixaModal, CaixaManagerModal } =
+    useCaixaManager();
+
   const { data: servicos, isLoading: isLoadingServicos } = useServices();
   const { data: clientes } = useCustomers();
   const { data: formasDePagamentos } = usePaymentMethods();
   const { mutateAsync: createSale } = useSaleCreate();
+
+  const isCaixaFechado = !isFetchingCaixa && !hasOpenCaixa;
 
   useEffect(() => {
     window.localStorage.setItem(PDV_SESSION_KEY, JSON.stringify(saleSession));
@@ -404,138 +419,180 @@ const PDV = () => {
               allowClear
               className="mb-4"
             />
-            {!filteredProdutos.length && !filteredServicos.length ? (
-              <div className="flex flex-col gap-4 justify-center items-center h-48">
-                <p className="text-center text-sm text-muted-foreground">
-                  Nenhum item encontrado
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    size="large"
-                    onClick={() => navigate("/produtos")}
-                    type="dashed"
-                    icon={<Package size={16} />}
-                  >
-                    Adicionar Produtos
-                  </Button>
-                  <Button
-                    size="large"
-                    onClick={() => navigate("/servicos")}
-                    type="dashed"
-                    icon={<Scissors size={16} />}
-                  >
-                    Adicionar Serviços
-                  </Button>
+
+            <div>
+              {!filteredProdutos.length && !filteredServicos.length ? (
+                <div className="flex flex-col gap-4 justify-center items-center h-48">
+                  <p className="text-center text-sm text-muted-foreground">
+                    Nenhum item encontrado
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="large"
+                      onClick={() => navigate("/produtos")}
+                      type="dashed"
+                      icon={<Package size={16} />}
+                    >
+                      Adicionar Produtos
+                    </Button>
+                    <Button
+                      size="large"
+                      onClick={() => navigate("/servicos")}
+                      type="dashed"
+                      icon={<Scissors size={16} />}
+                    >
+                      Adicionar Serviços
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-4 p-4 max-h-[50vh] overflow-y-auto overflow-x-hidden">
-                {filteredProdutos.length > 0 && (
-                  <div>
-                    <Title level={5} className="!mb-3">
-                      Produtos
-                    </Title>
-                    <Row gutter={[8, 8]}>
-                      {filteredProdutos.map((produto) => (
-                        <Col xs={12} sm={8} md={6} key={produto.id}>
-                          <Card
-                            size="small"
-                            hoverable
-                            onClick={() => handleItemClick(produto, "produto")}
-                          >
-                            <div className="space-y-2">
-                              <Text
-                                ellipsis={{ tooltip: produto.nome }}
-                                className="font-medium text-sm block h-8"
-                              >
-                                {produto.nome}
-                              </Text>
-                              <div className="text-salao-primary font-semibold">
-                                {formatCurrency(produto.preco)}
+              ) : (
+                <div
+                  className={
+                    isCaixaFechado
+                      ? "pointer-events-none opacity-50"
+                      : "space-y-4 p-4 max-h-[50vh] overflow-y-auto overflow-x-hidden"
+                  }
+                >
+                  {filteredProdutos.length > 0 && (
+                    <div>
+                      <Title level={5} className="!mb-3">
+                        Produtos
+                      </Title>
+                      <Row gutter={[8, 8]}>
+                        {filteredProdutos.map((produto) => (
+                          <Col xs={12} sm={8} md={6} key={produto.id}>
+                            <Card
+                              size="small"
+                              hoverable
+                              onClick={() =>
+                                handleItemClick(produto, "produto")
+                              }
+                            >
+                              <div className="space-y-2">
+                                <Text
+                                  ellipsis={{ tooltip: produto.nome }}
+                                  className="font-medium text-sm block h-8"
+                                >
+                                  {produto.nome}
+                                </Text>
+                                <div className="text-salao-primary font-semibold">
+                                  {formatCurrency(produto.preco)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {produto.contarEstoque
+                                    ? `${produto.estoqueAtual} ${produto.unidadeMedida}`
+                                    : "-"}
+                                </div>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {produto.contarEstoque
-                                  ? `${produto.estoqueAtual} ${produto.unidadeMedida}`
-                                  : "-"}
+                            </Card>
+                          </Col>
+                        ))}
+                      </Row>
+                    </div>
+                  )}
+                  {filteredServicos.length > 0 && (
+                    <div>
+                      <Title level={5} className="!mb-3">
+                        Serviços
+                      </Title>
+                      <Row gutter={[8, 8]}>
+                        {filteredServicos.map((servico) => (
+                          <Col xs={12} sm={8} md={6} key={servico.id}>
+                            <Card
+                              size="small"
+                              hoverable
+                              onClick={() =>
+                                handleItemClick(servico, "servico")
+                              }
+                            >
+                              <div className="space-y-2">
+                                <Text
+                                  ellipsis={{ tooltip: servico.nome }}
+                                  className="font-medium text-sm block h-8"
+                                >
+                                  {servico.nome}
+                                </Text>
+                                <div className="text-salao-primary font-semibold">
+                                  {formatCurrency(servico.preco)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {servico.duracao}min
+                                </div>
                               </div>
-                            </div>
-                          </Card>
-                        </Col>
-                      ))}
-                    </Row>
-                  </div>
-                )}
-                {filteredServicos.length > 0 && (
-                  <div>
-                    <Title level={5} className="!mb-3">
-                      Serviços
-                    </Title>
-                    <Row gutter={[8, 8]}>
-                      {filteredServicos.map((servico) => (
-                        <Col xs={12} sm={8} md={6} key={servico.id}>
-                          <Card
-                            size="small"
-                            hoverable
-                            onClick={() => handleItemClick(servico, "servico")}
-                          >
-                            <div className="space-y-2">
-                              <Text
-                                ellipsis={{ tooltip: servico.nome }}
-                                className="font-medium text-sm block h-8"
-                              >
-                                {servico.nome}
-                              </Text>
-                              <div className="text-salao-primary font-semibold">
-                                {formatCurrency(servico.preco)}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {servico.duracao}min
-                              </div>
-                            </div>
-                          </Card>
-                        </Col>
-                      ))}
-                    </Row>
-                  </div>
-                )}
-              </div>
-            )}
+                            </Card>
+                          </Col>
+                        ))}
+                      </Row>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </Card>
         </Col>
 
         <Col xs={24} lg={12}>
           <Card
+            loading={isFetchingCaixa}
             title={
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <ShoppingCart size={14} />
                   Carrinho ({carrinho.length})
                 </div>
-                {!clienteSelecionado ? (
-                  <Button
-                    type="primary"
-                    onClick={toogleClienteModal}
-                    icon={<User size={14} />}
-                  >
-                    Vincular Cliente
-                  </Button>
-                ) : (
-                  <Tooltip title="Desvincular Cliente">
+                <div className="flex items-center gap-2">
+                  {!clienteSelecionado ? (
                     <Button
-                      onClick={() =>
-                        updateSaleSession({ clienteSelecionado: null })
-                      }
-                      type="text"
-                      icon={<X size={14} />}
+                      type="primary"
+                      onClick={toogleClienteModal}
+                      icon={<User size={14} />}
                     >
-                      {clientes?.find((c) => c.id === clienteSelecionado)?.nome}
+                      Vincular Cliente
                     </Button>
-                  </Tooltip>
-                )}
+                  ) : (
+                    <Tooltip title="Desvincular Cliente">
+                      <Button
+                        onClick={() =>
+                          updateSaleSession({ clienteSelecionado: null })
+                        }
+                        type="text"
+                        icon={<X size={14} />}
+                      >
+                        {
+                          clientes?.find((c) => c.id === clienteSelecionado)
+                            ?.nome
+                        }
+                      </Button>
+                    </Tooltip>
+                  )}
+                  {/* Indicador de Status do Caixa */}
+                  {!isFetchingCaixa && hasOpenCaixa && (
+                    <div className="flex items-center gap-4">
+                      <Button
+                        icon={<CircleX size={14} />}
+                        onClick={closeCaixaModal}
+                      >
+                        Fechar Caixa
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             }
-            className="h-full"
+            className="h-full relative"
           >
+            {isCaixaFechado && (
+              <div className="absolute inset-0 bg-white/70 dark:bg-black/70 z-10 flex flex-col justify-center items-center space-y-4 rounded-lg">
+                <DollarSign size={48} className="text-salao-primary" />
+                <Title level={4}>Caixa Fechado</Title>
+                <Text type="secondary">
+                  Você precisa abrir o caixa para iniciar as vendas.
+                </Text>
+                <Button type="primary" size="large" onClick={openCaixaModal}>
+                  Abrir Caixa
+                </Button>
+              </div>
+            )}
             <div className="space-y-4">
               {modoCarrinho === "venda" ? (
                 <>
@@ -710,6 +767,8 @@ const PDV = () => {
           </Card>
         </Col>
       </Row>
+
+      {CaixaManagerModal}
 
       <Modal
         title="Vincular Cliente"

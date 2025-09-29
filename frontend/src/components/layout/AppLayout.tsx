@@ -215,13 +215,13 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
 
     const menuItem = filteredMenuItems.find((item) => {
       if (item.key === currentPath) return true;
-      return item.children?.some((child) => child.path === currentPath);
+      return item.children?.some((child) => child.key === currentPath);
     });
 
     if (menuItem) {
       if (menuItem.children) {
         const childItem = menuItem.children.find(
-          (child) => child.path === currentPath
+          (child) => child.key === currentPath
         );
         breadcrumbs.push({ title: menuItem.label });
         if (childItem) breadcrumbs.push({ title: childItem.label });
@@ -267,7 +267,11 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
         collapsedWidth={64}
       >
         <div className="flex items-center justify- h-16 border-b border-sidebar-border">
-          <img className="w-40" src="/public/salao-x-not-bg.png" />
+          <img
+            onClick={() => navigate("/pdv")}
+            className={`w-40 cursor-pointer ${isDarkMode ? "invert" : ""}`}
+            src="/public/salao-x-not-bg.png"
+          />
         </div>
         <div className="py-4">{renderMenu()}</div>
       </Sider>
@@ -276,7 +280,9 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
       <Drawer
         title={
           <img
-            className="w-36 h-16 object-contain"
+            className={`w-20 h-20 object-contain  ${
+              isDarkMode ? "invert" : ""
+            }`}
             src="/public/salao-x-not-bg.png"
           />
         }
@@ -342,7 +348,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
         {/* Content */}
         <Content className="bg-content p-6 overflow-auto">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/pdv" element={<PDV />} />
             <Route path="/vendas" element={<Vendas />} />
             <Route path="/produtos" element={<Produtos />} />

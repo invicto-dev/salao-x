@@ -15,9 +15,10 @@ import {
   Col,
   TableColumnProps,
   Divider,
+  Button,
 } from "antd";
 import { useSales, useSaleUpdateStatus } from "@/hooks/use-sales";
-import { Search } from "lucide-react";
+import { Ban, Receipt, Search } from "lucide-react";
 import { useReciboVenda } from "@/hooks/use-recibo-venda";
 import { formatCurrency } from "@/utils/formatCurrency";
 import DropdownComponent from "@/components/Dropdown";
@@ -58,7 +59,10 @@ const Vendas = () => {
       okText: "Sim, Cancelar",
       okButtonProps: { danger: true },
       cancelText: "Não",
-      onOk: () => handleCancelarVenda(venda.id),
+      onOk: () => {
+        handleCancelarVenda(venda.id);
+        setVendaSelecionada(null);
+      },
     });
   };
 
@@ -144,6 +148,7 @@ const Vendas = () => {
               {
                 key: "1",
                 label: "Imprimir Recibo",
+                icon: <Receipt size={14} />,
                 onClick: (e) => {
                   e.domEvent.stopPropagation();
                   abrirRecibo(record);
@@ -152,6 +157,7 @@ const Vendas = () => {
               {
                 key: "2",
                 label: "Cancelar Venda",
+                icon: <Ban size={14} />,
                 onClick: (e) => {
                   e.domEvent.stopPropagation();
                   showModalCancelamento(record);
@@ -269,11 +275,16 @@ const Vendas = () => {
                         <Row>
                           <Text
                             ellipsis={{
-                              tooltip: item.produto?.nome || item.servico?.nome,
+                              tooltip:
+                                item.produto?.nome ||
+                                item.servico?.nome ||
+                                "item deletado",
                             }}
                           >
                             {item.quantidade} x{" "}
-                            {item.produto?.nome || item.servico?.nome}
+                            {item.produto?.nome ||
+                              item.servico?.nome ||
+                              "Item Deletado"}
                           </Text>
                         </Row>
                         <Row className="text-xs text-muted-foreground">
@@ -319,6 +330,25 @@ const Vendas = () => {
                   </Col>
                 </Row>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Button
+                onClick={() => abrirRecibo(vendaSelecionada)}
+                icon={<Receipt size={14} />}
+                block
+              >
+                Imprimir Recibo
+              </Button>
+              {vendaSelecionada.status !== "CANCELADO" && (
+                <Button
+                  onClick={() => showModalCancelamento(vendaSelecionada)}
+                  icon={<Ban size={14} />}
+                  block
+                  danger
+                >
+                  Cancelar Venda
+                </Button>
+              )}
             </div>
           </div>
         )}

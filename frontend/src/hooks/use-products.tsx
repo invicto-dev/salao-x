@@ -38,6 +38,9 @@ export const useProductCreate = () => {
       queryClient.invalidateQueries({
         queryKey: ["get-products"],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["get-stock-products"],
+      });
       message.success("Produto criado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
@@ -57,6 +60,9 @@ export const useProductUpdate = () => {
       queryClient.invalidateQueries({
         queryKey: ["get-products"],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["get-stock-products"],
+      });
       message.success("Produto atualizado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
@@ -68,11 +74,18 @@ export const useProductUpdate = () => {
 };
 
 export const useProductDelete = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
       return await deleteProduct(id);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["get-products"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["get-stock-products"],
+      });
       message.success("Produto excluído com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {

@@ -16,7 +16,6 @@ import {
   Row,
   Col,
   Upload,
-  Image,
   Checkbox,
   TableColumnProps,
   Tooltip,
@@ -27,9 +26,11 @@ import {
   Search,
   Edit,
   Upload as UploadIcon,
+  Trash2,
 } from "lucide-react";
 import {
   useProductCreate,
+  useProductDelete,
   useProducts,
   useProductUpdate,
 } from "@/hooks/use-products";
@@ -37,6 +38,7 @@ import { NameInput } from "@/components/inputs/NameInput";
 import { useCategories } from "@/hooks/use-categories";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { formatCurrency } from "@/utils/formatCurrency";
+import DropdownComponent from "@/components/Dropdown";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -56,6 +58,7 @@ const Produtos = () => {
   const { data: categories } = useCategories();
   const { mutateAsync: createProduct } = useProductCreate();
   const { mutateAsync: updateProduct } = useProductUpdate();
+  const { mutateAsync: deleteProduto } = useProductDelete();
 
   const unidadeMedidas = ["un", "m", "kg", "g", "mg", "cm", "mm"];
 
@@ -92,22 +95,26 @@ const Produtos = () => {
       render: (_, record) => (
         <div>
           <div className="font-semibold text-salao-primary">
-            {record.preco
-              ? `${formatCurrency(record.preco)}`
-              : "Valor em aberto"}
+            {`R$ ${record.preco}`}
           </div>
+          {record.valorEmAberto && (
+            <div className="text-sm text-muted-foreground">Valor em aberto</div>
+          )}
           {record.custo && record.custo > 0 && (
             <div className="text-sm text-muted-foreground">
               Custo: {formatCurrency(record.custo)}
             </div>
           )}
 
-          {record.custo && record.custo > 0 && record.preco && (
-            <div className="text-xs text-salao-success">{`Margem: ${(
-              ((record.preco - record.custo) / record.custo) *
-              100
-            ).toFixed(2)} %`}</div>
-          )}
+          {!record.valorEmAberto &&
+            record.custo &&
+            record.custo > 0 &&
+            record.preco && (
+              <div className="text-xs text-salao-success">{`Margem: ${(
+                ((record.preco - record.custo) / record.custo) *
+                100
+              ).toFixed(2)} %`}</div>
+            )}
         </div>
       ),
     },
@@ -142,15 +149,24 @@ const Produtos = () => {
       key: "acoes",
       align: "center",
       render: (_, record) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<Edit size={14} />}
-            onClick={() => editarProduto(record)}
-          >
-            Editar
-          </Button>
-        </Space>
+        <DropdownComponent
+          menu={{
+            items: [
+              {
+                key: "editar",
+                icon: <Edit size={14} />,
+                label: "Editar",
+                onClick: () => editarProduto(record),
+              },
+              {
+                key: "excluir",
+                icon: <Trash2 size={14} />,
+                label: "Excluir",
+                onClick: () => excluirProduto(record),
+              },
+            ],
+          }}
+        />
       ),
     },
   ];
@@ -211,6 +227,17 @@ const Produtos = () => {
     },
   };
 
+  const excluirProduto = (product: Product.Props) => {
+    Modal.confirm({
+      title: "Confirmar Exclusão",
+      content: `Você tem certeza que deseja excluir o produto ${product.nome}? As movimentações de estoque relacionadas a ele serão removidas também.`,
+      okText: "Sim, Excluir",
+      okButtonProps: { danger: true },
+      cancelText: "Não",
+      onOk: () => deleteProduto(product.id),
+    });
+  };
+
   const SelectCategory = ({
     value,
     placeholder,
@@ -243,7 +270,7 @@ const Produtos = () => {
   return (
     <div className="space-y-6">
       <div>
-        <Title level={2} className="!mb-2">
+        <Title level={2} className="!mb-0">
           Gestão de Produtos
         </Title>
         <p className="text-muted-foreground">
@@ -315,6 +342,7 @@ const Produtos = () => {
           onFinish={handleSubmit}
           initialValues={{
             ativo: true,
+            preco: 1,
             contarEstoque: true,
             unidadeMedida: "un",
           }}

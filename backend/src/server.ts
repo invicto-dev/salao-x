@@ -16,6 +16,8 @@ import { salesRoutes } from "./routes/sales";
 import { errorHandler } from "./middlewares/errorHandler";
 import { stockRoutes } from "./routes/stock";
 import { authRoutes } from "./routes/auth";
+import { caixaRoutes } from "./routes/caixa";
+import { authenticateToken, requireAdmin } from "./middlewares/auth";
 
 const app = express();
 
@@ -57,13 +59,14 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
-app.use("/api/configuracoes", settingsRoutes);
+app.use("/api/caixa", caixaRoutes);
+app.use("/api/configuracoes", authenticateToken, requireAdmin, settingsRoutes);
 app.use("/api/employees", employeeRoutes);
-app.use("/api/customers", customerRoutes);
+app.use("/api/customers", authenticateToken, customerRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/payment-methods", paymentMethodRoutes);
-app.use("/api/categories", categoryRoutes);
+app.use("/api/categories", authenticateToken, categoryRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/stock", stockRoutes);
 

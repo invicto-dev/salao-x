@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { ServicesController } from "../controller/ServicesController";
+import { authenticateToken } from "../middlewares/auth";
 
 const router = Router();
 
-router.get("/", ServicesController.getServices);
-router.get("/:id", ServicesController.getService);
-router.post("/", ServicesController.createService);
-router.put("/:id", ServicesController.updateService);
-router.delete("/:id", ServicesController.deleteService);
+router.get("/", authenticateToken, ServicesController.getServices);
+router.get("/:id", authenticateToken, ServicesController.getService);
+router.post("/", authenticateToken, ServicesController.createService);
+router.put("/:id", authenticateToken, ServicesController.updateService);
+router.delete("/:id", authenticateToken, ServicesController.deleteService);
 
 export { router as serviceRoutes };

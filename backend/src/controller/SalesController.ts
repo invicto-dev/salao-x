@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import {
   ApprovalStatus,
+  CaixaStatus,
   StockMovementReason,
   StockMovementType,
 } from "@prisma/client";
@@ -60,6 +61,17 @@ export class SalesController {
         .json({ success: false, error: "Usuário não autenticado." });
     }
 
+    const openCaixa = await prisma.caixa.findFirst({
+      where: { status: CaixaStatus.ABERTO },
+    });
+
+    if (!openCaixa) {
+      return res.status(404).json({
+        success: false,
+        error: "Nenhum caixa aberto. Abra um caixa para iniciar as vendas.",
+      });
+    }
+
     const novaVenda = await prisma.$transaction(async (tx) => {
       const venda = await tx.sale.create({
         data: {
@@ -71,6 +83,7 @@ export class SalesController {
           desconto: desconto || 0,
           acrescimo: acrescimo || 0,
           status: status || "PAGO",
+          caixaId: openCaixa.id,
           itens: {
             create: itens.map((item: any) => ({
               produtoId: item.produtoId,

@@ -61,11 +61,13 @@ export const useServiceUpdate = () => {
 };
 
 export const useServiceDelete = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
       return await deleteService(id);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get-services"] });
       message.success("Serviço excluído com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {

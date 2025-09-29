@@ -18,16 +18,18 @@ import {
   Checkbox,
   Tooltip,
 } from "antd";
-import { Scissors, Plus, Search, Edit, Clock } from "lucide-react";
+import { Scissors, Plus, Search, Edit, Clock, Trash2 } from "lucide-react";
 import dayjs from "dayjs";
 import {
   useServiceCreate,
+  useServiceDelete,
   useServices,
   useServiceUpdate,
 } from "@/hooks/use-services";
 import { NameInput } from "@/components/inputs/NameInput";
 import { useCategories } from "@/hooks/use-categories";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
+import DropdownComponent from "@/components/Dropdown";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -44,6 +46,7 @@ const Servicos = () => {
   const { data: categorias = [] } = useCategories();
   const { mutateAsync: createService } = useServiceCreate();
   const { mutateAsync: updateService } = useServiceUpdate();
+  const { mutateAsync: deleteServico } = useServiceDelete();
 
   const servicosFiltrados = (servicos || []).filter((servico) => {
     const matchBusca =
@@ -131,18 +134,38 @@ const Servicos = () => {
       key: "acoes",
       align: "center",
       render: (_, record) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<Edit size={14} />}
-            onClick={() => editarServico(record)}
-          >
-            Editar
-          </Button>
-        </Space>
+        <DropdownComponent
+          menu={{
+            items: [
+              {
+                key: "editar",
+                icon: <Edit size={14} />,
+                label: "Editar",
+                onClick: () => editarServico(record),
+              },
+              {
+                key: "excluir",
+                icon: <Trash2 size={14} />,
+                label: "Excluir",
+                onClick: () => excluirServico(record),
+              },
+            ],
+          }}
+        />
       ),
     },
   ];
+
+  const excluirServico = (service: Service.Props) => {
+    Modal.confirm({
+      title: "Confirmar Exclusão",
+      content: `Você tem certeza que deseja excluir o serviço ${service.nome}?`,
+      okText: "Sim, Excluir",
+      okButtonProps: { danger: true },
+      cancelText: "Não",
+      onOk: () => deleteServico(service.id),
+    });
+  };
 
   const editarServico = (servico: Service.Props) => {
     setEditingService(servico);
