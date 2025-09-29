@@ -4,7 +4,9 @@ import { prisma } from "../config/database";
 
 export class PaymentMethodsController {
   static async getPaymentMethods(req: Request, res: Response) {
-    const paymentMethods = await prisma.paymentMethod.findMany();
+    const paymentMethods = await prisma.paymentMethod.findMany({
+      orderBy: { nome: "asc" },
+    });
 
     return res.status(200).json({
       success: true,

@@ -4,7 +4,9 @@ import { prisma } from "../config/database";
 
 export class CategoriesController {
   static async getCategories(req: Request, res: Response) {
-    const categories = await prisma.category.findMany();
+    const categories = await prisma.category.findMany({
+      orderBy: { nome: "asc" },
+    });
 
     return res.status(200).json({
       success: true,

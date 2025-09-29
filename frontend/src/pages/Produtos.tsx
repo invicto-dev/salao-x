@@ -10,7 +10,6 @@ import {
   Form,
   InputNumber,
   Switch,
-  Space,
   Typography,
   message,
   Row,
@@ -95,7 +94,7 @@ const Produtos = () => {
       render: (_, record) => (
         <div>
           <div className="font-semibold text-salao-primary">
-            {`R$ ${record.preco}`}
+            {formatCurrency(record.preco)}
           </div>
           {record.valorEmAberto && (
             <div className="text-sm text-muted-foreground">Valor em aberto</div>
