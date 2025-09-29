@@ -61,11 +61,13 @@ export const useFuncionarioUpdate = () => {
 };
 
 export const useFuncionarioDelete = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
       return await deleteFuncionario(id);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get-funcionarios"] });
       message.success("Funcionário excluído com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {

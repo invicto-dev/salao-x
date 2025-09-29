@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -7,50 +8,323 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Configuracoes {
-  id                 String   @id @default(uuid())
-  
+model Setting {
+  id String @id @default(uuid())
+
   // Informações da Empresa
-  nomeEmpresa        String
-  cnpj               String   @unique
-  endereco           String
-  bairro             String
-  cidade             String
-  cep                String
-  telefone           String
-  email              String   @unique
-  site               String?
+  nomeEmpresa String
+  cnpj        String  @unique
+  endereco    String
+  bairro      String
+  cidade      String
+  cep         String
+  telefone    String
+  email       String  @unique
+  site        String?
 
   // Configurações de Negócio
-  horarioFuncionamento Json     // Armazena Record<DiaSemana, Horario>
-  intervaloPadrao     Int       // minutos
-  antecedenciaMinima  Int       // minutos
+  horarioFuncionamento Json // Armazena Record<DiaSemana, Horario>
+  intervaloPadrao      Int // minutos
+  antecedenciaMinima   Int // minutos
 
   // Notificações
-  notificarAgendamentos  Boolean
-  notificarEstoqueBaixo  Boolean
-  notificarAniversarios  Boolean
-  whatsappAtivo          Boolean
-  emailAtivo             Boolean
+  notificarAgendamentos Boolean
+  notificarEstoqueBaixo Boolean
+  notificarAniversarios Boolean
+  whatsappAtivo         Boolean
+  emailAtivo            Boolean
 
   // Sistema
-  backupAutomatico    Boolean
-  manterHistorico     Int      // meses
-  timezone            String
+  backupAutomatico       Boolean
+  manterHistorico        Int // meses
+  timezone               String
+  exigirAprovacaoEstoque Boolean @default(false)
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model Funcionarios {
-  id                 String   @id @default(uuid())
-  nome               String
-  email              String   @unique
-  telefone           String
-  funcao             String
-  comissao           Int
-  ativo              Boolean
+enum Role {
+  ROOT
+  ADMIN
+  GERENTE
+  SECRETARIO
+  FUNCIONARIO
+}
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+model Employee {
+  id       String  @id @default(uuid())
+  nome     String
+  email    String  @unique
+  telefone String
+  funcao   String
+  comissao Decimal
+  ativo    Boolean
+  senha    String
+  role     Role
+
+  vendas                   Sale[]
+  movimentacoesSolicitadas StockMovement[] @relation("SolicitadoPor")
+  movimentacoesAprovadas   StockMovement[] @relation("AprovadoPor")
+
+  caixasAbertos      Caixa[]             @relation("CaixaAbertoPor")
+  caixasFechados     Caixa[]             @relation("CaixaFechadoPor")
+  caixaMovimentacoes CaixaMovimentacao[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id          String    @id @default(uuid())
+  nome        String
+  telefone    String?
+  email       String?   @unique
+  cpf         String?   @unique
+  aniversario DateTime?
+  observacoes String?
+  ativo       Boolean   @default(true)
+
+  vendas Sale[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Service {
+  id            String   @id @default(uuid())
+  nome          String
+  codigo        String?  @unique
+  valorEmAberto Boolean  @default(false)
+  preco         Decimal?
+  duracao       Int?
+  ativo         Boolean  @default(true)
+  descricao     String?
+
+  categoriaId String?
+  categoria   Category? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+
+  itensVenda SaleItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  nome          String
+  codigo        String?  @unique
+  preco         Decimal?
+  custo         Decimal?
+  valorEmAberto Boolean  @default(false)
+  contarEstoque Boolean  @default(true)
+  estoqueMinimo Int?     @default(1)
+  unidadeMedida String   @default("un")
+  ativo         Boolean  @default(true)
+  descricao     String?
+
+  // Relation with Category
+  categoriaId String?
+  categoria   Category? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+
+  itensVenda    SaleItem[]
+  movimentacoes StockMovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum StockMovementType {
+  ENTRADA
+  SAIDA
+  AJUSTE
+}
+
+enum StockMovementReason {
+  COMPRA
+  VENDA
+  QUEBRA
+  VENCIMENTO
+  DEVOLUCAO
+  AJUSTE_INVENTARIO
+  INSUMO_PARA_USO
+  CANCELAMENTO_VENDA
+}
+
+enum ApprovalStatus {
+  PENDENTE
+  APROVADO
+  REJEITADO
+}
+
+model StockMovement {
+  id String @id @default(uuid())
+
+  produtoId String
+  produto   Product @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  tipo       StockMovementType
+  motivo     StockMovementReason
+  quantidade Decimal
+
+  saleId String? // Opcional, pois nem toda movimentação vem de uma venda
+  sale   Sale?   @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  custoUnitario   Decimal?
+  observacao      String?
+  status          ApprovalStatus @default(PENDENTE)
+  solicitadoPorId String
+  solicitadoPor   Employee       @relation("SolicitadoPor", fields: [solicitadoPorId], references: [id])
+
+  aprovadoPorId String?
+  aprovadoPor   Employee? @relation("AprovadoPor", fields: [aprovadoPorId], references: [id])
+
+  dataAprovacao  DateTime?
+  motivoRejeicao String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentMethod {
+  id        String  @id @default(uuid())
+  nome      String  @unique
+  descricao String?
+  ativo     Boolean @default(true)
+  chavePix  String?
+  isCash    Boolean @default(false)
+
+  pagamentos SalePayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id        String  @id @default(uuid())
+  nome      String  @unique
+  descricao String?
+  ativo     Boolean @default(true)
+
+  products Product[]
+  services Service[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum SaleStatus {
+  PENDENTE
+  PAGO
+  CANCELADO
+}
+
+model Sale {
+  id            String    @id @default(uuid())
+  clienteId     String? // Customer optional (e.g sale avulso)
+  cliente       Customer? @relation(fields: [clienteId], references: [id])
+  funcionarioId String? // Funcionario optional (e.g sale avulso)
+  funcionario   Employee? @relation(fields: [funcionarioId], references: [id])
+
+  subtotal  Decimal
+  total     Decimal
+  troco     Decimal?
+  desconto  Decimal?
+  acrescimo Decimal?
+  status    SaleStatus @default(PENDENTE)
+
+  itens         SaleItem[]
+  pagamentos    SalePayment[]
+  movimentacoes StockMovement[]
+
+  caixaId String?
+  caixa   Caixa?  @relation(fields: [caixaId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SaleItem {
+  id      String @id @default(uuid())
+  vendaId String
+  venda   Sale   @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+
+  produtoId String?
+  produto   Product? @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+
+  servicoId String?
+  servico   Service? @relation(fields: [servicoId], references: [id], onDelete: SetNull)
+
+  quantidade Int     @default(1)
+  preco      Decimal
+  subtotal   Decimal
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SalePayment {
+  id      String @id @default(uuid())
+  vendaId String
+  venda   Sale   @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+
+  metodoDePagamentoId String
+  metodoDePagamento   PaymentMethod @relation(fields: [metodoDePagamentoId], references: [id])
+
+  valor      Decimal
+  observacao String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum CaixaStatus {
+  ABERTO
+  FECHADO
+}
+
+enum CaixaMovimentacaoTipo {
+  ENTRADA // Suprimento, reforço de caixa
+  SAIDA // Sangria, pagamento de despesas
+}
+
+// Representa uma sessão de trabalho do caixa
+model Caixa {
+  id String @id @default(uuid())
+
+  dataAbertura             DateTime    @default(now())
+  dataFechamento           DateTime?
+  valorAbertura            Decimal // Fundo de troco inicial
+  valorFechamentoInformado Decimal? // Valor contado pelo funcionário no final
+  valorFechamentoCalculado Decimal? // Valor que o sistema calculou que deveria ter
+  diferenca                Decimal? // (Informado - Calculado) pode ser positivo (sobra) ou negativo (quebra)
+  status                   CaixaStatus @default(ABERTO)
+  observacoes              String?
+
+  funcionarioAberturaId   String
+  funcionarioAbertura     Employee  @relation("CaixaAbertoPor", fields: [funcionarioAberturaId], references: [id])
+  funcionarioFechamentoId String?
+  funcionarioFechamento   Employee? @relation("CaixaFechadoPor", fields: [funcionarioFechamentoId], references: [id])
+
+  // Relações com outras partes do sistema
+  vendas        Sale[]
+  movimentacoes CaixaMovimentacao[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CaixaMovimentacao {
+  id     String                @id @default(uuid())
+  valor  Decimal
+  tipo   CaixaMovimentacaoTipo
+  motivo String // Ex: "Pagamento fornecedor de limpeza", "Reforço de troco"
+
+  caixaId       String
+  caixa         Caixa    @relation(fields: [caixaId], references: [id], onDelete: Cascade)
+  funcionarioId String
+  funcionario   Employee @relation(fields: [funcionarioId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

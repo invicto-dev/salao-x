@@ -1,24 +1,38 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Iniciando seed do banco de dados...");
+  console.log("🌱 Iniciando seed de usuarios no banco de dados...");
 
-  // Criar configurações padrão
-  const configuracoes = await prisma.configuracoes.upsert({
-    where: { id: new Date().toISOString() },
+  console.log("Gerando dados padrões...");
+
+  await prisma.paymentMethod.upsert({
+    where: { nome: "Dinheiro" },
+    update: {},
+    create: {
+      nome: "Dinheiro",
+      descricao: "Pagamento em espécie",
+      isCash: true,
+      ativo: true,
+    },
+  });
+  console.log("✅ Método de pagamento Dinheiro criado com sucesso!");
+
+  await prisma.setting.upsert({
+    where: { id: "configuracao-padrao" },
     update: {},
     create: {
       id: "configuracao-padrao",
-      nomeEmpresa: "Salão da Rafa",
+      nomeEmpresa: "Salão X Dev",
       cnpj: "13.123.456/0001-90",
       endereco: "Tv. Santa Luzia, 123",
       bairro: "Santa Luzia",
       cidade: "Oriximiná",
       cep: "13.123.456-000",
       telefone: "(11) 1234-5678",
-      email: "salao@rafa.com",
+      email: "salaox@dev.com",
       site: "https://salao-x.vercel.app",
       horarioFuncionamento: {
         "segunda-feira": "08:00",
@@ -42,7 +56,35 @@ async function main() {
     },
   });
 
-  console.log("✅ Cofiguração padrão criada:", configuracoes.name);
+  console.log("✅ Configuração padrão criada com sucesso!");
+
+  console.log("Gerando o usuario root...");
+
+  const hashedRootPassword = await bcrypt.hash("root123", 10);
+
+  const users = [
+    {
+      nome: "Usuário Root",
+      ativo: true,
+      email: "usuario@root.com",
+      senha: hashedRootPassword,
+      role: Role.ROOT,
+      funcao: "Usuário Root",
+      telefone: "(11) 1234-5678",
+      comissao: 0,
+    },
+  ];
+
+  await prisma.employee.createMany({
+    data: users,
+  });
+
+  console.log("✅ Usuário criado com sucesso!");
+
+  console.log("Root credenciais:");
+  console.log("Email: usuario@root.com");
+  console.log("Senha: root123");
+
   console.log("\n🎉 Seed concluído com sucesso!");
 }
 

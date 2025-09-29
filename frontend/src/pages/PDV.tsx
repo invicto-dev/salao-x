@@ -1,106 +1,180 @@
-import { useState } from 'react';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Button, 
-  Table, 
-  Select, 
-  Input, 
-  InputNumber, 
-  Space, 
-  Tag, 
-  Divider, 
-  Typography, 
-  Radio, 
+import { useEffect, useState } from "react";
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Table,
+  Select,
+  Input,
+  InputNumber,
+  Divider,
+  Typography,
   message,
-  Modal
-} from 'antd';
-import { 
-  ShoppingCart, 
-  Plus, 
-  Minus, 
-  Trash2, 
-  Search, 
-  User, 
+  TableColumnProps,
+  Form,
+  Modal,
+  Tooltip,
+  Alert,
+  Spin,
+  Tag,
+} from "antd";
+import {
+  ShoppingCart,
+  Plus,
+  Minus,
+  Trash2,
+  Search,
   CreditCard,
-  Printer,
-  Calculator
-} from 'lucide-react';
+  User,
+  X,
+  Package,
+  Scissors,
+  DollarSign,
+  CheckCircle2,
+  XCircle,
+  Banknote,
+  BanknoteIcon,
+  CircleX,
+} from "lucide-react";
+import { useServices } from "@/hooks/use-services";
+import { useCustomers } from "@/hooks/use-customer";
+import { useSaleCreate } from "@/hooks/use-sales";
+import { usePaymentMethods } from "@/hooks/use-payment-methods";
+import { TelaPagamento } from "@/components/PDV/TelaPagamento";
+import { formatCurrency } from "@/utils/formatCurrency";
+import { useReciboVenda } from "@/hooks/use-recibo-venda";
+import { useQueryClient } from "@tanstack/react-query";
+import { getSale } from "@/api/sales";
+import { useStockProducts } from "@/hooks/use-stock";
+import { CurrencyInput } from "@/components/inputs/CurrencyInput";
+import { useNavigate } from "react-router-dom";
+import { useCaixaManager, useHasOpenCaixa } from "@/hooks/use-caixa";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-interface CartItem {
-  id: string;
-  nome: string;
-  tipo: 'produto' | 'servico';
-  preco: number;
-  quantidade: number;
-  funcionario?: string;
-  comissao?: number;
-}
+type AcrescimoOrDesconto = {
+  valor: number;
+  tipo: "percentual" | "valor";
+};
+
+type ItemType = "produto" | "servico";
+type ItemProps = Product.Props | Service.Props;
+
+const PDV_SESSION_KEY = "pdv-session-data";
+const INITIAL_STATE = {
+  carrinho: [] as Sale.CartItem[],
+  clienteSelecionado: null as string | null,
+  pagamentos: [] as Sale.Props["pagamentos"],
+  desconto: { valor: null, tipo: "percentual" } as AcrescimoOrDesconto,
+  acrescimo: { valor: null, tipo: "percentual" } as AcrescimoOrDesconto,
+};
 
 const PDV = () => {
-  const [carrinho, setCarrinho] = useState<CartItem[]>([]);
-  const [clienteSelecionado, setClienteSelecionado] = useState<string>('');
-  const [formaPagamento, setFormaPagamento] = useState<string>('dinheiro');
-  const [desconto, setDesconto] = useState<number>(0);
-  const [busca, setBusca] = useState<string>('');
-  const [reciboPrint, setReciboPrint] = useState(false);
+  const [formModal] = Form.useForm();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  // Mock data
-  const produtos = [
-    { id: '1', nome: 'Shampoo Profissional', preco: 29.90, estoque: 15 },
-    { id: '2', nome: 'Condicionador', preco: 25.90, estoque: 12 },
-    { id: '3', nome: 'Máscara Hidratante', preco: 45.90, estoque: 8 },
-    { id: '4', nome: 'Óleo Capilar', preco: 35.90, estoque: 5 },
-  ];
+  const [saleSession, setSaleSession] = useState<typeof INITIAL_STATE>(() => {
+    try {
+      const savedSession = window.localStorage.getItem(PDV_SESSION_KEY);
+      return savedSession ? JSON.parse(savedSession) : INITIAL_STATE;
+    } catch (error) {
+      console.error("Falha ao carregar sessão do PDV:", error);
+      return INITIAL_STATE;
+    }
+  });
 
-  const servicos = [
-    { id: '5', nome: 'Corte Feminino', preco: 50.00, duracao: 60, comissao: 30 },
-    { id: '6', nome: 'Escova', preco: 30.00, duracao: 45, comissao: 40 },
-    { id: '7', nome: 'Coloração', preco: 80.00, duracao: 120, comissao: 25 },
-    { id: '8', nome: 'Manicure', preco: 25.00, duracao: 45, comissao: 50 },
-  ];
+  const { carrinho, clienteSelecionado, pagamentos, desconto, acrescimo } =
+    saleSession;
 
-  const clientes = [
-    { id: '1', nome: 'Ana Silva', telefone: '(11) 99999-9999' },
-    { id: '2', nome: 'Maria Santos', telefone: '(11) 88888-8888' },
-    { id: '3', nome: 'Carla Oliveira', telefone: '(11) 77777-7777' },
-  ];
+  const [modoCarrinho, setModoCarrinho] = useState<"venda" | "pagamento">(
+    "venda"
+  );
+  const [abrirModalCliente, setAbrirModalCliente] = useState(false);
+  const [modalValorAberto, setModalValorAberto] = useState<{
+    visible: boolean;
+    item: ItemProps | null;
+    tipo: ItemType | null;
+  }>({
+    visible: false,
+    item: null,
+    tipo: null,
+  });
 
-  const funcionarios = [
-    { id: '1', nome: 'Ana Silva' },
-    { id: '2', nome: 'Maria Santos' },
-    { id: '3', nome: 'Carla Oliveira' },
-  ];
+  const [busca, setBusca] = useState<string>("");
+  const { ReciboComponent, abrirRecibo } = useReciboVenda();
 
-  const adicionarAoCarrinho = (item: any, tipo: 'produto' | 'servico') => {
-    const novoItem: CartItem = {
-      id: item.id,
-      nome: item.nome,
-      tipo,
-      preco: item.preco,
-      quantidade: 1,
-      comissao: tipo === 'servico' ? item.comissao : undefined
-    };
+  const { data: produtos, isLoading: isLoadingProdutos } = useStockProducts({
+    search: "",
+  });
+  const { data: hasOpenCaixa, isFetching: isFetchingCaixa } = useHasOpenCaixa();
+  const { openCaixaModal, closeCaixaModal, CaixaManagerModal } =
+    useCaixaManager();
 
-    const itemExistente = carrinho.find(c => c.id === item.id && c.tipo === tipo);
-    
-    if (itemExistente && tipo === 'produto') {
-      setCarrinho(carrinho.map(c => 
-        c.id === item.id && c.tipo === tipo 
-          ? { ...c, quantidade: c.quantidade + 1 }
-          : c
-      ));
-    } else {
-      setCarrinho([...carrinho, novoItem]);
+  const { data: servicos, isLoading: isLoadingServicos } = useServices();
+  const { data: clientes } = useCustomers();
+  const { data: formasDePagamentos } = usePaymentMethods();
+  const { mutateAsync: createSale } = useSaleCreate();
+
+  const isCaixaFechado = !isFetchingCaixa && !hasOpenCaixa;
+
+  useEffect(() => {
+    window.localStorage.setItem(PDV_SESSION_KEY, JSON.stringify(saleSession));
+  }, [saleSession]);
+
+  const carrinhoVazio = carrinho.length === 0;
+
+  const formatItem = (item: Sale.CartItem) => {
+    switch (item.tipo) {
+      case "produto":
+        return {
+          produtoId: item.id,
+          preco: item.preco,
+          quantidade: item.quantidade,
+          contarEstoque: item.contarEstoque,
+        };
+      case "servico":
+        return {
+          servicoId: item.id,
+          preco: item.preco,
+          quantidade: item.quantidade,
+        };
     }
   };
 
+  const updateSaleSession = (updates: Partial<typeof INITIAL_STATE>) => {
+    setSaleSession((prev) => ({ ...prev, ...updates }));
+  };
+
+  const itemExistente = (itemId: string) =>
+    carrinho?.find((c) => c.id === itemId);
+
+  const adicionarAoCarrinho = (item: ItemProps, tipo: ItemType) => {
+    const itemNoCarrinho = itemExistente(item.id);
+
+    let novoCarrinho;
+    if (itemNoCarrinho) {
+      novoCarrinho = carrinho.map((c) =>
+        c.id === item.id ? { ...c, quantidade: c.quantidade + 1 } : c
+      );
+    } else {
+      const novoItem: Sale.CartItem = {
+        id: item.id,
+        nome: item.nome,
+        tipo,
+        preco: item.preco,
+        quantidade: 1,
+        contarEstoque: (item as Product.Props).contarEstoque,
+      };
+      novoCarrinho = [...carrinho, novoItem];
+    }
+    updateSaleSession({ carrinho: novoCarrinho });
+  };
+
   const removerDoCarrinho = (index: number) => {
-    setCarrinho(carrinho.filter((_, i) => i !== index));
+    updateSaleSession({ carrinho: carrinho.filter((_, i) => i !== index) });
   };
 
   const alterarQuantidade = (index: number, novaQuantidade: number) => {
@@ -108,427 +182,660 @@ const PDV = () => {
       removerDoCarrinho(index);
       return;
     }
-    
-    setCarrinho(carrinho.map((item, i) => 
+
+    const novoCarrinho = carrinho.map((item, i) =>
       i === index ? { ...item, quantidade: novaQuantidade } : item
-    ));
+    );
+    updateSaleSession({ carrinho: novoCarrinho });
   };
 
-  const alterarFuncionario = (index: number, funcionarioId: string) => {
-    setCarrinho(carrinho.map((item, i) => 
-      i === index ? { ...item, funcionario: funcionarioId } : item
-    ));
-  };
+  const toogleClienteModal = () => setAbrirModalCliente((prev) => !prev);
+  const toogleCarrinhoTipo = () =>
+    setModoCarrinho((prev) => (prev === "venda" ? "pagamento" : "venda"));
 
-  const calcularSubtotal = () => {
-    return carrinho.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+  const calcularSubtotal = () =>
+    carrinho.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
+
+  const calPercentual = (value: number, item: AcrescimoOrDesconto) => {
+    if (!item.valor || item.valor <= 0) return 0;
+    return item.tipo === "percentual" ? (value * item.valor) / 100 : item.valor;
   };
 
   const calcularTotal = () => {
     const subtotal = calcularSubtotal();
-    return subtotal - (subtotal * desconto / 100);
+    const valorAcrescimo = calPercentual(subtotal, acrescimo);
+    const valorDesconto = calPercentual(subtotal, desconto);
+    return subtotal + valorAcrescimo - valorDesconto;
   };
 
-  const calcularComissaoTotal = () => {
-    return carrinho
-      .filter(item => item.tipo === 'servico' && item.comissao)
-      .reduce((acc, item) => acc + ((item.preco * item.quantidade) * (item.comissao || 0) / 100), 0);
+  const handleItemClick = (item: ItemProps, tipo: ItemType) => {
+    if (item.valorEmAberto && !itemExistente(item.id)) {
+      setModalValorAberto({ visible: true, item, tipo });
+    } else {
+      adicionarAoCarrinho(item, tipo);
+    }
   };
 
-  const finalizarVenda = () => {
-    if (carrinho.length === 0) {
-      message.error('Carrinho vazio!');
+  const handleCloseModalValorAberto = () => {
+    formModal.resetFields();
+    setModalValorAberto({ visible: false, item: null, tipo: null });
+  };
+
+  const handleDefinirValor = (values: { preco: number }) => {
+    const { item, tipo } = modalValorAberto;
+    if (item && tipo) {
+      const itemComNovoPreco = { ...item, preco: values.preco };
+      adicionarAoCarrinho(itemComNovoPreco, tipo);
+    }
+    handleCloseModalValorAberto();
+  };
+
+  const finalizarVenda = async (troco: number) => {
+    if (carrinhoVazio) {
+      message.error("Carrinho vazio!");
+      return;
+    }
+    if (pagamentos.length === 0) {
+      message.error("Adicione ao menos uma forma de pagamento.");
+      return;
+    }
+    const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+    if (totalPago < calcularTotal()) {
+      message.error("O valor pago é menor que o total da venda.");
       return;
     }
 
-    if (!clienteSelecionado) {
-      message.error('Selecione um cliente!');
-      return;
+    try {
+      const novaVenda = await createSale({
+        clienteId: clienteSelecionado,
+        funcionarioId: null,
+        itens: carrinho.map(formatItem),
+        subtotal: calcularSubtotal(),
+        total: calcularTotal(),
+        troco,
+        pagamentos,
+        desconto: calPercentual(calcularSubtotal(), desconto),
+        acrescimo: calPercentual(calcularSubtotal(), acrescimo),
+        status: "PAGO",
+      });
+      const vendaCompleta = await queryClient.fetchQuery({
+        queryKey: ["get-sale", novaVenda.id],
+        queryFn: () => getSale(novaVenda.id),
+      });
+      limparVenda();
+      abrirRecibo(vendaCompleta);
+    } catch (error: any) {
+      message.error(error.message || "Erro ao finalizar a venda.");
     }
-
-    // Verificar se serviços têm funcionários
-    const servicosSemFuncionario = carrinho.filter(item => 
-      item.tipo === 'servico' && !item.funcionario
-    );
-
-    if (servicosSemFuncionario.length > 0) {
-      message.error('Selecione funcionários para todos os serviços!');
-      return;
-    }
-
-    message.success('Venda finalizada com sucesso!');
-    setReciboPrint(true);
   };
 
-  const limparCarrinho = () => {
-    setCarrinho([]);
-    setClienteSelecionado('');
-    setDesconto(0);
-    setFormaPagamento('dinheiro');
+  const limparVenda = () => {
+    setSaleSession(INITIAL_STATE);
+    setModoCarrinho("venda");
+    window.localStorage.removeItem(PDV_SESSION_KEY);
   };
 
-  const carrinhoColumns = [
+  const carrinhoColumns: TableColumnProps<Sale.CartItem>[] = [
     {
-      title: 'Item',
-      dataIndex: 'nome',
-      key: 'nome',
-      render: (text: string, record: CartItem) => (
-        <div>
-          <div className="font-medium">{text}</div>
-          <Tag color={record.tipo === 'produto' ? 'blue' : 'purple'}>
-            {record.tipo === 'produto' ? 'Produto' : 'Serviço'}
-          </Tag>
-        </div>
-      )
+      title: "Item",
+      dataIndex: "nome",
+      key: "nome",
+      width: "30%",
+      render: (text: string) => (
+        <Text ellipsis={{ tooltip: text }} className="font-medium">
+          {text}
+        </Text>
+      ),
     },
     {
-      title: 'Preço Unit.',
-      dataIndex: 'preco',
-      key: 'preco',
-      render: (preco: number) => `R$ ${preco.toFixed(2)}`
+      title: "Preço Unit.",
+      dataIndex: "preco",
+      key: "preco",
+      align: "center",
+      render: (preco: number) => formatCurrency(preco),
     },
     {
-      title: 'Qtd.',
-      key: 'quantidade',
-      render: (_: any, record: CartItem, index: number) => (
+      title: "Qtd.",
+      key: "quantidade",
+      align: "center",
+      render: (_, record, index) => (
         <div className="flex items-center gap-2">
           <Button
             size="small"
-            icon={<Minus size={12} />}
+            type="text"
+            icon={<Minus size={14} />}
             onClick={() => alterarQuantidade(index, record.quantidade - 1)}
           />
-          <span className="w-8 text-center">{record.quantidade}</span>
+          <InputNumber
+            value={record.quantidade}
+            size="small"
+            onChange={(value) => value && alterarQuantidade(index, value)}
+            controls={false}
+            min={1}
+            className="w-11 text-center"
+          />
           <Button
             size="small"
-            icon={<Plus size={12} />}
+            type="text"
+            icon={<Plus size={14} />}
             onClick={() => alterarQuantidade(index, record.quantidade + 1)}
           />
         </div>
-      )
+      ),
     },
     {
-      title: 'Funcionário',
-      key: 'funcionario',
-      render: (_: any, record: CartItem, index: number) => (
-        record.tipo === 'servico' ? (
-          <Select
-            placeholder="Selecionar"
-            style={{ width: 120 }}
-            size="small"
-            value={record.funcionario}
-            onChange={(value) => alterarFuncionario(index, value)}
-          >
-            {funcionarios.map(func => (
-              <Option key={func.id} value={func.id}>
-                {func.nome}
-              </Option>
-            ))}
-          </Select>
-        ) : '-'
-      )
-    },
-    {
-      title: 'Total',
-      key: 'total',
-      render: (_: any, record: CartItem) => (
+      title: "Total",
+      key: "total",
+      align: "center",
+      render: (_, record) => (
         <span className="font-semibold">
-          R$ {(record.preco * record.quantidade).toFixed(2)}
+          {formatCurrency(record.preco * record.quantidade)}
         </span>
-      )
+      ),
     },
     {
-      title: 'Ações',
-      key: 'acoes',
-      render: (_: any, record: CartItem, index: number) => (
+      title: "Ações",
+      key: "acoes",
+      align: "center",
+      render: (_, __, index) => (
         <Button
           type="text"
           danger
           icon={<Trash2 size={14} />}
           onClick={() => removerDoCarrinho(index)}
         />
-      )
-    }
+      ),
+    },
   ];
 
-  const filteredProdutos = produtos.filter(produto =>
-    produto.nome.toLowerCase().includes(busca.toLowerCase())
+  const filteredProdutos = (produtos || []).filter((p) =>
+    p.nome.toLowerCase().includes(busca.toLowerCase())
+  );
+  const filteredServicos = (servicos || []).filter((s) =>
+    s.nome.toLowerCase().includes(busca.toLowerCase())
   );
 
-  const filteredServicos = servicos.filter(servico =>
-    servico.nome.toLowerCase().includes(busca.toLowerCase())
+  const RenderResumo = () => (
+    <div className="bg-muted p-4 rounded-lg space-y-2">
+      <div className="flex justify-between">
+        <span>Subtotal:</span>
+        <span>{formatCurrency(calcularSubtotal())}</span>
+      </div>
+      {acrescimo.valor > 0 && (
+        <div className="flex justify-between text-green-600">
+          <span>
+            Acréscimo
+            {acrescimo.tipo === "percentual" && ` (${acrescimo.valor}%)`}
+          </span>
+          <span>
+            + {formatCurrency(calPercentual(calcularSubtotal(), acrescimo))}
+          </span>
+        </div>
+      )}
+      {desconto.valor > 0 && (
+        <div className="flex justify-between text-red-600">
+          <span>
+            Desconto
+            {desconto.tipo === "percentual" && ` (${desconto.valor}%)`}
+          </span>
+          <span>
+            - {formatCurrency(calPercentual(calcularSubtotal(), desconto))}
+          </span>
+        </div>
+      )}
+      <Divider className="!my-2" />
+      <div className="flex justify-between text-lg font-semibold">
+        <span>Total:</span>
+        <span className="text-salao-primary">
+          {formatCurrency(calcularTotal())}
+        </span>
+      </div>
+    </div>
   );
 
   return (
     <div className="space-y-6">
       <div>
-        <Title level={2} className="!mb-2">PDV - Ponto de Venda</Title>
+        <Title level={2} className="!mb-2">
+          PDV - Ponto de Venda
+        </Title>
         <p className="text-muted-foreground">
           Sistema completo para vendas e atendimento
         </p>
       </div>
 
       <Row gutter={[16, 16]}>
-        {/* Produtos e Serviços */}
-        <Col xs={24} lg={14}>
-          <Card title="Produtos e Serviços" className="h-full">
-            <div className="mb-4">
-              <Input
-                placeholder="Buscar produtos ou serviços..."
-                prefix={<Search size={16} />}
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-              />
-            </div>
+        <Col xs={24} lg={12}>
+          <Card
+            loading={isLoadingProdutos || isLoadingServicos}
+            title="Produtos e Serviços"
+            className="h-full"
+          >
+            <Input
+              placeholder="Buscar produtos ou serviços..."
+              prefix={<Search size={14} />}
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              allowClear
+              className="mb-4"
+            />
 
-            <div className="space-y-4">
-              {/* Produtos */}
-              {filteredProdutos.length > 0 && (
-                <div>
-                  <Title level={5} className="!mb-3">Produtos</Title>
-                  <Row gutter={[8, 8]}>
-                    {filteredProdutos.map(produto => (
-                      <Col xs={12} sm={8} md={6} key={produto.id}>
-                        <Card
-                          size="small"
-                          className="text-center cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() => adicionarAoCarrinho(produto, 'produto')}
-                        >
-                          <div className="space-y-2">
-                            <div className="font-medium text-sm">{produto.nome}</div>
-                            <div className="text-salao-primary font-semibold">
-                              R$ {produto.preco.toFixed(2)}
-                            </div>
-                            <Tag 
-                              color={produto.estoque > 5 ? 'green' : 'orange'}
-                            >
-                              Estoque: {produto.estoque}
-                            </Tag>
-                          </div>
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
+            <div>
+              {!filteredProdutos.length && !filteredServicos.length ? (
+                <div className="flex flex-col gap-4 justify-center items-center h-48">
+                  <p className="text-center text-sm text-muted-foreground">
+                    Nenhum item encontrado
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="large"
+                      onClick={() => navigate("/produtos")}
+                      type="dashed"
+                      icon={<Package size={16} />}
+                    >
+                      Adicionar Produtos
+                    </Button>
+                    <Button
+                      size="large"
+                      onClick={() => navigate("/servicos")}
+                      type="dashed"
+                      icon={<Scissors size={16} />}
+                    >
+                      Adicionar Serviços
+                    </Button>
+                  </div>
                 </div>
-              )}
-
-              {/* Serviços */}
-              {filteredServicos.length > 0 && (
-                <div>
-                  <Title level={5} className="!mb-3">Serviços</Title>
-                  <Row gutter={[8, 8]}>
-                    {filteredServicos.map(servico => (
-                      <Col xs={12} sm={8} md={6} key={servico.id}>
-                        <Card
-                          size="small"
-                          className="text-center cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() => adicionarAoCarrinho(servico, 'servico')}
-                        >
-                          <div className="space-y-2">
-                            <div className="font-medium text-sm">{servico.nome}</div>
-                            <div className="text-salao-primary font-semibold">
-                              R$ {servico.preco.toFixed(2)}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {servico.duracao}min | {servico.comissao}%
-                            </div>
-                          </div>
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
+              ) : (
+                <div
+                  className={
+                    isCaixaFechado
+                      ? "pointer-events-none opacity-50"
+                      : "space-y-4 p-4 max-h-[50vh] overflow-y-auto overflow-x-hidden"
+                  }
+                >
+                  {filteredProdutos.length > 0 && (
+                    <div>
+                      <Title level={5} className="!mb-3">
+                        Produtos
+                      </Title>
+                      <Row gutter={[8, 8]}>
+                        {filteredProdutos.map((produto) => (
+                          <Col xs={12} sm={8} md={6} key={produto.id}>
+                            <Card
+                              size="small"
+                              hoverable
+                              onClick={() =>
+                                handleItemClick(produto, "produto")
+                              }
+                            >
+                              <div className="space-y-2">
+                                <Text
+                                  ellipsis={{ tooltip: produto.nome }}
+                                  className="font-medium text-sm block h-8"
+                                >
+                                  {produto.nome}
+                                </Text>
+                                <div className="text-salao-primary font-semibold">
+                                  {formatCurrency(produto.preco)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {produto.contarEstoque
+                                    ? `${produto.estoqueAtual} ${produto.unidadeMedida}`
+                                    : "-"}
+                                </div>
+                              </div>
+                            </Card>
+                          </Col>
+                        ))}
+                      </Row>
+                    </div>
+                  )}
+                  {filteredServicos.length > 0 && (
+                    <div>
+                      <Title level={5} className="!mb-3">
+                        Serviços
+                      </Title>
+                      <Row gutter={[8, 8]}>
+                        {filteredServicos.map((servico) => (
+                          <Col xs={12} sm={8} md={6} key={servico.id}>
+                            <Card
+                              size="small"
+                              hoverable
+                              onClick={() =>
+                                handleItemClick(servico, "servico")
+                              }
+                            >
+                              <div className="space-y-2">
+                                <Text
+                                  ellipsis={{ tooltip: servico.nome }}
+                                  className="font-medium text-sm block h-8"
+                                >
+                                  {servico.nome}
+                                </Text>
+                                <div className="text-salao-primary font-semibold">
+                                  {formatCurrency(servico.preco)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {servico.duracao}min
+                                </div>
+                              </div>
+                            </Card>
+                          </Col>
+                        ))}
+                      </Row>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </Card>
         </Col>
 
-        {/* Carrinho */}
-        <Col xs={24} lg={10}>
-          <Card 
+        <Col xs={24} lg={12}>
+          <Card
+            loading={isFetchingCaixa}
             title={
-              <div className="flex items-center gap-2">
-                <ShoppingCart size={16} />
-                Carrinho ({carrinho.length})
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart size={14} />
+                  Carrinho ({carrinho.length})
+                </div>
+                <div className="flex items-center gap-2">
+                  {!clienteSelecionado ? (
+                    <Button
+                      type="primary"
+                      onClick={toogleClienteModal}
+                      icon={<User size={14} />}
+                    >
+                      Vincular Cliente
+                    </Button>
+                  ) : (
+                    <Tooltip title="Desvincular Cliente">
+                      <Button
+                        onClick={() =>
+                          updateSaleSession({ clienteSelecionado: null })
+                        }
+                        type="text"
+                        icon={<X size={14} />}
+                      >
+                        {
+                          clientes?.find((c) => c.id === clienteSelecionado)
+                            ?.nome
+                        }
+                      </Button>
+                    </Tooltip>
+                  )}
+                  {/* Indicador de Status do Caixa */}
+                  {!isFetchingCaixa && hasOpenCaixa && (
+                    <div className="flex items-center gap-4">
+                      <Button
+                        icon={<CircleX size={14} />}
+                        onClick={closeCaixaModal}
+                      >
+                        Fechar Caixa
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             }
-            className="h-full"
+            className="h-full relative"
           >
+            {isCaixaFechado && (
+              <div className="absolute inset-0 bg-white/70 dark:bg-black/70 z-10 flex flex-col justify-center items-center space-y-4 rounded-lg">
+                <DollarSign size={48} className="text-salao-primary" />
+                <Title level={4}>Caixa Fechado</Title>
+                <Text type="secondary">
+                  Você precisa abrir o caixa para iniciar as vendas.
+                </Text>
+                <Button type="primary" size="large" onClick={openCaixaModal}>
+                  Abrir Caixa
+                </Button>
+              </div>
+            )}
             <div className="space-y-4">
-              {/* Cliente */}
-              <div>
-                <Text strong className="block mb-2">Cliente</Text>
-                <Select
-                  placeholder="Selecionar cliente"
-                  style={{ width: '100%' }}
-                  value={clienteSelecionado}
-                  onChange={setClienteSelecionado}
-                  showSearch
-                  filterOption={(input, option) =>
-                    option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+              {modoCarrinho === "venda" ? (
+                <>
+                  <Table
+                    dataSource={carrinho}
+                    columns={carrinhoColumns}
+                    pagination={false}
+                    size="small"
+                    scroll={{ y: 250 }}
+                    locale={{ emptyText: "Carrinho vazio" }}
+                    rowKey={(r) => `${r.tipo}-${r.id}`}
+                  />
+                  <Row gutter={8}>
+                    <Col span={12}>
+                      <Form.Item label="Desconto" className="!mb-0">
+                        {desconto.tipo === "percentual" ? (
+                          <InputNumber
+                            disabled={carrinhoVazio}
+                            value={desconto.valor}
+                            placeholder="0.00"
+                            onChange={(v) =>
+                              updateSaleSession({
+                                desconto: { ...desconto, valor: v || 0 },
+                              })
+                            }
+                            addonBefore={
+                              <Select
+                                value={desconto.tipo}
+                                onChange={(t) =>
+                                  updateSaleSession({
+                                    desconto: { ...desconto, tipo: t },
+                                  })
+                                }
+                              >
+                                <Option value="percentual">%</Option>
+                                <Option value="valor">R$</Option>
+                              </Select>
+                            }
+                            min={0}
+                            style={{ width: "100%" }}
+                          />
+                        ) : (
+                          <CurrencyInput
+                            disabled={carrinhoVazio}
+                            value={desconto.valor}
+                            placeholder="0,00"
+                            prefix={null}
+                            onChange={(v) =>
+                              updateSaleSession({
+                                desconto: {
+                                  ...desconto,
+                                  valor: Number(v) || 0,
+                                },
+                              })
+                            }
+                            addonBefore={
+                              <Select
+                                value={desconto.tipo}
+                                onChange={(t) =>
+                                  updateSaleSession({
+                                    desconto: { ...desconto, tipo: t },
+                                  })
+                                }
+                              >
+                                <Option value="percentual">%</Option>
+                                <Option value="valor">R$</Option>
+                              </Select>
+                            }
+                          />
+                        )}
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item label="Acréscimo" className="!mb-0">
+                        {acrescimo.tipo === "percentual" ? (
+                          <InputNumber
+                            disabled={carrinhoVazio}
+                            value={acrescimo.valor}
+                            placeholder="0.00"
+                            onChange={(v) =>
+                              updateSaleSession({
+                                acrescimo: { ...acrescimo, valor: v || 0 },
+                              })
+                            }
+                            addonBefore={
+                              <Select
+                                value={acrescimo.tipo}
+                                onChange={(t) =>
+                                  updateSaleSession({
+                                    acrescimo: { ...acrescimo, tipo: t },
+                                  })
+                                }
+                              >
+                                <Option value="percentual">%</Option>
+                                <Option value="valor">R$</Option>
+                              </Select>
+                            }
+                            min={0}
+                            style={{ width: "100%" }}
+                          />
+                        ) : (
+                          <CurrencyInput
+                            disabled={carrinhoVazio}
+                            value={acrescimo.valor}
+                            placeholder="0,00"
+                            prefix={null}
+                            onChange={(v) =>
+                              updateSaleSession({
+                                acrescimo: {
+                                  ...acrescimo,
+                                  valor: Number(v) || 0,
+                                },
+                              })
+                            }
+                            addonBefore={
+                              <Select
+                                value={acrescimo.tipo}
+                                onChange={(t) =>
+                                  updateSaleSession({
+                                    acrescimo: { ...acrescimo, tipo: t },
+                                  })
+                                }
+                              >
+                                <Option value="percentual">%</Option>
+                                <Option value="valor">R$</Option>
+                              </Select>
+                            }
+                          />
+                        )}
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <RenderResumo />
+                  <Row gutter={8}>
+                    <Col span={12}>
+                      <Button
+                        danger
+                        icon={<Trash2 size={14} />}
+                        onClick={limparVenda}
+                        disabled={carrinhoVazio}
+                        block
+                      >
+                        Limpar Venda
+                      </Button>
+                    </Col>
+                    <Col span={12}>
+                      <Button
+                        type="primary"
+                        icon={<CreditCard size={14} />}
+                        onClick={toogleCarrinhoTipo}
+                        disabled={carrinhoVazio}
+                        block
+                      >
+                        Pagamento
+                      </Button>
+                    </Col>
+                  </Row>
+                </>
+              ) : (
+                <TelaPagamento
+                  totalAPagar={calcularTotal()}
+                  formasDePagamento={formasDePagamentos || []}
+                  pagamentos={pagamentos}
+                  setPagamentos={(p: Sale.Props["pagamentos"]) =>
+                    updateSaleSession({ pagamentos: p })
                   }
-                >
-                  {clientes.map(cliente => (
-                    <Option key={cliente.id} value={cliente.id}>
-                      {cliente.nome} - {cliente.telefone}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-
-              {/* Itens do Carrinho */}
-              <div>
-                <Table
-                  dataSource={carrinho}
-                  columns={carrinhoColumns}
-                  pagination={false}
-                  size="small"
-                  scroll={{ x: true }}
-                  locale={{ emptyText: 'Carrinho vazio' }}
+                  onFinalizar={finalizarVenda}
+                  onVoltar={toogleCarrinhoTipo}
                 />
-              </div>
-
-              {/* Desconto */}
-              <div>
-                <Text strong className="block mb-2">Desconto (%)</Text>
-                <InputNumber
-                  min={0}
-                  max={100}
-                  value={desconto}
-                  onChange={(value) => setDesconto(value || 0)}
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              {/* Resumo */}
-              <div className="bg-muted p-4 rounded-lg space-y-2">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>R$ {calcularSubtotal().toFixed(2)}</span>
-                </div>
-                {desconto > 0 && (
-                  <div className="flex justify-between text-salao-success">
-                    <span>Desconto ({desconto}%):</span>
-                    <span>- R$ {(calcularSubtotal() * desconto / 100).toFixed(2)}</span>
-                  </div>
-                )}
-                <Divider className="!my-2" />
-                <div className="flex justify-between text-lg font-semibold">
-                  <span>Total:</span>
-                  <span className="text-salao-primary">R$ {calcularTotal().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Comissão Total:</span>
-                  <span>R$ {calcularComissaoTotal().toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* Forma de Pagamento */}
-              <div>
-                <Text strong className="block mb-2">Forma de Pagamento</Text>
-                <Radio.Group
-                  value={formaPagamento}
-                  onChange={(e) => setFormaPagamento(e.target.value)}
-                  className="w-full"
-                >
-                  <Space direction="vertical" className="w-full">
-                    <Radio value="dinheiro">Dinheiro</Radio>
-                    <Radio value="cartao">Cartão</Radio>
-                    <Radio value="pix">PIX</Radio>
-                    <Radio value="crediario">Crediário (Asaas)</Radio>
-                  </Space>
-                </Radio.Group>
-              </div>
-
-              {/* Ações */}
-              <div className="space-y-2">
-                <Button
-                  type="primary"
-                  block
-                  icon={<CreditCard size={16} />}
-                  onClick={finalizarVenda}
-                  disabled={carrinho.length === 0}
-                  className="bg-salao-primary"
-                >
-                  Finalizar Venda
-                </Button>
-                <Button
-                  block
-                  icon={<Trash2 size={16} />}
-                  onClick={limparCarrinho}
-                  disabled={carrinho.length === 0}
-                >
-                  Limpar Carrinho
-                </Button>
-              </div>
+              )}
             </div>
           </Card>
         </Col>
       </Row>
 
-      {/* Modal do Recibo */}
+      {CaixaManagerModal}
+
       <Modal
-        title="Recibo de Venda"
-        open={reciboPrint}
-        onCancel={() => setReciboPrint(false)}
-        footer={[
-          <Button key="print" icon={<Printer size={16} />} onClick={() => window.print()}>
-            Imprimir
-          </Button>,
-          <Button key="close" onClick={() => setReciboPrint(false)}>
-            Fechar
-          </Button>
-        ]}
+        title="Vincular Cliente"
+        open={abrirModalCliente}
+        onCancel={toogleClienteModal}
+        onOk={toogleClienteModal}
+      >
+        <Select
+          placeholder="Selecionar cliente"
+          style={{ width: "100%" }}
+          value={clienteSelecionado}
+          allowClear
+          onChange={(c) => updateSaleSession({ clienteSelecionado: c })}
+          showSearch
+          filterOption={(input, option) =>
+            String(option?.label ?? "")
+              .toLowerCase()
+              .includes(input.toLowerCase())
+          }
+          options={clientes?.map((c) => ({
+            value: c.id,
+            label: `${c.nome} - ${c.telefone}`,
+          }))}
+        />
+      </Modal>
+
+      <Modal
+        title="Definir Valor Aberto"
+        open={modalValorAberto.visible}
+        onCancel={handleCloseModalValorAberto}
+        okText="Adicionar ao Carrinho"
+        onOk={() => formModal.submit()}
         width={400}
       >
-        <div className="space-y-4 print:text-black">
-          <div className="text-center">
-            <Title level={4} className="!mb-1">Salão X</Title>
-            <p className="text-sm">Recibo de Venda</p>
-          </div>
-          
-          <Divider />
-          
-          <div>
-            <p><strong>Cliente:</strong> {clientes.find(c => c.id === clienteSelecionado)?.nome}</p>
-            <p><strong>Data:</strong> {new Date().toLocaleDateString('pt-BR')}</p>
-            <p><strong>Hora:</strong> {new Date().toLocaleTimeString('pt-BR')}</p>
-          </div>
-          
-          <Divider />
-          
-          <div className="space-y-2">
-            {carrinho.map((item, index) => (
-              <div key={index} className="flex justify-between text-sm">
-                <span>{item.nome} x{item.quantidade}</span>
-                <span>R$ {(item.preco * item.quantidade).toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-          
-          <Divider />
-          
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span>R$ {calcularSubtotal().toFixed(2)}</span>
-            </div>
-            {desconto > 0 && (
-              <div className="flex justify-between">
-                <span>Desconto:</span>
-                <span>R$ {(calcularSubtotal() * desconto / 100).toFixed(2)}</span>
-              </div>
-            )}
-            <div className="flex justify-between font-semibold text-lg">
-              <span>Total:</span>
-              <span>R$ {calcularTotal().toFixed(2)}</span>
-            </div>
-          </div>
-          
-          <div className="text-center text-sm text-muted-foreground mt-4">
-            <p>Obrigado pela preferência!</p>
-          </div>
-        </div>
+        <Form
+          form={formModal}
+          onFinish={handleDefinirValor}
+          layout="vertical"
+          initialValues={{ preco: modalValorAberto.item?.preco || 0 }}
+        >
+          <Alert
+            message={modalValorAberto.item?.nome}
+            type="info"
+            showIcon
+            className="!mb-6"
+          />
+          <Form.Item
+            name="preco"
+            label="Valor"
+            rules={[
+              { required: true, message: "O valor é obrigatório." },
+              {
+                validator: (_, value) =>
+                  value > 0
+                    ? Promise.resolve()
+                    : Promise.reject(
+                        new Error("O valor deve ser maior que zero.")
+                      ),
+              },
+            ]}
+          >
+            <CurrencyInput />
+          </Form.Item>
+        </Form>
       </Modal>
+
+      <ReciboComponent />
     </div>
   );
 };

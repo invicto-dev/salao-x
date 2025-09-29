@@ -1,7 +1,8 @@
 {
   "name": "salao-x-backend",
+  "private": true,
   "version": "1.0.0",
-  "description": "Backend para a plataforma Sala X",
+  "description": "Backend para a plataforma Salao X",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -14,10 +15,11 @@
     "db:seed-prd": "node dist/utils/seed.js"
   },
   "dependencies": {
-    "@prisma/client": "^5.7.1",
+    "@prisma/client": "^6.16.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "express-async-errors": "^3.1.1",
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
@@ -38,7 +40,7 @@
     "@types/node": "^20.19.9",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.14",
-    "prisma": "^5.7.1",
+    "prisma": "^6.16.2",
     "tsx": "^4.6.2",
     "typescript": "^5.3.3"
   }

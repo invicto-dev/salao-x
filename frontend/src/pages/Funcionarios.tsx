@@ -15,11 +15,10 @@ import {
   Switch,
   Tag,
   Avatar,
-  Tabs,
   InputNumber,
+  TableColumnsType,
 } from "antd";
 import {
-  UserCheck,
   Plus,
   Search,
   Edit,
@@ -27,18 +26,26 @@ import {
   Mail,
   User,
   Percent,
-  DollarSign,
+  Trash2,
 } from "lucide-react";
 import {
   useFuncionarioCreate,
+  useFuncionarioDelete,
   useFuncionarios,
   useFuncionarioUpdate,
 } from "@/hooks/use-funcionarios";
+import { PhoneInput } from "@/components/inputs/PhoneInput";
+import { NameInput } from "@/components/inputs/NameInput";
+import DropdownComponent from "@/components/Dropdown";
+import { useAuth } from "@/contexts/AuthContext";
+import { format } from "path";
+import { formatRoleName } from "@/utils/formatRoleName";
+import { hasPermission, hierarchyPositionCheck } from "@/utils/permissions";
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 
 const Funcionarios = () => {
+  const { user } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [comissaoModal, setComissaoModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
@@ -52,8 +59,9 @@ const Funcionarios = () => {
     isLoading: isLoadingFuncionarios,
     isFetching: isFetchingFuncionarios,
   } = useFuncionarios();
-  const { mutate: createFuncionario } = useFuncionarioCreate();
-  const { mutate: updateFuncionario } = useFuncionarioUpdate();
+  const { mutateAsync: createFuncionario } = useFuncionarioCreate();
+  const { mutateAsync: updateFuncionario } = useFuncionarioUpdate();
+  const { mutate: deleteFuncionario } = useFuncionarioDelete();
 
   // Mock regras de comissão específicas
   const regrasComissao = [
@@ -77,20 +85,6 @@ const Funcionarios = () => {
     },
   ];
 
-  const tiposServico = [
-    "Corte Feminino",
-    "Corte Masculino",
-    "Escova",
-    "Coloração",
-    "Escova Progressiva",
-    "Manicure",
-    "Pedicure",
-    "Nail Art",
-    "Limpeza de Pele",
-    "Hidratação Facial",
-    "Massagem",
-  ];
-
   const funcionariosFiltrados = (funcionarios || []).filter(
     (funcionario) =>
       funcionario.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -98,7 +92,7 @@ const Funcionarios = () => {
       funcionario.telefone.includes(busca)
   );
 
-  const columns = [
+  const columns: TableColumnsType<Employee.Props> = [
     {
       title: "Funcionário",
       key: "funcionario",
@@ -138,6 +132,7 @@ const Funcionarios = () => {
       title: "Comissão",
       dataIndex: "comissao",
       key: "comissao",
+      align: "center",
       render: (comissao: number) => (
         <div className="flex items-center gap-1">
           <Percent size={14} className="text-salao-accent" />
@@ -149,36 +144,52 @@ const Funcionarios = () => {
       title: "Status",
       dataIndex: "ativo",
       key: "ativo",
+      align: "center",
       render: (ativo: boolean) => (
         <Tag color={ativo ? "green" : "red"}>{ativo ? "Ativo" : "Inativo"}</Tag>
       ),
     },
     {
+      title: "Permissões",
+      dataIndex: "role",
+      key: "role",
+      align: "center",
+      render: (role: string) => (
+        <Tag bordered={false}>{formatRoleName(role)}</Tag>
+      ),
+    },
+    {
       title: "Ações",
       key: "acoes",
-      render: (_: any, record: any) => (
-        <Space>
-          <Button
-            disabled={true} 
-            type="text"
-            icon={<Percent size={14} />}
-            onClick={() => gerenciarComissao(record)}
-          >
-            Comissões
-          </Button>
-          <Button
-            type="text"
-            icon={<Edit size={14} />}
-            onClick={() => editarFuncionario(record)}
-          >
-            Editar
-          </Button>
-        </Space>
+      align: "center",
+      render: (_: any, record) => (
+        <DropdownComponent
+          menu={{
+            items: [
+              {
+                key: "editar",
+                icon: <Edit size={14} />,
+                label: "Editar",
+                onClick: () => editarFuncionario(record),
+              },
+              {
+                key: "excluir",
+                icon: <Trash2 size={14} />,
+                label: "Excluir",
+                onClick: () => deleteFuncionario(record.id),
+                disabled:
+                  record.role === "ROOT" ||
+                  record.id === user.id ||
+                  hierarchyPositionCheck(user.role, record.role),
+              },
+            ],
+          }}
+        />
       ),
     },
   ];
 
-  const editarFuncionario = (funcionario: any) => {
+  const editarFuncionario = (funcionario: Employee.Props) => {
     setEditingEmployee(funcionario);
     form.setFieldsValue(funcionario);
     setModalVisible(true);
@@ -187,7 +198,7 @@ const Funcionarios = () => {
   const novoFuncionario = () => {
     setEditingEmployee(null);
     form.resetFields();
-    form.setFieldsValue({ ativo: true, comissao: 30 });
+    form.setFieldsValue({ ativo: true, comissao: 30, role: "FUNCIONARIO" });
     setModalVisible(true);
   };
 
@@ -196,10 +207,10 @@ const Funcionarios = () => {
     setComissaoModal(true);
   };
 
-  const handleSubmit = (body: any) => {
+  const handleSubmit = async (body: any) => {
     if (!editingEmployee) {
       try {
-        createFuncionario(body);
+        await createFuncionario(body);
         setModalVisible(false);
         form.resetFields();
       } catch (error) {
@@ -207,7 +218,7 @@ const Funcionarios = () => {
       }
     } else {
       try {
-        updateFuncionario({ id: editingEmployee.id, body });
+        await updateFuncionario({ id: editingEmployee.id, body });
         setModalVisible(false);
         form.resetFields();
         setEditingEmployee(null);
@@ -246,7 +257,7 @@ const Funcionarios = () => {
       key: "acoes",
       render: () => (
         <Button
-        disabled={true}
+          disabled={true}
           type="text"
           danger
           onClick={() => message.success("Regra removida!")}
@@ -291,7 +302,7 @@ const Funcionarios = () => {
       {/* Tabela de Funcionários */}
       <Card title="Lista de Funcionários">
         <Table
-          dataSource={funcionariosFiltrados}
+          dataSource={funcionariosFiltrados.filter((f) => f.id !== user.id)}
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 10 }}
@@ -320,7 +331,7 @@ const Funcionarios = () => {
                 name="nome"
                 rules={[{ required: true, message: "Nome é obrigatório" }]}
               >
-                <Input placeholder="Ex: Ana Silva" />
+                <NameInput placeholder="Ex: Ana Silva" />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
@@ -329,7 +340,7 @@ const Funcionarios = () => {
                 name="funcao"
                 rules={[{ required: true, message: "Função é obrigatória" }]}
               >
-                <Input placeholder="Ex: Cabeleireira" />
+                <NameInput placeholder="Ex: Cabeleireira" />
               </Form.Item>
             </Col>
           </Row>
@@ -341,7 +352,7 @@ const Funcionarios = () => {
                 name="telefone"
                 rules={[{ required: true, message: "Telefone é obrigatório" }]}
               >
-                <Input placeholder="(11) 99999-9999" />
+                <PhoneInput />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
@@ -373,11 +384,56 @@ const Funcionarios = () => {
                   addonAfter="%"
                 />
               </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
               <Form.Item label="Status" name="ativo" valuePropName="checked">
-                <Switch checkedChildren="Ativo" unCheckedChildren="Inativo" />
+                <Switch
+                  disabled={
+                    !hasPermission(user?.role, "SECRETARIO") ||
+                    (editingEmployee &&
+                      hierarchyPositionCheck(user?.role, editingEmployee?.role))
+                  }
+                  checkedChildren="Ativo"
+                  unCheckedChildren="Inativo"
+                />
               </Form.Item>
+            </Col>
+
+            <Col xs={24} sm={12}>
+              <Form.Item
+                label="Permissão"
+                name="role"
+                rules={[{ required: true }]}
+              >
+                <Select
+                  disabled={
+                    !hasPermission(user?.role, "SECRETARIO") ||
+                    (editingEmployee &&
+                      hierarchyPositionCheck(user?.role, editingEmployee?.role))
+                  }
+                  options={[
+                    {
+                      label: "Administrador",
+                      value: "ADMIN",
+                      disabled: !hasPermission(user?.role, "ROOT"),
+                    },
+                    {
+                      label: "Gerente",
+                      value: "GERENTE",
+                      disabled: !hasPermission(user?.role, "ADMIN"),
+                    },
+                    { label: "Secretário", value: "SECRETARIO" },
+                    { label: "Funcionário", value: "FUNCIONARIO" },
+                  ]}
+                />
+              </Form.Item>
+              {!editingEmployee && (
+                <Form.Item
+                  label="Senha"
+                  name="senha"
+                  rules={[{ required: true }]}
+                >
+                  <Input.Password />
+                </Form.Item>
+              )}
             </Col>
           </Row>
         </Form>
@@ -435,13 +491,7 @@ const Funcionarios = () => {
                   <Select
                     placeholder="Tipo de Serviço"
                     style={{ width: "100%" }}
-                  >
-                    {tiposServico.map((tipo) => (
-                      <Option key={tipo} value={tipo}>
-                        {tipo}
-                      </Option>
-                    ))}
-                  </Select>
+                  ></Select>
                 </Form.Item>
                 <Form.Item
                   name="comissao"
