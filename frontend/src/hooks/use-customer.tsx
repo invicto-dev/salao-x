@@ -11,7 +11,7 @@ import { AxiosError } from "axios";
 
 export const useCustomers = () => {
   return useQuery<Customer.Props[]>({
-    queryKey: ["get-customer"],
+    queryKey: ["get-customers"],
     queryFn: getCustomers,
   });
 };
@@ -61,11 +61,13 @@ export const useCustomerUpdate = () => {
 };
 
 export const useCustomerDelete = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
       return await deleteCustomer(id);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get-customers"] });
       message.success("Cliente excluído com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {

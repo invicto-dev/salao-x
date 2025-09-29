@@ -16,7 +16,7 @@ import {
   Upload,
   TableColumnProps,
 } from "antd";
-import { Plus, Search, Edit, Upload as UploadIcon, List } from "lucide-react";
+import { Plus, Search, Upload as UploadIcon, List } from "lucide-react";
 
 import { NameInput } from "@/components/inputs/NameInput";
 import {

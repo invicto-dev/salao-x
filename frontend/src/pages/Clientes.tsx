@@ -28,10 +28,12 @@ import {
   ShoppingBag,
   User,
   IdCard,
+  Trash2,
 } from "lucide-react";
 import dayjs from "dayjs";
 import {
   useCustomerCreate,
+  useCustomerDelete,
   useCustomers,
   useCustomerUpdate,
 } from "@/hooks/use-customer";
@@ -39,6 +41,7 @@ import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { CpfInput } from "@/components/inputs/CpfInput";
 import { NameInput } from "@/components/inputs/NameInput";
 import { ColumnsType } from "antd/es/table";
+import DropdownComponent from "@/components/Dropdown";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -54,6 +57,7 @@ const Clientes = () => {
   const { data: costumers, isLoading } = useCustomers();
   const { mutate: createCustomer } = useCustomerCreate();
   const { mutate: updateCustomer } = useCustomerUpdate();
+  const { mutate: deleteCustomer } = useCustomerDelete();
 
   // Mock histórico de compras
   const historicoCompras = [
@@ -182,21 +186,38 @@ const Clientes = () => {
       key: "acoes",
       align: "center",
       render: (_, record) => (
-        <Space>
-          <Button disabled type="text" onClick={() => verDetalhes(record)}>
-            Ver Detalhes
-          </Button>
-          <Button
-            type="text"
-            icon={<Edit size={14} />}
-            onClick={() => editarCliente(record)}
-          >
-            Editar
-          </Button>
-        </Space>
+        <DropdownComponent
+          menu={{
+            items: [
+              {
+                key: "editar",
+                icon: <Edit size={14} />,
+                label: "Editar",
+                onClick: () => editarCliente(record),
+              },
+              {
+                key: "excluir",
+                icon: <Trash2 size={14} />,
+                label: "Excluir",
+                onClick: () => excluirCliente(record),
+              },
+            ],
+          }}
+        />
       ),
     },
   ];
+
+  const excluirCliente = (cliente: Customer.Props) => {
+    Modal.confirm({
+      title: "Confirmar Exclusão",
+      content: `Você tem certeza que deseja excluir o cliente ${cliente.nome}?`,
+      okText: "Sim, Excluir",
+      okButtonProps: { danger: true },
+      cancelText: "Não",
+      onOk: () => deleteCustomer(cliente.id),
+    });
+  };
 
   const editarCliente = (cliente: Customer.Props) => {
     setEditingClient(cliente);

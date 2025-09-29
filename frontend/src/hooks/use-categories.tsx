@@ -61,11 +61,13 @@ export const useCategoryUpdate = () => {
 };
 
 export const useCategoryDelete = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
       return await deleteCategory(id);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get-categories"] });
       message.success("Categoria excluída com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {

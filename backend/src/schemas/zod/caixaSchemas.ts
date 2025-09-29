@@ -1,13 +1,10 @@
 import { z } from "zod";
 
 export const createCaixaSchema = z.object({
-  valorAbertura: z
-    .number({
-      required_error: "O valor de abertura é obrigatório.",
-      invalid_type_error: "O valor de abertura deve ser um número.",
-    })
-    .positive("O valor de abertura deve ser positivo."),
-
+  valorAbertura: z.number({
+    required_error: "O valor de abertura é obrigatório.",
+    invalid_type_error: "O valor de abertura deve ser um número.",
+  }),
   observacoes: z.string().optional(),
 });
 

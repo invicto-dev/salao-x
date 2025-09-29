@@ -161,7 +161,7 @@ model StockMovement {
   id String @id @default(uuid())
 
   produtoId String
-  produto   Product @relation(fields: [produtoId], references: [id], onDelete: Restrict)
+  produto   Product @relation(fields: [produtoId], references: [id], onDelete: Cascade)
 
   tipo       StockMovementType
   motivo     StockMovementReason

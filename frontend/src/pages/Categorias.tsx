@@ -17,14 +17,23 @@ import {
   Upload,
   TableColumnProps,
 } from "antd";
-import { Plus, Search, Edit, Upload as UploadIcon, List } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Edit,
+  Upload as UploadIcon,
+  List,
+  Trash2,
+} from "lucide-react";
 
 import { NameInput } from "@/components/inputs/NameInput";
 import {
   useCategories,
   useCategoryCreate,
+  useCategoryDelete,
   useCategoryUpdate,
 } from "@/hooks/use-categories";
+import DropdownComponent from "@/components/Dropdown";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -39,6 +48,7 @@ const Categorias = () => {
   const { data: categories } = useCategories();
   const { mutate: createCategory } = useCategoryCreate();
   const { mutate: updateCategory } = useCategoryUpdate();
+  const { mutate: deleteCategory } = useCategoryDelete();
 
   const categoriesFiltered = (categories || []).filter((category) => {
     const matchBusca = category.nome
@@ -91,27 +101,47 @@ const Categorias = () => {
       title: "Ações",
       key: "acoes",
       align: "center",
-      render: (_: any, record: any) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<Edit size={14} />}
-            onClick={() => editarCategoria(record)}
-          >
-            Editar
-          </Button>
-        </Space>
+      render: (_: any, record: Category.Props) => (
+        <DropdownComponent
+          menu={{
+            items: [
+              {
+                key: "editar",
+                icon: <Edit size={14} />,
+                label: "Editar",
+                onClick: () => editarCategoria(record),
+              },
+              {
+                key: "excluir",
+                icon: <Trash2 size={14} />,
+                label: "Excluir",
+                onClick: () => excluirCategory(record),
+              },
+            ],
+          }}
+        />
       ),
     },
   ];
 
-  const editarCategoria = (category: Product.Props) => {
+  const excluirCategory = (category: Category.Props) => {
+    Modal.confirm({
+      title: "Confirmar Exclusão",
+      content: `Você tem certeza que deseja excluir a categoria ${category.nome}?`,
+      okText: "Sim, Excluir",
+      okButtonProps: { danger: true },
+      cancelText: "Não",
+      onOk: () => deleteCategory(category.id),
+    });
+  };
+
+  const editarCategoria = (category: Category.Props) => {
     setEditingCategory(category);
     form.setFieldsValue(category);
     setModalVisible(true);
   };
 
-  const handleSubmit = (values: Product.Props) => {
+  const handleSubmit = (values: Category.Props) => {
     try {
       if (!editingCategory) {
         createCategory(values);

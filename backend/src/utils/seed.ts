@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Iniciando seed de usuarios no banco de dados...");
 
-  console.log("Gerando configuração padrão...");
+  console.log("Gerando dados padrões...");
 
   await prisma.paymentMethod.upsert({
     where: { nome: "Dinheiro" },
@@ -18,6 +18,7 @@ async function main() {
       ativo: true,
     },
   });
+  console.log("✅ Método de pagamento Dinheiro criado com sucesso!");
 
   await prisma.setting.upsert({
     where: { id: "configuracao-padrao" },
@@ -57,10 +58,9 @@ async function main() {
 
   console.log("✅ Configuração padrão criada com sucesso!");
 
-  console.log("Gerando usuários: root e funcionário...");
+  console.log("Gerando o usuario root...");
 
   const hashedRootPassword = await bcrypt.hash("root123", 10);
-  const hashedFuncionarioPassword = await bcrypt.hash("funcionario123", 10);
 
   const users = [
     {
@@ -73,31 +73,17 @@ async function main() {
       telefone: "(11) 1234-5678",
       comissao: 0,
     },
-    {
-      nome: "Usuario Funcionário",
-      ativo: true,
-      email: "usuario@funcionario.com",
-      senha: hashedFuncionarioPassword,
-      role: Role.FUNCIONARIO,
-      funcao: "Cabeleireira",
-      telefone: "(11) 1234-5678",
-      comissao: 0,
-    },
   ];
 
   await prisma.employee.createMany({
     data: users,
   });
 
-  console.log("✅ Usuários criados com sucesso!");
+  console.log("✅ Usuário criado com sucesso!");
 
   console.log("Root credenciais:");
   console.log("Email: usuario@root.com");
   console.log("Senha: root123");
-
-  console.log("Funcionário credenciais:");
-  console.log("Email: usuario@funcionario.com");
-  console.log("Senha: funcionario123");
 
   console.log("\n🎉 Seed concluído com sucesso!");
 }
