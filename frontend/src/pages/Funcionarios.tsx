@@ -102,7 +102,6 @@ const Funcionarios = () => {
     { test: /[A-Z]/, message: "Pelo menos uma letra maiúscula" },
     { test: /[0-9]/, message: "Pelo menos um número" },
     { test: /[!@#$%^&*(),.?":{}|<>]/, message: "Pelo menos um caractere especial" },
-    { test: /^\S*$/, message: "Sem espaços" },
   ];
 
   const columns: TableColumnsType<Employee.Props> = [
@@ -439,7 +438,7 @@ const Funcionarios = () => {
                 />
               </Form.Item>
               {!editingEmployee && (
-                <Form.Item label="Senha" name="senha" rules={[{ required: true, message: "A senha é obrigatória" }]}>
+                <Form.Item label="Senha" name="senha" >
                 <>
                   <Input.Password value={password} onChange={(e) => setPassword(e.target.value)} />
                   <div className="mt-2 space-y-1">
@@ -450,9 +449,9 @@ const Funcionarios = () => {
                           {passed ? (
                             <CheckCircleOutlined style={{ color: "green" }} />
                           ) : (
-                            <CloseCircleOutlined style={{ color: "red" }} />
+                            <CloseCircleOutlined style={{ color: "shadow" }} />
                           )}
-                          <span className={passed ? "text-green-600" : "text-red-600"}>{rule.message}</span>
+                          <span className={passed ? "text-green-600" : "text-shadow-600"}>{rule.message}</span>
                         </div>
                       );
                     })}
