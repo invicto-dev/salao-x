@@ -1,5 +1,6 @@
 import {
   closeCaixa,
+  getCaixas,
   getCaixaSummary,
   hasOpenCaixa,
   moveCaixa,
@@ -11,6 +12,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Form, Input, message, Modal, Spin, Statistic } from "antd";
 import { AxiosError } from "axios";
 import { useState } from "react";
+
+export const usecaixas = () => {
+  return useQuery<Caixa.Props[]>({
+    queryKey: ["get-caixas"],
+    queryFn: getCaixas,
+  });
+};  
 
 export const useHasOpenCaixa = () => {
   return useQuery<Caixa.Props | null>({
@@ -27,6 +35,7 @@ export const useOpenCaixa = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["has-open-caixa"] });
+      queryClient.invalidateQueries({ queryKey: ["get-caixas"] });
       message.success("Caixa aberto com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
@@ -44,6 +53,7 @@ export const useCloseCaixa = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["has-open-caixa"] });
+      queryClient.invalidateQueries({ queryKey: ["get-caixas"] });
       message.success("Caixa fechado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
@@ -53,11 +63,15 @@ export const useCloseCaixa = () => {
 };
 
 export const useMoveCaixa = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ body }: { body: Caixa.BodyMoveCaixa }) => {
       return await moveCaixa(body);
     },
-    onSuccess: () => message.success("Movimetação realizada com sucesso."),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get-caixas"] });
+      message.success("Movimetação realizada com sucesso.")},
     onError: (error: AxiosError<{ error: string }>) => {
       message.error(error.response.data.error);
     },
