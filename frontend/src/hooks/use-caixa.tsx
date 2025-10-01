@@ -1,5 +1,6 @@
 import {
   closeCaixa,
+  getCaixas,
   getCaixaSummary,
   hasOpenCaixa,
   moveCaixa,
@@ -27,6 +28,7 @@ export const useOpenCaixa = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["has-open-caixa"] });
+      queryClient.invalidateQueries({ queryKey: ["get-caixas"] });
       message.success("Caixa aberto com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
@@ -44,6 +46,7 @@ export const useCloseCaixa = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["has-open-caixa"] });
+      queryClient.invalidateQueries({ queryKey: ["get-caixas"] });
       message.success("Caixa fechado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
@@ -53,11 +56,15 @@ export const useCloseCaixa = () => {
 };
 
 export const useMoveCaixa = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ body }: { body: Caixa.BodyMoveCaixa }) => {
       return await moveCaixa(body);
     },
-    onSuccess: () => message.success("Movimetação realizada com sucesso."),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get-caixas"] });
+      message.success("Movimetação realizada com sucesso.")},
     onError: (error: AxiosError<{ error: string }>) => {
       message.error(error.response.data.error);
     },
@@ -190,3 +197,10 @@ export const useCaixaManager = () => {
     CaixaManagerModal,
   };
 };
+
+export const usecaixas = () => {
+  return useQuery<Caixa.Props[]>({
+    queryKey: ["get-caixas"],
+    queryFn: getCaixas,
+  });
+};  

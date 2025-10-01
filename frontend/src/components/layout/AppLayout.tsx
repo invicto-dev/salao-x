@@ -29,6 +29,7 @@ import {
   DollarSign,
   LogOut,
   User2,
+  Banknote,
 } from "lucide-react";
 
 // Pages
@@ -47,6 +48,7 @@ import MetodoDePagamentos from "@/pages/Pagamentos";
 import Vendas from "@/pages/Vendas";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
+import Caixa from "@/pages/Caixa";
 
 const { Header, Sider, Content } = Layout;
 
@@ -135,6 +137,11 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
           icon: <WalletCards size={14} />,
           label: "Métodos de Pagamento",
         },
+        {
+          key: "/caixa",
+          icon: <Banknote size={14} />, 
+          label: "Caixa",
+        }
       ],
     },
     /* {
@@ -364,6 +371,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
               path="/metodos-de-pagamento"
               element={<MetodoDePagamentos />}
             />
+            <Route path="/caixa" element={<Caixa />} />
           </Routes>
         </Content>
       </Layout>
