@@ -31,6 +31,7 @@ declare global {
       motivo: string;
       caixaId: string;
       funcionarioId: string;
+    funcionario: Employee.Props;
       createdAt: Date;
       updatedAt: Date;
     }

@@ -28,3 +28,8 @@ export const getCaixaSummary = async (): Promise<Caixa.Summary> => {
   const response = await http.get("/caixa/aberto/summary");
   return response.data.data;
 };
+
+export const getCaixas = async (): Promise<Caixa.Props[]> => {
+  const response = await http.get("/caixa");
+  return response.data.data;
+};

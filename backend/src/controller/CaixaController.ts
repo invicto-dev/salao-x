@@ -55,6 +55,28 @@ export class CaixaController {
   static async getAll(req: Request, res: Response) {
     const caixas = await prisma.caixa.findMany({
       orderBy: { dataAbertura: "desc" },
+      include: {
+        funcionarioAbertura: {
+          select: {
+            nome: true,
+          },
+        },
+        funcionarioFechamento: {
+          select: {
+            nome: true,
+          },
+        },
+        movimentacoes: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            funcionario: {
+              select: {
+                nome: true,
+              },
+            },
+          },
+        }
+      }
     });
     return res.status(200).json({ sucess: true, data: caixas });
   }
