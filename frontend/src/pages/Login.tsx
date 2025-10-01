@@ -53,7 +53,7 @@ const Login = () => {
           >
             <Input
               prefix={
-                <Mail className="site-form-item-icon text-gray-400" size={16} />
+                <Mail className="site-form-item-icon text-gray-400" size={14} />
               }
               placeholder="seuemail@exemplo.com"
             />
@@ -68,7 +68,7 @@ const Login = () => {
           >
             <Input.Password
               prefix={
-                <Lock className="site-form-item-icon text-gray-400" size={16} />
+                <Lock className="site-form-item-icon text-gray-400" size={14} />
               }
               placeholder="Senha"
             />

@@ -8,6 +8,8 @@ declare global {
       descricao?: string;
       ativo: boolean;
       chavePix?: string;
+      integration?: string;
+      isCash: boolean;
     }
   }
 }

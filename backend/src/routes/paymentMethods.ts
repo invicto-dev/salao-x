@@ -18,7 +18,7 @@ router.post(
 router.put(
   "/:id",
   authenticateToken,
-  PaymentMethodsController.updatepaymentMethod
+  PaymentMethodsController.updatePaymentMethod
 );
 router.delete(
   "/:id",

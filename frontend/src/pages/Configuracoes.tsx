@@ -6,18 +6,15 @@ import {
   Switch,
   Space,
   Typography,
-  message,
   Row,
   Col,
   Divider,
   Select,
   InputNumber,
-  Upload,
   Tabs,
   Statistic,
 } from "antd";
 import {
-  Settings,
   Save,
   Building,
   Bell,
@@ -28,6 +25,9 @@ import {
   useConfiguracoes,
   useConfiguracoesUpdate,
 } from "@/hooks/use-configuracoes";
+import { useQuery } from "@tanstack/react-query";
+import { getCurrencyCode } from "@/utils/getCurrencyCode";
+import packageJson from "../../package.json";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -40,13 +40,18 @@ const Configuracoes = () => {
   const { data, isLoading, isError } = useConfiguracoes();
   const { mutate: updateConfiguracoes, isPending } = useConfiguracoesUpdate();
 
+  const { data: currencies = [] } = useQuery({
+    queryKey: ["get-currencies"],
+    queryFn: getCurrencyCode,
+  });
+
   const onSave = (values: Salon.Config) => {
     updateConfiguracoes({
       id: data.id,
       body: values,
     });
   };
-  
+
   return (
     <div className="space-y-6">
       <div>
@@ -62,7 +67,7 @@ const Configuracoes = () => {
         <TabPane
           tab={
             <span className="flex items-center gap-2">
-              <Building size={16} />
+              <Building size={14} />
               Empresa
             </span>
           }
@@ -218,11 +223,7 @@ const Configuracoes = () => {
               </Row>
 
               <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={isPending}
-                >
+                <Button type="primary" htmlType="submit" loading={isPending}>
                   Salvar Configurações da Empresa
                 </Button>
               </Form.Item>
@@ -234,13 +235,13 @@ const Configuracoes = () => {
           disabled={true}
           tab={
             <span className="flex items-center gap-2">
-              <Bell size={16} />
+              <Bell size={14} />
               Notificações
             </span>
           }
           key="2"
         >
-          <Card loading={isLoading} title="🔔 Configurações de Notificações">
+          <Card loading={isLoading} title="Configurações de Notificações">
             <Form
               form={notificacoesForm}
               layout="vertical"
@@ -249,7 +250,7 @@ const Configuracoes = () => {
             >
               <Row gutter={16}>
                 <Col xs={24} sm={12}>
-                  <Card size="small" title="📧 Email">
+                  <Card size="small" title="Email">
                     <Space direction="vertical" className="w-full">
                       <Form.Item name="emailAtivo" valuePropName="checked">
                         <Switch
@@ -295,7 +296,7 @@ const Configuracoes = () => {
 
               <Divider />
 
-              <Title level={4}>🔔 Tipos de Notificação</Title>
+              <Title level={4}> Tipos de Notificação</Title>
 
               <Row gutter={16}>
                 <Col xs={24} sm={8}>
@@ -331,7 +332,7 @@ const Configuracoes = () => {
                 <Button
                   type="primary"
                   htmlType="submit"
-                  icon={<Save size={16} />}
+                  icon={<Save size={14} />}
                 >
                   Salvar Configurações de Notificações
                 </Button>
@@ -341,83 +342,22 @@ const Configuracoes = () => {
         </TabPane>
 
         <TabPane
-        disabled={true}
           tab={
             <span className="flex items-center gap-2">
-              <Database size={16} />
+              <Database size={14} />
               Sistema
             </span>
           }
           key="3"
         >
-          <Card loading={isLoading} title="⚙️ Configurações do Sistema">
+          <Card loading={isLoading} title="Configurações do Sistema">
             <Form
               form={sistemaForm}
               layout="vertical"
               initialValues={data}
               onFinish={onSave}
             >
-              <Row gutter={16}>
-                <Col xs={24} sm={12}>
-                  <Card size="small" title="💾 Backup e Segurança">
-                    <Space direction="vertical" className="w-full">
-                      <Form.Item
-                        name="backupAutomatico"
-                        valuePropName="checked"
-                      >
-                        <Switch />
-                        <Text className="ml-2">Backup automático</Text>
-                      </Form.Item>
-
-                      <Form.Item
-                        label="Manter histórico por (meses)"
-                        name="manterHistorico"
-                      >
-                        <InputNumber
-                          min={1}
-                          max={60}
-                          style={{ width: "100%" }}
-                        />
-                      </Form.Item>
-
-                      <Button type="dashed" block>
-                        Fazer Backup Agora
-                      </Button>
-                    </Space>
-                  </Card>
-                </Col>
-
-                <Col xs={24} sm={12}>
-                  <Card size="small" title="🌍 Localização">
-                    <Space direction="vertical" className="w-full">
-                      <Form.Item label="Fuso Horário" name="timezone">
-                        <Select>
-                          <Option value="America/Sao_Paulo">
-                            São Paulo (GMT-3)
-                          </Option>
-                          <Option value="America/Rio_Branco">
-                            Rio Branco (GMT-5)
-                          </Option>
-                          <Option value="America/Manaus">Manaus (GMT-4)</Option>
-                        </Select>
-                      </Form.Item>
-
-                      <Form.Item label="Moeda" name="moeda" initialValue="BRL">
-                        <Select>
-                          <Option value="BRL">Real Brasileiro (R$)</Option>
-                          <Option value="USD">Dólar Americano ($)</Option>
-                          <Option value="EUR">Euro (€)</Option>
-                        </Select>
-                      </Form.Item>
-                    </Space>
-                  </Card>
-                </Col>
-              </Row>
-
-              <Divider />
-
-              <Title level={4}>🔐 Integração Asaas (Crediário)</Title>
-
+              <Title level={4}>Integração Asaas (Crediário)</Title>
               <Row gutter={16}>
                 <Col xs={24} sm={12}>
                   <Form.Item
@@ -431,7 +371,7 @@ const Configuracoes = () => {
                 <Col xs={24} sm={12}>
                   <Form.Item
                     label="Ambiente"
-                    name="asaasAmbiente"
+                    name="asaasEnvironment"
                     initialValue="sandbox"
                   >
                     <Select>
@@ -442,38 +382,69 @@ const Configuracoes = () => {
                 </Col>
               </Row>
 
-              <Form.Item name="asaasAtivo" valuePropName="checked">
+              <Form.Item
+                className="mt-4"
+                label="Habilitar integração com Asaas"
+                name="asaasActive"
+                valuePropName="checked"
+              >
                 <Switch />
-                <Text className="ml-2">Habilitar integração com Asaas</Text>
               </Form.Item>
 
+              <Divider />
+
+              <Title level={4}>Localização</Title>
+
+              <Row gutter={16}>
+                <Space direction="vertical" className="w-full">
+                  <Form.Item label="Fuso Horário" name="timezone">
+                    <Select>
+                      <Option value="America/Sao_Paulo">
+                        São Paulo (GMT-3)
+                      </Option>
+                      <Option value="America/Rio_Branco">
+                        Rio Branco (GMT-5)
+                      </Option>
+                      <Option value="America/Manaus">Manaus (GMT-4)</Option>
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item label="Moeda" name="currency">
+                    <Select
+                      showSearch
+                      optionFilterProp="label"
+                      options={[
+                        ...currencies,
+                        { simbolo: "BRL", nome: "Real Brasileiro" },
+                      ]
+                        .sort((a, b) => a.nome.localeCompare(b.nome))
+                        .map((c) => ({
+                          label: `${c.nome} (${c.simbolo})`,
+                          value: c.simbolo,
+                        }))}
+                    />
+                  </Form.Item>
+                </Space>
+              </Row>
+
+              <Divider />
+
               <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  icon={<Save size={16} />}
-                >
+                <Button type="primary" htmlType="submit">
                   Salvar Configurações do Sistema
                 </Button>
               </Form.Item>
             </Form>
           </Card>
 
-          <Card title="ℹ️ Informações do Sistema" className="mt-4">
+          <Card title="Informações do Sistema" className="mt-4">
             <Row gutter={16}>
               <Col xs={24} sm={8}>
                 <Card size="small">
-                  <Statistic title="Versão do Sistema" value="1.0.0" />
-                </Card>
-              </Col>
-              <Col xs={24} sm={8}>
-                <Card size="small">
-                  <Statistic title="Último Backup" value="Hoje 08:30" />
-                </Card>
-              </Col>
-              <Col xs={24} sm={8}>
-                <Card size="small">
-                  <Statistic title="Uptime" value="99.9%" />
+                  <Statistic
+                    title="Versão do Sistema"
+                    value={packageJson.version}
+                  />
                 </Card>
               </Col>
             </Row>

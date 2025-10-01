@@ -301,14 +301,12 @@ const Fidelidade = () => {
   };
 
   const handleResgate = (values: any) => {
-    console.log("Resgate processado:", values);
     message.success(`Desconto de R$ ${values.valorDesconto} aplicado!`);
     setResgateModal(false);
     resgateForm.resetFields();
   };
 
   const handleConfigSubmit = (values: any) => {
-    console.log("Configuração atualizada:", values);
     message.success("Configurações salvas com sucesso!");
     setConfigModal(false);
   };
@@ -380,14 +378,14 @@ const Fidelidade = () => {
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <Input
             placeholder="Buscar cliente por nome ou telefone..."
-            prefix={<Search size={16} />}
+            prefix={<Search size={14} />}
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="max-w-md"
           />
           <Space>
             <Button
-              icon={<Settings size={16} />}
+              icon={<Settings size={14} />}
               onClick={() => {
                 configForm.setFieldsValue(configuracao);
                 setConfigModal(true);
@@ -397,7 +395,7 @@ const Fidelidade = () => {
             </Button>
             <Button
               type="primary"
-              icon={<Plus size={16} />}
+              icon={<Plus size={14} />}
               onClick={() => setModalVisible(true)}
               className="bg-salao-primary"
             >

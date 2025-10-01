@@ -42,7 +42,6 @@ declare global {
       emailAtivo: boolean;
 
       // Sistema
-      backupAutomatico: boolean;
       manterHistorico: number;
       timezone: string;
     }
