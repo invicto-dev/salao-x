@@ -1,4 +1,5 @@
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
+import { columnsCaixa } from "@/constants/tables/caixa";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCaixaManager, usecaixas, useMoveCaixa } from "@/hooks/use-caixa";
 import { formatCurrency } from "@/utils/formatCurrency";
@@ -10,23 +11,13 @@ import {
   Form,
   Input,
   Modal,
-  Space,
   Table,
-  TableColumnsType,
   Tag,
   Typography,
   List,
 } from "antd";
-
-import {
-  CircleArrowRight,
-  CircleX,
-  Plus,
-  Search,
-  TicketPlus,
-  TicketX,
-} from "lucide-react";
-import React, { useState } from "react";
+import { CircleX, Plus, Search, TicketPlus, TicketX } from "lucide-react";
+import React, { useCallback, useMemo, useState } from "react";
 
 const { Title } = Typography;
 
@@ -41,102 +32,24 @@ const Caixa = () => {
   const [caixaSelecionado, setCaixaSelecionado] = useState<Caixa.Props | null>(
     null
   );
-  const { openCaixaModal, closeCaixaModal, CaixaManagerModal } = useCaixaManager();
+  const { openCaixaModal, closeCaixaModal, CaixaManagerModal } =
+    useCaixaManager();
   const {
     data: caixas,
     isLoading: isLoadingcaixas,
     isFetching: isFetchingcaixas,
   } = usecaixas();
   const [formMove] = Form.useForm();
+
   const caixasFiltrados = (caixas || []).filter((caixa) =>
-    caixa.status.toLowerCase().includes(busca.toLowerCase())
+    caixa.status.toLowerCase().includes(busca.toLowerCase()) ||
+    caixa.valorAbertura.toString().includes(busca.toLowerCase()) ||
+    caixa.dataAbertura.toString().includes(busca.toLowerCase()) ||
+    caixa.dataFechamento.toString().includes(busca.toLowerCase()) ||
+    caixa.valorFechamentoInformado?.toString().includes(busca.toLowerCase())
+
   );
   const { mutateAsync: moveCaixa } = useMoveCaixa();
-  console.log("caixas:", caixas);
-  const columns: TableColumnsType<Caixa.Props> = [
-    {
-      title: "Data Abertura",
-      dataIndex: "dataAbertura",
-      key: "dataAbertura",
-      render: (dataAbertura) => (
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="font-medium">
-              {new Date(dataAbertura).toLocaleString("pt-BR")}
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Data Fechamento",
-      dataIndex: "dataFechamento",
-      key: "dataFechamento",
-      render: (dataFechamento) => (
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="font-medium">
-              {dataFechamento ? new Date(dataFechamento).toLocaleString("pt-BR") : "-"}
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Valor Abertura",
-      dataIndex: "valorAbertura",
-      key: "valorAbertura",
-      render: (valorAbertura) => (
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="font-medium">{formatCurrency(valorAbertura)}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Valor Fechamento Informado",
-      dataIndex: "valorFechamentoInformado",
-      key: "valorFechamentoInformado",
-      render: (valorFechamentoInformado) => (
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="font-medium">{valorFechamentoInformado ? formatCurrency(valorFechamentoInformado) : "-"}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      align: "center",
-      render: (status: string) => (
-        <Tag color={status === "ABERTO" ? "green" : "red"}>{status}</Tag>
-      ),
-    },
-    {
-      title: "Ações",
-      key: "acoes",
-      align: "center",
-      render: (_: any, record: any) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<CircleArrowRight size={14} />}
-            onClick={() => gerenciarCaixa(record)}
-          >
-            Ver Detalhes
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-
-  const gerenciarCaixa = (caixa: Caixa.Props) => {
-    setCaixaSelecionado(caixa);
-    setDrawerVisible(true);
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -177,6 +90,14 @@ const Caixa = () => {
     setDrawerVisible(false);
     closeCaixaModal();
   };
+
+  const gerenciarCaixa = useCallback((caixa: Caixa.Props) => {
+    setCaixaSelecionado(caixa);
+    setDrawerVisible(true);
+  }, []);
+
+  //Para evitar recriar as colunas a cada renderização
+  const columns = useMemo(() => columnsCaixa(gerenciarCaixa), [gerenciarCaixa]);
   return (
     <div className="space-y-6">
       <div>
@@ -193,14 +114,18 @@ const Caixa = () => {
         <div className="flex flex-col lg:flex-row gap-4 justify-between">
           <div className="flex flex-col sm:flex-row gap-4 flex-1">
             <Input
-              placeholder="Buscar pelo nome..."
+              placeholder="Buscar pelo status, valor, data..."
               prefix={<Search size={16} />}
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               className="max-w-xs"
             />
           </div>
-          <Button type="primary" icon={<Plus size={16} />} onClick={openCaixaModal}>
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={openCaixaModal}
+          >
             Abrir Caixa
           </Button>
         </div>
@@ -220,10 +145,8 @@ const Caixa = () => {
       <Drawer
         title={"Detalhes da Caixa"}
         open={drawerVisible}
-        //okText={}
         onClose={() => {
           setDrawerVisible(false);
-          //setEditingEmployee(null);
         }}
         width={600}
       >
@@ -267,7 +190,7 @@ const Caixa = () => {
                 {caixaSelecionado.observacoes || "-"}
               </Descriptions.Item>
             </Descriptions>
-            {/* ---- Movimentações (exibição melhorada) ---- */}
+            {/* ---- Movimentações ---- */}
             <Card size="small" title="Movimentações" className="mt-2">
               <div
                 style={{ maxHeight: 250, overflowY: "auto", paddingRight: 8 }}
