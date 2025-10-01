@@ -32,8 +32,10 @@ declare global {
       funcionarioId?: string;
       itens: ItemProps[];
       pagamentos: {
+        externalChargeUrl?: string;
         metodoDePagamentoId: string;
         metodoDePagamento?: PaymentMethod.Props;
+        installmentCount?: number;
         valor: number;
         observacao?: string;
       }[];

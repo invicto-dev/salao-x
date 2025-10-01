@@ -1,55 +1,25 @@
+// ARQUIVO REFATORADO
 import { Request, Response } from "express";
-
-import { prisma } from "../config/database";
+import { SettingsService } from "../services/SettingsService";
 
 export class ConfiguracaoController {
   static async getConfig(req: Request, res: Response) {
-    const config = await prisma.setting.findFirst();
-    if (!config) {
-      return res.status(404).json({
-        success: false,
-        error: "Nenhuma configuração encontrada",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: config,
-    });
+    const config = await SettingsService.get();
+    res.status(200).json({ success: true, data: config });
   }
 
   static async updateConfig(req: Request, res: Response) {
     const { id } = req.params;
-    const { body } = req.body;
+    const payload: Settings.Payload = req.body;
 
     if (!id) {
-      return res.status(400).json({
-        success: false,
-        error: "Nenhum ID fornecido",
-      });
+      return res
+        .status(400)
+        .json({ success: false, error: "Nenhum ID fornecido" });
     }
 
-    if (!body) {
-      return res.status(400).json({
-        success: false,
-        error: "Nenhuma configuração fornecida",
-      });
-    }
-    const config = await prisma.setting.update({
-      where: { id },
-      data: body,
-    });
+    const updatedConfig = await SettingsService.update(id, payload);
 
-    if (!config) {
-      return res.status(404).json({
-        success: false,
-        error: "Não foi possível encontrar a configuração com o ID fornecido",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: config,
-    });
+    res.status(200).json({ success: true, data: updatedConfig });
   }
 }

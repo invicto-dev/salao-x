@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Iniciando seed de usuarios no banco de dados...");
 
-  console.log("Gerando dados padrões...");
+  console.log("Gerando métodos de pagamento padrões...");
 
   await prisma.paymentMethod.upsert({
     where: { nome: "Dinheiro" },
@@ -18,7 +18,20 @@ async function main() {
       ativo: true,
     },
   });
-  console.log("✅ Método de pagamento Dinheiro criado com sucesso!");
+  console.log("✅ Método de pagamento 'Dinheiro' garantido.");
+
+  await prisma.paymentMethod.upsert({
+    where: { integration: "ASAAS_CREDIT" },
+    update: {},
+    create: {
+      nome: "Crediário (Asaas)",
+      descricao: "Venda a prazo com gestão de cobranças via Asaas",
+      ativo: true,
+      integration: "ASAAS_CREDIT",
+    },
+  });
+
+  console.log("✅ Método de pagamento 'Crediário (Asaas)' garantido.");
 
   await prisma.setting.upsert({
     where: { id: "configuracao-padrao" },
@@ -50,8 +63,6 @@ async function main() {
       notificarAniversarios: false,
       whatsappAtivo: false,
       emailAtivo: false,
-      backupAutomatico: false,
-      manterHistorico: 6,
       timezone: "America/Sao_Paulo",
     },
   });

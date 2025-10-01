@@ -16,8 +16,6 @@ import {
   Modal,
   Tooltip,
   Alert,
-  Spin,
-  Tag,
 } from "antd";
 import {
   ShoppingCart,
@@ -31,10 +29,6 @@ import {
   Package,
   Scissors,
   DollarSign,
-  CheckCircle2,
-  XCircle,
-  Banknote,
-  BanknoteIcon,
   CircleX,
 } from "lucide-react";
 import { useServices } from "@/hooks/use-services";
@@ -116,7 +110,8 @@ const PDV = () => {
   const { data: servicos, isLoading: isLoadingServicos } = useServices();
   const { data: clientes } = useCustomers();
   const { data: formasDePagamentos } = usePaymentMethods();
-  const { mutateAsync: createSale } = useSaleCreate();
+  const { mutateAsync: createSale, isPending: isCreatingSale } =
+    useSaleCreate();
 
   const isCaixaFechado = !isFetchingCaixa && !hasOpenCaixa;
 
@@ -265,7 +260,7 @@ const PDV = () => {
       limparVenda();
       abrirRecibo(vendaCompleta);
     } catch (error: any) {
-      message.error(error.message || "Erro ao finalizar a venda.");
+      console.error(error.message || "Erro ao finalizar a venda.");
     }
   };
 
@@ -431,7 +426,7 @@ const PDV = () => {
                       size="large"
                       onClick={() => navigate("/produtos")}
                       type="dashed"
-                      icon={<Package size={16} />}
+                      icon={<Package size={14} />}
                     >
                       Adicionar Produtos
                     </Button>
@@ -439,7 +434,7 @@ const PDV = () => {
                       size="large"
                       onClick={() => navigate("/servicos")}
                       type="dashed"
-                      icon={<Scissors size={16} />}
+                      icon={<Scissors size={14} />}
                     >
                       Adicionar Serviços
                     </Button>
@@ -553,7 +548,10 @@ const PDV = () => {
                     <Tooltip title="Desvincular Cliente">
                       <Button
                         onClick={() =>
-                          updateSaleSession({ clienteSelecionado: null })
+                          updateSaleSession({
+                            clienteSelecionado: null,
+                            pagamentos: [],
+                          })
                         }
                         type="text"
                         icon={<X size={14} />}
@@ -754,13 +752,20 @@ const PDV = () => {
               ) : (
                 <TelaPagamento
                   totalAPagar={calcularTotal()}
-                  formasDePagamento={formasDePagamentos || []}
+                  formasDePagamento={
+                    formasDePagamentos.filter((f) =>
+                      clienteSelecionado && clienteSelecionado
+                        ? f
+                        : f.integration !== "ASAAS_CREDIT"
+                    ) || []
+                  }
                   pagamentos={pagamentos}
                   setPagamentos={(p: Sale.Props["pagamentos"]) =>
                     updateSaleSession({ pagamentos: p })
                   }
                   onFinalizar={finalizarVenda}
                   onVoltar={toogleCarrinhoTipo}
+                  loading={isCreatingSale}
                 />
               )}
             </div>

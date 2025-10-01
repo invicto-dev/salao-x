@@ -20,6 +20,8 @@ services:
       - NODE_ENV=${NODE_ENV}
       - FRONTEND_URL_DEV=${FRONTEND_URL_DEV}
       - FRONTEND_URL_PRD=${FRONTEND_URL_PRD}
+      - ASAAS_API_URL=${ASAAS_API_URL}
+      - ASAAS_API_URL_SANDBOX=${ASAAS_API_URL_SANDBOX}
 
   frontend:
     container_name: salao-x-frontend

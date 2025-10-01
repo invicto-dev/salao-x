@@ -8,9 +8,12 @@ import { AuthRequest } from "../middlewares/auth";
 import { hierarchyPositionCheck } from "../utils/permissions";
 
 export class FuncionariosController {
-  static async getFuncionarios(req: Request, res: Response) {
+  static async getFuncionarios(req: AuthRequest, res: Response) {
+    const user = req.user;
+
     const funcionarios = await prisma.employee.findMany({
       orderBy: { nome: "asc" },
+      where: { role: { not: "ROOT" }, id: { not: user?.id } },
     });
 
     return res.status(200).json({
