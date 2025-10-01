@@ -13,6 +13,13 @@ import { Alert, Form, Input, message, Modal, Spin, Statistic } from "antd";
 import { AxiosError } from "axios";
 import { useState } from "react";
 
+export const usecaixas = () => {
+  return useQuery<Caixa.Props[]>({
+    queryKey: ["get-caixas"],
+    queryFn: getCaixas,
+  });
+};  
+
 export const useHasOpenCaixa = () => {
   return useQuery<Caixa.Props | null>({
     queryKey: ["has-open-caixa"],
@@ -197,10 +204,3 @@ export const useCaixaManager = () => {
     CaixaManagerModal,
   };
 };
-
-export const usecaixas = () => {
-  return useQuery<Caixa.Props[]>({
-    queryKey: ["get-caixas"],
-    queryFn: getCaixas,
-  });
-};  
