@@ -6,7 +6,6 @@ import {
   Input,
   Modal,
   Form,
-  Space,
   Typography,
   message,
   Row,
@@ -229,7 +228,6 @@ const Funcionarios = () => {
   };
 
   const handleComissaoSubmit = (values: any) => {
-    console.log("Regra de comissão salva:", values);
     message.success("Regra de comissão atualizada!");
     comissaoForm.resetFields();
   };
@@ -284,14 +282,14 @@ const Funcionarios = () => {
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <Input
             placeholder="Buscar por nome, função ou telefone..."
-            prefix={<Search size={16} />}
+            prefix={<Search size={14} />}
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="max-w-md"
           />
           <Button
             type="primary"
-            icon={<Plus size={16} />}
+            icon={<Plus size={14} />}
             onClick={novoFuncionario}
           >
             Novo Funcionário
@@ -302,7 +300,7 @@ const Funcionarios = () => {
       {/* Tabela de Funcionários */}
       <Card title="Lista de Funcionários">
         <Table
-          dataSource={funcionariosFiltrados.filter((f) => f.id !== user.id)}
+          dataSource={funcionariosFiltrados}
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 10 }}

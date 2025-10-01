@@ -6,7 +6,6 @@ import {
   Drawer,
   Dropdown,
   Segmented,
-  MenuProps,
 } from "antd";
 import { useMemo, useState } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
@@ -15,13 +14,9 @@ import {
   Package,
   Users,
   UserCheck,
-  Calendar,
-  BarChart3,
-  Gift,
   Settings,
   Moon,
   Sun,
-  Menu as MenuIcon,
   List as ListIcon,
   Store,
   Scissors,
@@ -29,6 +24,8 @@ import {
   DollarSign,
   LogOut,
   User2,
+  PanelLeft,
+  PanelRight,
 } from "lucide-react";
 
 // Pages
@@ -47,6 +44,7 @@ import MetodoDePagamentos from "@/pages/Pagamentos";
 import Vendas from "@/pages/Vendas";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
+import { json } from "stream/consumers";
 
 const { Header, Sider, Content } = Layout;
 
@@ -57,7 +55,9 @@ interface AppLayoutProps {
 
 const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
   const { logout, user } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(
+    JSON.parse(localStorage.getItem("collapsed") || "false")
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -65,26 +65,26 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
   const menuItems = [
     /* {
       key: "/",
-      icon: <BarChart3 size={16} />,
+      icon: <BarChart3 size={14} />,
       label: "Dashboard",
       permission: "GERENTE",
     }, */
     {
       key: "/pdv",
-      icon: <ShoppingCart size={16} />,
+      icon: <ShoppingCart size={14} />,
       label: "PDV",
       permission: "FUNCIONARIO",
     },
     {
       key: "/vendas",
-      icon: <DollarSign size={16} />,
+      icon: <DollarSign size={14} />,
       label: "Vendas",
       permission: "FUNCIONARIO",
     },
     {
       key: "produtos-servicos",
       label: "Produtos & Serviços",
-      icon: <Package size={16} />,
+      icon: <Package size={14} />,
       permission: "FUNCIONARIO",
       children: [
         {
@@ -107,7 +107,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
     {
       key: "gestao",
       label: "Gestão",
-      icon: <Users size={16} />,
+      icon: <Users size={14} />,
       permission: "SECRETARIO",
       children: [
         /* {
@@ -139,13 +139,13 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
     },
     /* {
       key: "/fidelidade",
-      icon: <Gift size={16} />,
+      icon: <Gift size={14} />,
       label: "Fidelidade",
       permission: "SECRETARIO",
     }, */
     {
       key: "/configuracoes",
-      icon: <Settings size={16} />,
+      icon: <Settings size={14} />,
       label: "Configurações",
       permission: "ADMIN",
     },
@@ -302,11 +302,14 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
           <div className="flex items-center gap-4">
             <Button
               type="text"
-              icon={<MenuIcon size={16} />}
+              icon={
+                collapsed ? <PanelRight size={14} /> : <PanelLeft size={14} />
+              }
               onClick={() => {
                 if (window.innerWidth < 768) {
                   setMobileMenuOpen(true);
                 } else {
+                  localStorage.setItem("collapsed", JSON.stringify(!collapsed));
                   setCollapsed(!collapsed);
                 }
               }}

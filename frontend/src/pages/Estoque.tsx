@@ -250,7 +250,7 @@ const Estoque = () => {
         <div className="flex gap-4">
           <Input
             placeholder="Buscar produtos..."
-            prefix={<Search size={16} />}
+            prefix={<Search size={14} />}
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
@@ -270,7 +270,7 @@ const Estoque = () => {
           </Select>
           <Button
             type="primary"
-            icon={<Plus size={16} />}
+            icon={<Plus size={14} />}
             onClick={abrirModalMovimentacao}
           >
             Nova Movimentação

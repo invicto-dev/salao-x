@@ -1,16 +1,27 @@
 import { Request, Response } from "express";
 
 import { prisma } from "../config/database";
+import { SettingsService } from "../services/SettingsService";
 
 export class PaymentMethodsController {
   static async getPaymentMethods(req: Request, res: Response) {
+    const settings = await SettingsService.get();
+
     const paymentMethods = await prisma.paymentMethod.findMany({
       orderBy: { nome: "asc" },
     });
 
+    let dataToReturn = paymentMethods;
+
+    if (!settings?.asaasActive) {
+      dataToReturn = paymentMethods.filter(
+        (p) => p.integration !== "ASAAS_CREDIT"
+      );
+    }
+
     return res.status(200).json({
       success: true,
-      data: paymentMethods,
+      data: dataToReturn,
     });
   }
 
@@ -82,11 +93,11 @@ export class PaymentMethodsController {
     const paymentMethodToDelete = await prisma.paymentMethod.findUnique({
       where: { id },
     });
-    if (paymentMethodToDelete?.isCash) {
+    if (paymentMethodToDelete?.isCash || paymentMethodToDelete?.integration) {
       return res.status(403).json({
         success: false,
         error:
-          "O método de pagamento 'Dinheiro' é um padrão do sistema e não pode ser excluído.",
+          "Este método de pagamento é um padrão do sistema e não pode ser excluído.",
       });
     }
 
@@ -108,7 +119,7 @@ export class PaymentMethodsController {
     });
   }
 
-  static async updatepaymentMethod(req: Request, res: Response) {
+  static async updatePaymentMethod(req: Request, res: Response) {
     const { id } = req.params;
     const body = req.body;
 
@@ -129,10 +140,11 @@ export class PaymentMethodsController {
     const paymentMethodToUpdate = await prisma.paymentMethod.findUnique({
       where: { id },
     });
-    if (paymentMethodToUpdate?.isCash) {
+    if (paymentMethodToUpdate?.isCash || paymentMethodToUpdate?.integration) {
       return res.status(403).json({
         success: false,
-        error: "Não é possível atualizar o método de pagamento 'Dinheiro'.",
+        error:
+          "Este método de pagamento é um padrão do sistema e não pode ser atualizado.",
       });
     }
 

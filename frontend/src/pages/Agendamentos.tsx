@@ -325,7 +325,7 @@ const Agendamentos = () => {
             extra={
               <Button
                 type="primary"
-                icon={<Plus size={16} />}
+                icon={<Plus size={14} />}
                 onClick={novoAgendamento}
                 className="bg-salao-primary"
               >

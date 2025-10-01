@@ -10,7 +10,7 @@ export default function DropdownComponent({ ...props }: DropdownProps) {
     <Dropdown trigger={["click"]} {...props}>
       <Button
         onClick={(e) => e.stopPropagation()}
-        icon={props.icon || <EllipsisVertical size={16} />}
+        icon={props.icon || <EllipsisVertical size={14} />}
         type="text"
       />
     </Dropdown>

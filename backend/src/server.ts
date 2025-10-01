@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import express from "express";
 import "express-async-errors";
 import cors from "cors";
@@ -60,7 +62,7 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/caixa", caixaRoutes);
-app.use("/api/configuracoes", authenticateToken, requireAdmin, settingsRoutes);
+app.use("/api/configuracoes", settingsRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/customers", authenticateToken, customerRoutes);
 app.use("/api/services", serviceRoutes);

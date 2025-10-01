@@ -11,10 +11,7 @@ import {
   Drawer,
   Descriptions,
   List,
-  Row,
-  Col,
   TableColumnProps,
-  Divider,
   Button,
 } from "antd";
 import { useSales, useSaleUpdateStatus } from "@/hooks/use-sales";
@@ -23,7 +20,7 @@ import { useReciboVenda } from "@/hooks/use-recibo-venda";
 import { formatCurrency } from "@/utils/formatCurrency";
 import DropdownComponent from "@/components/Dropdown";
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { RangePicker } = DatePicker;
 
 type Venda = ReturnType<typeof useSales>["data"][0];
@@ -270,29 +267,15 @@ const Vendas = () => {
                 dataSource={vendaSelecionada.itens}
                 renderItem={(item) => (
                   <List.Item>
-                    <Row justify="space-between" className="w-full">
-                      <Col>
-                        <Row>
-                          <Text
-                            ellipsis={{
-                              tooltip:
-                                item.produto?.nome ||
-                                item.servico?.nome ||
-                                "item deletado",
-                            }}
-                          >
-                            {item.quantidade} x{" "}
-                            {item.produto?.nome ||
-                              item.servico?.nome ||
-                              "Item Deletado"}
-                          </Text>
-                        </Row>
-                        <Row className="text-xs text-muted-foreground">
-                          {formatCurrency(item.preco)}
-                        </Row>
-                      </Col>
-                      <Col>{formatCurrency(item.subtotal)}</Col>
-                    </Row>
+                    <List.Item.Meta
+                      title={`${item.quantidade} x ${
+                        item.produto?.nome ||
+                        item.servico?.nome ||
+                        "Item deletado"
+                      }`}
+                      description={formatCurrency(item.preco)}
+                    />
+                    <div>{formatCurrency(item.subtotal)}</div>
                   </List.Item>
                 )}
                 size="small"
@@ -305,31 +288,40 @@ const Vendas = () => {
                 dataSource={vendaSelecionada.pagamentos}
                 renderItem={(pagamento) => (
                   <List.Item>
-                    <Row justify="space-between" className="w-full">
-                      <Col>{pagamento.metodoDePagamento.nome}</Col>
-                      <Col>
-                        {Number(pagamento.valor).toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })}
-                      </Col>
-                    </Row>
+                    <List.Item.Meta
+                      title={pagamento.metodoDePagamento.nome}
+                      description={
+                        pagamento.metodoDePagamento.isCash &&
+                        vendaSelecionada.troco > 0 ? (
+                          <Typography className="text-xs">{`Troco: ${formatCurrency(
+                            vendaSelecionada.troco
+                          )}`}</Typography>
+                        ) : (
+                          <div>
+                            {pagamento.installmentCount && (
+                              <Typography className="text-xs">{`${
+                                pagamento.installmentCount
+                              } X ${formatCurrency(
+                                pagamento.valor / pagamento.installmentCount
+                              )}`}</Typography>
+                            )}
+                            {pagamento.externalChargeUrl && (
+                              <Typography.Link
+                                href={pagamento.externalChargeUrl}
+                                target="_blank"
+                              >
+                                {pagamento.externalChargeUrl}
+                              </Typography.Link>
+                            )}
+                          </div>
+                        )
+                      }
+                    />
+                    <div>{formatCurrency(pagamento.valor)}</div>
                   </List.Item>
                 )}
                 size="small"
               />
-              <Divider />
-              <div className="mx-4">
-                <Row justify="space-between" className="w-full">
-                  <Col>Troco</Col>
-                  <Col>
-                    {Number(vendaSelecionada.troco).toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })}
-                  </Col>
-                </Row>
-              </div>
             </div>
             <div className="space-y-2">
               <Button

@@ -34,7 +34,6 @@ export const useSaleCreate = () => {
     },
     onError: (error: AxiosError<{ error: string }>) => {
       message.error(error.response.data.error);
-      return error;
     },
   });
 };

@@ -283,7 +283,7 @@ const Produtos = () => {
           <div className="flex flex-col sm:flex-row gap-4 flex-1">
             <Input
               placeholder="Buscar por nome ou código..."
-              prefix={<Search size={16} />}
+              prefix={<Search size={14} />}
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               className="max-w-xs"
@@ -307,7 +307,7 @@ const Produtos = () => {
           </div>
           <Button
             type="primary"
-            icon={<Plus size={16} />}
+            icon={<Plus size={14} />}
             onClick={novoProduto}
           >
             Novo Produto

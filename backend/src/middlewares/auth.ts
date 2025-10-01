@@ -49,6 +49,26 @@ export const authenticateToken = async (
   }
 };
 
+export const requireSecretary = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (!req.user?.role) {
+    return res
+      .status(403)
+      .json({ sucess: false, error: "Usuário sem permissão definida" });
+  }
+
+  if (hasPermission(req.user.role as Role, Role.SECRETARIO)) {
+    return res.status(403).json({
+      sucess: false,
+      error: "Acesso negado. Apenas secretários e administradores.",
+    });
+  }
+  next();
+};
+
 export const requireAdmin = (
   req: AuthRequest,
   res: Response,
@@ -60,7 +80,7 @@ export const requireAdmin = (
       .json({ sucess: false, error: "Usuário sem permissão definida" });
   }
 
-  if (hasPermission(req.user.role as Role, Role.ADMIN)) {
+  if (!hasPermission(req.user.role as Role, Role.ADMIN)) {
     return res
       .status(403)
       .json({ sucess: false, error: "Acesso negado. Apenas administradores." });
@@ -82,7 +102,7 @@ export const requireOwnerOrAdmin = (
   }
 
   if (
-    hasPermission(req.user?.role as Role, Role.ADMIN) &&
+    !hasPermission(req.user?.role as Role, Role.ADMIN) &&
     req.user?.id !== employeeId
   ) {
     return res.status(403).json({ success: false, error: "Acesso negado." });

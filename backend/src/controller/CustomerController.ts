@@ -4,7 +4,9 @@ import { prisma } from "../config/database";
 
 export class CustomersController {
   static async getCustomers(req: Request, res: Response) {
-    const customers = await prisma.customer.findMany();
+    const customers = await prisma.customer.findMany({
+      orderBy: { nome: "asc" },
+    });
 
     return res.status(200).json({
       success: true,
