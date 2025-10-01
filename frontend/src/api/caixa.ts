@@ -20,7 +20,6 @@ export const closeCaixa = async (
 export const moveCaixa = async (
   body: Caixa.BodyMoveCaixa
 ): Promise<Caixa.Props> => {
-  console.log("moveCaixa body:", body);
   const response = await http.post("/caixa/movimentar", body);
   return response.data.data;
 };
