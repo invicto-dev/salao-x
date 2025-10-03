@@ -13,6 +13,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      # --- ADICIONADO ---
+      # Garante que o redis inicie antes do backend
+      redis:
+        condition: service_started
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
@@ -22,6 +26,8 @@ services:
       - FRONTEND_URL_PRD=${FRONTEND_URL_PRD}
       - ASAAS_API_URL=${ASAAS_API_URL}
       - ASAAS_API_URL_SANDBOX=${ASAAS_API_URL_SANDBOX}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
 
   frontend:
     container_name: salao-x-frontend
@@ -49,12 +55,22 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # Seção de verificação de saúde
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  redis:
+    container_name: salao-x-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   postgres_data:
+  # --- ADICIONADO ---
+  redis_data:
