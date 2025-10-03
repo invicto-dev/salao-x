@@ -20,6 +20,7 @@ import { stockRoutes } from "./routes/stock";
 import { authRoutes } from "./routes/auth";
 import { caixaRoutes } from "./routes/caixa";
 import { authenticateToken, requireAdmin } from "./middlewares/auth";
+import { JobRoutes } from "./routes/jobs";
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.use("/api/payment-methods", paymentMethodRoutes);
 app.use("/api/categories", authenticateToken, categoryRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/stock", stockRoutes);
+app.use("/api/jobs", JobRoutes);
 
 // Middleware para tratar erros
 app.use(errorHandler);

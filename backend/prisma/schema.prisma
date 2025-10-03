@@ -43,6 +43,14 @@ enum ApprovalStatus {
   REJEITADO
 }
 
+enum JobStatus {
+  PENDENTE
+  PROCESSANDO
+  CONCLUIDO
+  CONCLUIDO_COM_ERROS
+  FALHOU
+}
+
 enum SaleStatus {
   PENDENTE
   PAGO
@@ -101,6 +109,24 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
+model ImportJob {
+  id               String    @id @default(uuid())
+  status           JobStatus @default(PENDENTE)
+  totalRows        Int       @default(0)
+  processedRows    Int       @default(0)
+  successfulRows   Int       @default(0)
+  failedRows       Int       @default(0)
+  results          Json? // Armazena detalhes de erros por linha
+  originalFilename String
+  storedFilename   String    @unique // Nome do arquivo salvo no servidor
+
+  createdByUserId String?   @map("created_by_user_id")
+  createdBy       Employee? @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+}
+
 /// Employee with role-based access and related records
 model Employee {
   id       String  @id @default(uuid())
@@ -120,6 +146,7 @@ model Employee {
   caixasAbertos      Caixa[]             @relation("CaixaAbertoPor")
   caixasFechados     Caixa[]             @relation("CaixaFechadoPor")
   caixaMovimentacoes CaixaMovimentacao[]
+  mportJobs          ImportJob[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

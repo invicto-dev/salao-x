@@ -1,0 +1,7 @@
+nome,codigo,preco,custo,unidade_medida,estoque_minimo,categoria_nome,descricao,estoque_inicial
+Shampoo Anti-Queda,SHMP-001,35.50,15.00,un,12,Cabelos,"Shampoo fortificante com biotina para tratamento capilar.",50
+Condicionador Brilho Intenso,COND-002,38.00,16.50,un,12,Cabelos,
+Esmalte Vermelho Paixão,ESM-RED-01,8.99,3.50,un,20,Unhas,"Cor intensa e secagem rápida, frasco de 8ml.",12
+Acetona 100ml,ACET-100,4.50,1.80,un,30,Unhas,
+Cerveja Artesanal IPA,BEB-IPA-01,22.00,9.50,un,24,Bebidas,"Lata 473ml, teor alcoólico 6.5%",30
+Água Mineral sem Gás 500ml,BEB-AGUA-02,3.00,0.90,un,48,Bebidas,
