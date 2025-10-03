@@ -33,10 +33,17 @@ export const useFuncionarioCreate = () => {
       queryClient.invalidateQueries({ queryKey: ["get-funcionarios"] });
       message.success("Funcionário criado com sucesso.");
     },
-    onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+    onError: (error: AxiosError<{ error?: string; errors?: string[] }>) => {
+      const data = error.response?.data;
+    
+      // Normaliza para sempre ser um array de mensagens
+      const messages = data?.errors ?? (data?.error ? [data.error] : ["Erro desconhecido ao criar funcionário"]);
+    
+      messages.forEach((msg) => message.error(msg));
+    
       return error;
     },
+    
   });
 
   return res;
