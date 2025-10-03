@@ -6,6 +6,7 @@ import { prisma } from "../config/database";
 import { Role } from "@prisma/client";
 import { AuthRequest } from "../middlewares/auth";
 import { hierarchyPositionCheck } from "../utils/permissions";
+import { validatePassword } from "../utils/validatePassword";
 
 export class FuncionariosController {
   static async getFuncionarios(req: Request, res: Response) {
@@ -47,37 +48,56 @@ export class FuncionariosController {
   }
 
   static async createFuncionario(req: Request, res: Response) {
-    const { body } = req.body;
-
-    if (!body) {
-      return res.status(400).json({
+    try {
+      const body = req.body;
+  
+      if (!body) {
+        return res.status(400).json({
+          success: false,
+          error: "Nenhuma informação do funcionário fornecida",
+        });
+      }
+  
+      if (!body.senha) {
+        return res.status(400).json({
+          success: false,
+          error: "Senha é obrigatória",
+        });
+      }
+  
+      const { valid, errors } = validatePassword(body.senha);
+  
+      if (!valid) {
+        return res.status(400).json({
+          success: false,
+          errors,
+        });
+      }
+  
+      const hashedPassword = await bcrypt.hash(body.senha, 10);
+  
+      const funcionario = await prisma.employee.create({
+        data: {
+          ...body,
+          senha: hashedPassword,
+        },
+      });
+  
+      return res.status(200).json({
+        success: true,
+        data: funcionario,
+      });
+    } catch (err: any) {
+      console.error("❌ Erro ao criar funcionário:", err);
+      return res.status(500).json({
         success: false,
-        error: "Nenhuma informação do funcionário fornecida",
+        error: "Erro interno ao criar funcionário",
       });
     }
-
-    const hashedPassword = await bcrypt.hash(body.senha, 10);
-
-    const funcionario = await prisma.employee.create({
-      data: {
-        ...body,
-        senha: hashedPassword,
-      },
-    });
-
-    if (!funcionario) {
-      return res.status(404).json({
-        success: false,
-        error: "Não foi possível criar um funcionário",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: funcionario,
-    });
   }
-
+  
+  
+  
   static async deleteFuncionario(req: AuthRequest, res: Response) {
     const { id } = req.params;
     const user = req.user;

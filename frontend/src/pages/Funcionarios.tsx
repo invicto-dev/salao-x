@@ -42,6 +42,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "path";
 import { formatRoleName } from "@/utils/formatRoleName";
 import { hasPermission, hierarchyPositionCheck } from "@/utils/permissions";
+import http from "@/api/http";
 
 const { Title, Text } = Typography;
 
@@ -98,7 +99,6 @@ const Funcionarios = () => {
   // Validação de senha
   const rules = [
     { test: /.{8,}/, message: "Mínimo 8 caracteres" },
-    { test: /[a-z]/, message: "Pelo menos uma letra minúscula" },
     { test: /[A-Z]/, message: "Pelo menos uma letra maiúscula" },
     { test: /[0-9]/, message: "Pelo menos um número" },
     { test: /[!@#$%^&*(),.?":{}|<>]/, message: "Pelo menos um caractere especial" },
@@ -219,26 +219,34 @@ const Funcionarios = () => {
     setComissaoModal(true);
   };
 
-  const handleSubmit = async (body: any) => {
+  const handleSubmit = async (values: any) => {
+    const payload = {
+      ...values,
+      senha: password, // força incluir a senha do estado
+    };
+  
     if (!editingEmployee) {
       try {
-        await createFuncionario(body);
+        await createFuncionario(payload);
         setModalVisible(false);
         form.resetFields();
+        setPassword(""); // limpa o estado também
       } catch (error) {
         console.error(error);
       }
     } else {
       try {
-        await updateFuncionario({ id: editingEmployee.id, body });
+        await updateFuncionario(editingEmployee.id, payload);
         setModalVisible(false);
         form.resetFields();
         setEditingEmployee(null);
+        setPassword(""); // limpa o estado também
       } catch (error) {
         console.error(error);
       }
     }
   };
+  
 
   const handleComissaoSubmit = (values: any) => {
     console.log("Regra de comissão salva:", values);
@@ -445,13 +453,13 @@ const Funcionarios = () => {
                     {rules.map((rule, index) => {
                       const passed = rule.test.test(password);
                       return (
-                        <div key={index} className="flex items-center gap-2 text-sm">
+                        <div key={index} className="flex items-center gap-2 text-xs">
                           {passed ? (
                             <CheckCircleOutlined style={{ color: "green" }} />
                           ) : (
-                            <CloseCircleOutlined style={{ color: "shadow" }} />
+                            <CloseCircleOutlined style={{ color: "#737373" }} />
                           )}
-                          <span className={passed ? "text-green-600" : "text-shadow-600"}>{rule.message}</span>
+                          <span className={passed ? "text-green-600" : "text-gray-500"}>{rule.message}</span>
                         </div>
                       );
                     })}

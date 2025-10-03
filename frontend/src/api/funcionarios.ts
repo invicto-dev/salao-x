@@ -13,9 +13,10 @@ export const getFuncionario = async (id: string): Promise<Employee.Props> => {
 export const createFuncionario = async (
   body: Employee.Props
 ): Promise<Employee.Props> => {
-  const response = await http.post("/employees", { body });
+  const response = await http.post("/employees", body); 
   return response.data.data;
 };
+
 
 export const updateFuncionario = async (
   id: string,
