@@ -219,6 +219,7 @@ const MetodoDePagamentos = () => {
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 10 }}
+          locale={{ emptyText: "Nenhum método de pagamento encontrado" }}
         />
       </Card>
 

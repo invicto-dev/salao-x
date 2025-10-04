@@ -1,11 +1,7 @@
 import { Request, Response } from "express";
 
 import { prisma } from "../config/database";
-import {
-  ApprovalStatus,
-  StockMovementReason,
-  StockMovementType,
-} from "@prisma/client";
+import { ApprovalStatus } from "@prisma/client";
 import { AuthRequest } from "../middlewares/auth";
 import { productImportQueue } from "../lib/queue";
 import { ProductService } from "../services/ProductService";
@@ -48,46 +44,10 @@ export class ProductsController {
   }
 
   static async getProducts(req: Request, res: Response) {
-    const { search, categoryId, contarEstoque } = req.query;
-
-    const products = await prisma.product.findMany({
-      where: {
-        nome: { contains: search as string, mode: "insensitive" },
-        categoriaId: categoryId as string,
-        contarEstoque: contarEstoque ? contarEstoque === "true" : undefined,
-      },
-      include: { categoria: { select: { nome: true } } },
-      orderBy: { nome: "asc" },
-    });
-
-    if (products.length === 0) {
-      return res.status(200).json({ success: true, data: [] });
-    }
-
-    const productIds = products.map((p) => p.id);
-    const stockAggregates = await prisma.stockMovement.groupBy({
-      by: ["produtoId"],
-      _sum: { quantidade: true },
-      where: {
-        produtoId: { in: productIds },
-        status: ApprovalStatus.APROVADO,
-      },
-    });
-
-    const stockMap = new Map<string, number>();
-    stockAggregates.forEach((agg) => {
-      stockMap.set(agg.produtoId, agg._sum.quantidade?.toNumber() ?? 0);
-    });
-
-    const productsWithStock = products.map((product) => ({
-      ...product,
-      estoqueAtual: stockMap.get(product.id) ?? 0,
-      categoria: product.categoria?.nome,
-    }));
-
+    const products = await ProductService.getAll(req.query);
     return res.status(200).json({
       success: true,
-      data: productsWithStock,
+      data: products,
     });
   }
 

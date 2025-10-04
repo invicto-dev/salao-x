@@ -9,7 +9,6 @@ import {
   Modal,
   Form,
   Switch,
-  Space,
   Typography,
   Row,
   Col,
@@ -30,6 +29,9 @@ import { NameInput } from "@/components/inputs/NameInput";
 import { useCategories } from "@/hooks/use-categories";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import DropdownComponent from "@/components/Dropdown";
+import { useDebounce } from "@/hooks/use-debounce";
+import BarCodeInput from "@/components/inputs/BarCodeInput";
+import CategorySelect from "@/components/selects/CategorySelect";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -41,8 +43,12 @@ const Servicos = () => {
   const [filtroCategoria, setFiltroCategoria] = useState(undefined);
   const [filtroStatus, setFiltroStatus] = useState(undefined);
   const [busca, setBusca] = useState("");
+  const debouncedBusca = useDebounce(busca, 500);
   const [form] = Form.useForm();
-  const { data: servicos } = useServices();
+  const { data: servicos } = useServices({
+    search: debouncedBusca,
+    status: filtroStatus,
+  });
   const { data: categorias = [] } = useCategories();
   const { mutateAsync: createService } = useServiceCreate();
   const { mutateAsync: updateService } = useServiceUpdate();
@@ -225,22 +231,15 @@ const Servicos = () => {
       <Card>
         <div className="flex flex-col lg:flex-row gap-4 justify-between">
           <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <Input
-              placeholder="Buscar por nome ou código..."
-              prefix={<Search size={14} />}
+            <BarCodeInput
+              label="Serviços"
               value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="max-w-xs"
+              onChangeValue={setBusca}
             />
-            <Select
-              showSearch
-              optionFilterProp="label"
-              placeholder="Categoria"
-              allowClear
+            <CategorySelect
               value={filtroCategoria}
               onChange={setFiltroCategoria}
-              className="min-w-[250px]"
-              options={categoriasOptions}
+              isFilter
             />
 
             <Select
@@ -271,6 +270,7 @@ const Servicos = () => {
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 10 }}
+          locale={{ emptyText: "Nenhum serviço encontrado" }}
         />
       </Card>
 
@@ -306,13 +306,7 @@ const Servicos = () => {
           </Row>
 
           <Form.Item label="Categoria" name="categoriaId">
-            <Select
-              showSearch
-              optionFilterProp="label"
-              placeholder="Selecione uma categoria"
-              allowClear
-              options={categoriasOptions}
-            />
+            <CategorySelect />
           </Form.Item>
 
           <Form.Item label="Descrição" name="descricao">

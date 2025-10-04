@@ -17,6 +17,7 @@ import {
   Switch,
   Select,
   InputNumber,
+  TableColumnsType,
 } from "antd";
 import {
   Plus,
@@ -110,7 +111,7 @@ const Clientes = () => {
       cliente?.email?.toLowerCase().includes(busca.toLowerCase())
   );
 
-  const columns: ColumnsType<Customer.Props> = [
+  const columns: TableColumnsType<Customer.Props> = [
     {
       title: "Cliente",
       key: "cliente",
@@ -374,6 +375,7 @@ const Clientes = () => {
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 10 }}
+          locale={{ emptyText: "Nenhum cliente encontrado" }}
         />
       </Card>
 
@@ -429,8 +431,8 @@ const Clientes = () => {
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item
-                label="CPF"
-                name="cpf"
+                label="CPF/CNPJ"
+                name="cpfCnpj"
                 rules={[
                   {
                     pattern: /^\d{3}\.\d{3}\.\d{3}-\d{2}$/,

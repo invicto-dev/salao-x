@@ -58,6 +58,7 @@ export const productColumns = (
     title: "Estoque",
     dataIndex: "estoqueAtual",
     key: "estoque",
+    align: "center",
     render: (estoqueAtual: number, record) =>
       record.contarEstoque ? (
         <Tag

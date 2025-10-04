@@ -9,10 +9,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { message } from "antd";
 import { AxiosError } from "axios";
 
-export const useServices = () => {
+export const useServices = (params: { search?: string; status?: string }) => {
   return useQuery<Service.Props[]>({
     queryKey: ["get-services"],
-    queryFn: getServices,
+    queryFn: () => getServices(params),
   });
 };
 

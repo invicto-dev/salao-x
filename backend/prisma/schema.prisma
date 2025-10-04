@@ -51,6 +51,19 @@ enum JobStatus {
   FALHOU
 }
 
+enum FiscalNoteStatus {
+  PENDENTE
+  PROCESSANDO
+  AUTORIZADA
+  ERRO
+  CANCELADA
+}
+
+enum FiscalNoteType {
+  NFE
+  NFCE
+}
+
 enum SaleStatus {
   PENDENTE
   PAGO
@@ -76,19 +89,29 @@ model Setting {
   id String @id @default(uuid())
 
   // Company information
-  nomeEmpresa String
-  cnpj        String? @unique
-  endereco    String?
-  bairro      String?
-  cidade      String?
-  cep         String?
-  telefone    String?
-  email       String? @unique
-  site        String?
-
+  nomeEmpresa          String
+  cnpj                 String? @unique
+  endereco             String?
+  numero               String?
+  complemento          String?
+  uf                   String?
+  codigoIbge           String?
+  bairro               String?
+  cidade               String?
+  cep                  String?
+  telefone             String?
+  email                String? @unique
+  site                 String?
   horarioFuncionamento Json? // Business hours: Record<Day, Hour>
   intervaloPadrao      Int?
   antecedenciaMinima   Int?
+
+  inscricaoEstadual  String?
+  inscricaoMunicipal String?
+  regimeTributario   String?
+
+  certificadoA1    Bytes?
+  senhaCertificado String?
 
   // Notifications
   notificarAgendamentos Boolean? @default(false)
@@ -158,7 +181,7 @@ model Customer {
   nome        String
   telefone    String?
   email       String?   @unique
-  cpf         String?   @unique
+  cpfCnpj     String?   @unique
   aniversario DateTime?
   observacoes String?
   ativo       Boolean   @default(true)
@@ -209,6 +232,22 @@ model Product {
   ativo         Boolean  @default(true)
   descricao     String?
 
+  ncm    String?
+  cfop   String?
+  origem Int?
+
+  icmsCst      String?
+  icmsAliquota Decimal?
+
+  pisCst      String?
+  pisAliquota Decimal?
+
+  cofinsCst      String?
+  cofinsAliquota Decimal?
+
+  unidadeTributavel    String?  @default("un")
+  quantidadeTributavel Decimal? @default(1)
+
   categoriaId String?
   categoria   Category? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
 
@@ -217,6 +256,11 @@ model Product {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([nome])
+  @@index([codigo])
+  @@index([categoriaId])
+  @@index([ativo])
 }
 
 /// Stock movement for products (inbound/outbound/adjustments)
@@ -248,6 +292,8 @@ model StockMovement {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([produtoId, status])
 }
 
 /// Payment methods supported by the system
@@ -285,6 +331,28 @@ model Category {
 // Sales & Payments
 // ============================
 
+model FiscalNote {
+  id String @id @default(uuid())
+
+  saleId String @unique
+  sale   Sale   @relation(fields: [saleId], references: [id])
+
+  status FiscalNoteStatus @default(PENDENTE)
+  tipo   FiscalNoteType
+
+  providerId  String? @unique
+  chaveAcesso String? @unique
+  numero      String?
+  serie       String?
+  xmlUrl      String?
+  danfeUrl    String?
+
+  mensagemErro String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 /// Sale record (order)
 model Sale {
   id            String    @id @default(uuid())
@@ -303,6 +371,7 @@ model Sale {
   itens         SaleItem[]
   pagamentos    SalePayment[]
   movimentacoes StockMovement[]
+  fiscalNote    FiscalNote?
 
   caixaId String?
   caixa   Caixa?  @relation(fields: [caixaId], references: [id], onDelete: SetNull)

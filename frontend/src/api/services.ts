@@ -1,7 +1,10 @@
 import http from "./http";
 
-export const getServices = async (): Promise<Service.Props[]> => {
-  const response = await http.get("/services");
+export const getServices = async (params: {
+  search?: string;
+  status?: string;
+}): Promise<Service.Props[]> => {
+  const response = await http.get("/services", { params });
   return response.data.data;
 };
 

@@ -1,17 +1,15 @@
 import { Request, Response } from "express";
 
 import { prisma } from "../config/database";
+import { ServicesService } from "../services/ServicesService";
 
 export class ServicesController {
   static async getServices(req: Request, res: Response) {
-    const services = await prisma.service.findMany({
-      include: { categoria: { select: { nome: true } } },
-      orderBy: { nome: "asc" },
-    });
+    const services = await ServicesService.getAll(req.query);
 
     return res.status(200).json({
       success: true,
-      data: services.map((s) => ({ ...s, categoria: s.categoria?.nome })),
+      data: services,
     });
   }
 
@@ -50,6 +48,10 @@ export class ServicesController {
         success: false,
         error: "Nenhuma informação do serviço fornecida",
       });
+    }
+
+    if (!body.codigo || body.codigo.trim() === "") {
+      body.codigo = await ServicesService.generateNextServiceCode();
     }
 
     const service = await prisma.service.create({

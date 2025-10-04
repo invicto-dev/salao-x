@@ -40,6 +40,9 @@ import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { unidadeMedidas } from "@/constants/products";
 import { useImportJobStatus } from "@/hooks/use-import-jobs";
 import { productColumns } from "@/constants/tables/products";
+import BarCodeInput from "@/components/inputs/BarCodeInput";
+import { useDebounce } from "@/hooks/use-debounce";
+import CategorySelect from "@/components/selects/CategorySelect";
 
 interface JobStatus {
   id: string;
@@ -63,37 +66,24 @@ const { TextArea } = Input;
 const Produtos = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [filtroCategoria, setFiltroCategoria] = useState(undefined);
-  const [filtroStatus, setFiltroStatus] = useState(undefined);
+  const [params, setParams] = useState<Params>({});
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-
-  const [busca, setBusca] = useState("");
   const [form] = Form.useForm();
   const {
-    data: products,
-    isFetching: isFetchingProducts,
+    data: products = [],
+    isLoading: isFetchingProducts,
     refetch,
   } = useProducts({
-    search: busca,
-    categoryId: filtroCategoria,
+    ...params,
+    search: useDebounce(params.search) || params.search,
   });
-  const { data: categories } = useCategories();
   const { mutateAsync: createProduct } = useProductCreate();
   const { mutateAsync: updateProduct } = useProductUpdate();
   const { mutateAsync: deleteProduto } = useProductDelete();
   const { data: job } = useImportJobStatus(jobId);
   const { mutateAsync: importProducts, isPending } = useImportProducts();
-
-  const productsFiltered = (products || []).filter((produto) => {
-    const matchStatus =
-      (filtroStatus || "") === "" ||
-      (filtroStatus === "ativo" && produto.ativo) ||
-      (filtroStatus === "inativo" && !produto.ativo);
-    return matchStatus;
-  });
 
   const editarProduto = (produto: Product.Props) => {
     setEditingProduct(produto);
@@ -177,35 +167,6 @@ const Produtos = () => {
     });
   };
 
-  const SelectCategory = ({
-    value,
-    placeholder,
-    onChange,
-  }: {
-    value?: string;
-    placeholder: string;
-    onChange?: (value: string) => void;
-  }) => (
-    <Select
-      placeholder={placeholder}
-      allowClear
-      value={value}
-      onChange={onChange}
-      className="min-w-[250px]"
-      showSearch
-      optionFilterProp="label"
-      filterSort={(optionA, optionB) =>
-        (optionA?.label ?? "")
-          .toLowerCase()
-          .localeCompare((optionB?.label ?? "").toLowerCase())
-      }
-      options={categories?.map((cat) => ({
-        value: cat.id,
-        label: cat.nome,
-      }))}
-    />
-  );
-
   return (
     <div className="space-y-6">
       <div>
@@ -221,28 +182,27 @@ const Produtos = () => {
       <Card>
         <div className="flex flex-col lg:flex-row gap-4 justify-between">
           <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <Input
-              placeholder="Buscar por nome ou código..."
-              prefix={<Search size={14} />}
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="max-w-xs"
+            <BarCodeInput
+              label="Produto"
+              onChangeValue={(e) => setParams({ ...params, search: e })}
+              value={params.search}
+              sourceLength={products.length}
             />
-            <SelectCategory
-              onChange={setFiltroCategoria}
-              value={filtroCategoria}
-              placeholder="Categoria"
+            <CategorySelect
+              onChange={(e) => setParams({ ...params, categoryId: e })}
+              value={params.categoryId}
+              isFilter
             />
 
             <Select
               placeholder="Status"
               allowClear
-              value={filtroStatus}
-              onChange={setFiltroStatus}
+              value={params.status}
+              onChange={(e) => setParams({ ...params, status: e })}
               className="min-w-[120px]"
             >
-              <Option value="ativo">Ativo</Option>
-              <Option value="inativo">Inativo</Option>
+              <Option value={true}>Ativo</Option>
+              <Option value={false}>Inativo</Option>
             </Select>
           </div>
           <Button
@@ -264,11 +224,12 @@ const Produtos = () => {
       {/* Tabela de Produtos */}
       <Card title="Lista de Produtos">
         <Table
-          dataSource={productsFiltered}
+          dataSource={products}
           columns={productColumns(editarProduto, excluirProduto)}
           rowKey="id"
           loading={{ spinning: isFetchingProducts }}
           pagination={{ pageSize: 10 }}
+          locale={{ emptyText: "Nenhum produto encontrado" }}
         />
       </Card>
 
@@ -314,7 +275,7 @@ const Produtos = () => {
               <Row gutter={16}>
                 <Col xs={24} sm={12}>
                   <Form.Item label="Categoria" name="categoriaId">
-                    <SelectCategory placeholder="Selecionar categoria" />
+                    <CategorySelect placeholder="Selecionar categoria" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
@@ -511,11 +472,6 @@ const Produtos = () => {
                 Suporte para um único arquivo. Use o modelo para evitar erros.
               </p>
             </Upload.Dragger>
-            {uploadError && (
-              <Typography.Text type="danger" className="mt-2 block">
-                {uploadError}
-              </Typography.Text>
-            )}
           </>
         ) : (
           <div>

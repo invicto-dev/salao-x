@@ -41,13 +41,13 @@ const Caixa = () => {
   } = usecaixas();
   const [formMove] = Form.useForm();
 
-  const caixasFiltrados = (caixas || []).filter((caixa) =>
-    caixa.status.toLowerCase().includes(busca.toLowerCase()) ||
-    caixa.valorAbertura.toString().includes(busca.toLowerCase()) ||
-    caixa.dataAbertura.toString().includes(busca.toLowerCase()) ||
-    caixa.dataFechamento.toString().includes(busca.toLowerCase()) ||
-    caixa.valorFechamentoInformado?.toString().includes(busca.toLowerCase())
-
+  const caixasFiltrados = (caixas || []).filter(
+    (caixa) =>
+      caixa.status.toLowerCase().includes(busca.toLowerCase()) ||
+      caixa.valorAbertura.toString().includes(busca.toLowerCase()) ||
+      caixa.dataAbertura.toString().includes(busca.toLowerCase()) ||
+      caixa.dataFechamento.toString().includes(busca.toLowerCase()) ||
+      caixa.valorFechamentoInformado?.toString().includes(busca.toLowerCase())
   );
   const { mutateAsync: moveCaixa } = useMoveCaixa();
 
@@ -139,6 +139,7 @@ const Caixa = () => {
           rowKey="id"
           pagination={{ pageSize: 10 }}
           loading={isLoadingcaixas || isFetchingcaixas}
+          locale={{ emptyText: "Nenhum caixa encontrado" }}
         />
       </Card>
 

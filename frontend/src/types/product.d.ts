@@ -10,6 +10,7 @@ declare global {
       preco: number;
       custo: number;
       valorEmAberto?: boolean;
+      estoqueAtual?: number;
       estoqueMinimo?: number;
       unidadeMedida: string;
       contarEstoque: boolean;
