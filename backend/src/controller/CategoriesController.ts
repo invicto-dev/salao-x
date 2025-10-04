@@ -1,13 +1,11 @@
 import { Request, Response } from "express";
 
 import { prisma } from "../config/database";
+import { CategoriesService } from "../services/CategoriesService";
 
 export class CategoriesController {
   static async getCategories(req: Request, res: Response) {
-    const categories = await prisma.category.findMany({
-      orderBy: { nome: "asc" },
-    });
-
+    const categories = await CategoriesService.getAll(req.query);
     return res.status(200).json({
       success: true,
       data: categories,

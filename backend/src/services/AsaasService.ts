@@ -97,14 +97,16 @@ export class AsaasService {
       return customer.asaasCustomerId;
     }
 
-    if (!customer.cpf) {
+    if (!customer.cpfCnpj) {
       throw new Error("To use credit billing, the customer must have a CPF.");
     }
 
     const asaasAPI = await this.getApiInstance();
 
     try {
-      const response = await asaasAPI.get(`/customers?cpfCnpj=${customer.cpf}`);
+      const response = await asaasAPI.get(
+        `/customers?cpfCnpj=${customer.cpfCnpj}`
+      );
       if (response.data.data.length > 0) {
         return response.data.data[0].id;
       }
@@ -112,7 +114,7 @@ export class AsaasService {
       const newAsaasCustomer = {
         name: customer.nome,
         email: customer.email,
-        cpfCnpj: customer.cpf,
+        cpfCnpj: customer.cpfCnpj,
         phone: customer.telefone,
       };
 

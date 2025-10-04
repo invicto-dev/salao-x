@@ -6,7 +6,6 @@ import {
   Button,
   Table,
   Select,
-  Input,
   InputNumber,
   Divider,
   Typography,
@@ -22,7 +21,6 @@ import {
   Plus,
   Minus,
   Trash2,
-  Search,
   CreditCard,
   User,
   X,
@@ -40,10 +38,13 @@ import { formatCurrency } from "@/utils/formatCurrency";
 import { useReciboVenda } from "@/hooks/use-recibo-venda";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSale } from "@/api/sales";
-import { useStockProducts } from "@/hooks/use-stock";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { useNavigate } from "react-router-dom";
 import { useCaixaManager, useHasOpenCaixa } from "@/hooks/use-caixa";
+import BarCodeInput from "@/components/inputs/BarCodeInput";
+import { useProducts } from "@/hooks/use-products";
+import { CardWithDisabled } from "@/components/cards/cardWithDisabled";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -98,22 +99,38 @@ const PDV = () => {
   });
 
   const [busca, setBusca] = useState<string>("");
+  const debouncedBusca = useDebounce(busca, 500);
   const { ReciboComponent, abrirRecibo } = useReciboVenda();
 
-  const { data: produtos, isLoading: isLoadingProdutos } = useStockProducts({
-    search: "",
+  const { data: produtos = [], isLoading: isLoadingProdutos } = useProducts({
+    search: debouncedBusca,
+    status: "true",
+  });
+  const { data: servicos = [], isLoading: isLoadingServicos } = useServices({
+    search: debouncedBusca,
+    status: "true",
   });
   const { data: hasOpenCaixa, isFetching: isFetchingCaixa } = useHasOpenCaixa();
   const { openCaixaModal, closeCaixaModal, CaixaManagerModal } =
     useCaixaManager();
 
-  const { data: servicos, isLoading: isLoadingServicos } = useServices();
-  const { data: clientes } = useCustomers();
-  const { data: formasDePagamentos } = usePaymentMethods();
+  const { data: clientes = [] } = useCustomers();
+  const { data: formasDePagamentos = [] } = usePaymentMethods();
   const { mutateAsync: createSale, isPending: isCreatingSale } =
     useSaleCreate();
 
   const isCaixaFechado = !isFetchingCaixa && !hasOpenCaixa;
+
+  const notStockProduct = (id: string) => {
+    return (
+      carrinho.find((c) => c.id === id)?.quantidade >=
+      produtos.find((p) => p.id === id)?.estoqueAtual
+    );
+  };
+
+  const disabledItem = (item: Product.Props) => {
+    return item.estoqueAtual == 0 || notStockProduct(item.id);
+  };
 
   useEffect(() => {
     window.localStorage.setItem(PDV_SESSION_KEY, JSON.stringify(saleSession));
@@ -294,15 +311,19 @@ const PDV = () => {
       key: "quantidade",
       align: "center",
       render: (_, record, index) => (
-        <div className="flex items-center gap-2">
+        <div>
           <Button
             size="small"
             type="text"
             icon={<Minus size={14} />}
-            onClick={() => alterarQuantidade(index, record.quantidade - 1)}
+            onClick={() =>
+              record.quantidade > 1 &&
+              alterarQuantidade(index, record.quantidade - 1)
+            }
           />
           <InputNumber
-            value={record.quantidade}
+            value={record?.quantidade}
+            max={produtos.find((p) => p.id === record.id)?.estoqueAtual}
             size="small"
             onChange={(value) => value && alterarQuantidade(index, value)}
             controls={false}
@@ -310,6 +331,7 @@ const PDV = () => {
             className="w-11 text-center"
           />
           <Button
+            disabled={notStockProduct(record.id)}
             size="small"
             type="text"
             icon={<Plus size={14} />}
@@ -342,13 +364,6 @@ const PDV = () => {
       ),
     },
   ];
-
-  const filteredProdutos = (produtos || []).filter((p) =>
-    p.nome.toLowerCase().includes(busca.toLowerCase())
-  );
-  const filteredServicos = (servicos || []).filter((s) =>
-    s.nome.toLowerCase().includes(busca.toLowerCase())
-  );
 
   const RenderResumo = () => (
     <div className="bg-muted p-4 rounded-lg space-y-2">
@@ -401,22 +416,18 @@ const PDV = () => {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card
-            loading={isLoadingProdutos || isLoadingServicos}
-            title="Produtos e Serviços"
-            className="h-full"
-          >
-            <Input
-              placeholder="Buscar produtos ou serviços..."
-              prefix={<Search size={14} />}
+          <Card title="Produtos e Serviços" className="h-full">
+            <BarCodeInput
+              label="produto ou serviço"
               value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              allowClear
-              className="mb-4"
+              onChangeValue={setBusca}
+              sourceLength={produtos.length + servicos.length}
             />
-
-            <div>
-              {!filteredProdutos.length && !filteredServicos.length ? (
+            <div className="mt-4">
+              {!produtos.length &&
+              !servicos.length &&
+              !isLoadingProdutos &&
+              !isLoadingServicos ? (
                 <div className="flex flex-col gap-4 justify-center items-center h-48">
                   <p className="text-center text-sm text-muted-foreground">
                     Nenhum item encontrado
@@ -445,28 +456,29 @@ const PDV = () => {
                   className={
                     isCaixaFechado
                       ? "pointer-events-none opacity-50"
-                      : "space-y-4 p-4 max-h-[50vh] overflow-y-auto overflow-x-hidden"
+                      : "space-y-8"
                   }
                 >
-                  {filteredProdutos.length > 0 && (
+                  {produtos.length > 0 && (
                     <div>
                       <Title level={5} className="!mb-3">
                         Produtos
                       </Title>
-                      <Row gutter={[8, 8]}>
-                        {filteredProdutos.map((produto) => (
-                          <Col xs={12} sm={8} md={6} key={produto.id}>
-                            <Card
-                              size="small"
-                              hoverable
-                              onClick={() =>
-                                handleItemClick(produto, "produto")
-                              }
-                            >
-                              <div className="space-y-2">
+                      <div className="max-h-[180px] overflow-y-auto overflow-x-hidden">
+                        <Row gutter={[8, 8]}>
+                          {produtos.map((produto) => (
+                            <Col xs={12} sm={8} md={6} key={produto.id}>
+                              <CardWithDisabled
+                                size="small"
+                                hoverable
+                                onClick={() =>
+                                  handleItemClick(produto, "produto")
+                                }
+                                disabled={disabledItem(produto)}
+                              >
                                 <Text
                                   ellipsis={{ tooltip: produto.nome }}
-                                  className="font-medium text-sm block h-8"
+                                  className="font-medium text-sm block"
                                 >
                                   {produto.nome}
                                 </Text>
@@ -474,36 +486,39 @@ const PDV = () => {
                                   {formatCurrency(produto.preco)}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  {produto.contarEstoque
+                                  {produto.contarEstoque &&
+                                  produto.estoqueAtual > 0
                                     ? `${produto.estoqueAtual} ${produto.unidadeMedida}`
+                                    : produto.estoqueAtual == 0
+                                    ? "Sem estoque"
                                     : "-"}
                                 </div>
-                              </div>
-                            </Card>
-                          </Col>
-                        ))}
-                      </Row>
+                              </CardWithDisabled>
+                            </Col>
+                          ))}
+                        </Row>
+                      </div>
                     </div>
                   )}
-                  {filteredServicos.length > 0 && (
+                  {servicos.length > 0 && (
                     <div>
                       <Title level={5} className="!mb-3">
                         Serviços
                       </Title>
-                      <Row gutter={[8, 8]}>
-                        {filteredServicos.map((servico) => (
-                          <Col xs={12} sm={8} md={6} key={servico.id}>
-                            <Card
-                              size="small"
-                              hoverable
-                              onClick={() =>
-                                handleItemClick(servico, "servico")
-                              }
-                            >
-                              <div className="space-y-2">
+                      <div className="max-h-[180px] overflow-y-auto overflow-x-hidden">
+                        <Row gutter={[8, 8]}>
+                          {servicos.map((servico) => (
+                            <Col xs={12} sm={8} md={6} key={servico.id}>
+                              <Card
+                                size="small"
+                                hoverable
+                                onClick={() =>
+                                  handleItemClick(servico, "servico")
+                                }
+                              >
                                 <Text
                                   ellipsis={{ tooltip: servico.nome }}
-                                  className="font-medium text-sm block h-8"
+                                  className="font-medium text-sm block"
                                 >
                                   {servico.nome}
                                 </Text>
@@ -513,11 +528,11 @@ const PDV = () => {
                                 <div className="text-xs text-muted-foreground">
                                   {servico.duracao}min
                                 </div>
-                              </div>
-                            </Card>
-                          </Col>
-                        ))}
-                      </Row>
+                              </Card>
+                            </Col>
+                          ))}
+                        </Row>
+                      </div>
                     </div>
                   )}
                 </div>

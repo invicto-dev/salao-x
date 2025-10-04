@@ -2,8 +2,6 @@ import { prisma } from "../config/database";
 import {
   ApprovalStatus,
   CaixaStatus,
-  PaymentMethod,
-  SalePayment,
   SaleStatus,
   StockMovementReason,
   StockMovementType,
@@ -99,7 +97,7 @@ export class SalesService {
           const cliente = await tx.customer.findUnique({
             where: { id: clienteId },
           });
-          if (!cliente || !cliente.paymentDueDay || !cliente.cpf)
+          if (!cliente || !cliente.paymentDueDay || !cliente.cpfCnpj)
             throw new Error(
               "Customer not eligible for credit (must have CPF and Due Day defined)."
             );

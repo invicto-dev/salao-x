@@ -5,7 +5,7 @@ declare global {
     interface Props {
       id?: string;
       nome: string;
-      description?: string;
+      descricao?: string;
       ativo: boolean;
     }
   }

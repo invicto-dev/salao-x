@@ -305,6 +305,7 @@ const Funcionarios = () => {
           rowKey="id"
           pagination={{ pageSize: 10 }}
           loading={isLoadingFuncionarios || isFetchingFuncionarios}
+          locale={{ emptyText: "Nenhum funcionário encontrado" }}
         />
       </Card>
 

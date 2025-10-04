@@ -13,6 +13,7 @@ import { AxiosError } from "axios";
 export const useProducts = (filters: {
   search?: string;
   categoryId?: string;
+  status?: string;
   contarEstoque?: boolean;
 }) => {
   return useQuery<Product.Props[]>({

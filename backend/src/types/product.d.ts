@@ -10,6 +10,13 @@ declare global {
       estoqueInicial?: number;
       user: { id: string };
     }
+
+    interface Params {
+      search?: string;
+      categoryId?: string;
+      contarEstoque?: string;
+      status?: string;
+    }
   }
 }
 

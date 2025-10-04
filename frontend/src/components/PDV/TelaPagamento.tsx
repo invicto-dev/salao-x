@@ -13,6 +13,7 @@ import { ArrowLeft, CheckCircle, MinusCircle, Receipt } from "lucide-react";
 import React, { useState } from "react";
 import { CurrencyInput } from "../inputs/CurrencyInput";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { CardWithDisabled } from "../cards/cardWithDisabled";
 
 const { Title, Text } = Typography;
 
@@ -183,8 +184,8 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
           const disableCash = forma.isCash && isAdded;
           return (
             <List.Item key={forma.id}>
-              <Card
-                className={`${disableCash ? "cursor-not-allowed" : ""}`}
+              <CardWithDisabled
+                disabled={disableCash}
                 hoverable
                 onClick={() => handlePaymentMethodClick(forma)}
               >
@@ -197,7 +198,7 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
                     {forma.nome}
                   </Text>
                 </Space>
-              </Card>
+              </CardWithDisabled>
             </List.Item>
           );
         }}
