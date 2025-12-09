@@ -101,6 +101,12 @@ export class AsaasService {
       throw new Error("To use credit billing, the customer must have a CPF.");
     }
 
+    if (!customer.paymentDueDay) {
+      throw new Error(
+        "To use credit billing, the customer must have a payment due day."
+      );
+    }
+
     const asaasAPI = await this.getApiInstance();
 
     try {
@@ -149,6 +155,7 @@ export class AsaasService {
    * @throws If charge creation fails due to communication issues with Asaas.
    */
   static async createCharge(
+    saleId: string,
     asaasCustomerId: string,
     paymentValue: number,
     paymentDueDay: number,
@@ -165,6 +172,8 @@ export class AsaasService {
       dueDate: dueDate.toISOString().split("T")[0],
       interest: { value: interest || 2 },
       fine: { value: fine || 1 },
+      externalReference: saleId,
+      description: `Referente a venda #${saleId}`,
     };
 
     if (installmentCount && installmentCount > 1) {
@@ -214,36 +223,6 @@ export class AsaasService {
       console.error("ERROR [AsaasService.cancelCharge]:", error.response?.data);
       throw new Error(
         "Failed to communicate with the payment service to cancel the charge."
-      );
-    }
-  }
-
-  /**
-   * Updates the `externalReference` field of an Asaas charge
-   * with the corresponding sale ID from the local system.
-   *
-   * @param chargeId - The charge ID in Asaas.
-   * @param saleId - The internal sale ID from the database (UUID).
-   */
-  static async updateChargeReference(
-    chargeId: string,
-    saleId: string
-  ): Promise<void> {
-    const payload = {
-      externalReference: saleId,
-      description: `Sale reference #${saleId}`,
-    };
-
-    try {
-      const asaasAPI = await this.getApiInstance();
-      await asaasAPI.post(`/payments/${chargeId}`, payload);
-      console.log(
-        `INFO: Charge ${chargeId} reference updated to sale ${saleId}.`
-      );
-    } catch (error: any) {
-      console.error(
-        `ERROR [AsaasService.updateChargeReference]: Failed to update charge reference ${chargeId}.`,
-        error.response?.data
       );
     }
   }

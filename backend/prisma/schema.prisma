@@ -80,6 +80,11 @@ enum CaixaMovimentacaoTipo {
   SAIDA // Cash withdrawal (sangria)
 }
 
+enum DescontoOuAcrescimoTipo {
+  PORCENTAGEM
+  VALOR
+}
+
 // ============================
 // Core Models
 // ============================
@@ -361,20 +366,17 @@ model Sale {
   funcionarioId String?
   funcionario   Employee? @relation(fields: [funcionarioId], references: [id])
 
-  subtotal  Decimal
-  total     Decimal
-  troco     Decimal?
-  desconto  Decimal?
-  acrescimo Decimal?
-  status    SaleStatus @default(PENDENTE)
+  subtotal Decimal
+  total    Decimal
+  troco    Decimal?
+  status   SaleStatus @default(PENDENTE)
 
   itens         SaleItem[]
   pagamentos    SalePayment[]
   movimentacoes StockMovement[]
   fiscalNote    FiscalNote?
-
-  caixaId String?
-  caixa   Caixa?  @relation(fields: [caixaId], references: [id], onDelete: SetNull)
+  caixaId       String?
+  caixa         Caixa?          @relation(fields: [caixaId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -388,13 +390,19 @@ model SaleItem {
 
   produtoId String?
   produto   Product? @relation(fields: [produtoId], references: [id], onDelete: SetNull)
-
   servicoId String?
   servico   Service? @relation(fields: [servicoId], references: [id], onDelete: SetNull)
 
+  nome String
+
+  desconto      Decimal?
+  descontoTipo  DescontoOuAcrescimoTipo? @default(PORCENTAGEM)
+  acrescimo     Decimal?
+  acrescimoTipo DescontoOuAcrescimoTipo? @default(PORCENTAGEM)
+
   quantidade Int     @default(1)
   preco      Decimal
-  subtotal   Decimal
+  subtotal   Decimal // (preco * quantidade) - desconto + acréscimo
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -5,10 +5,10 @@ export {};
 declare global {
   namespace Customer {
     interface Body {
-      nome: string;
+      nome?: string;
       telefone: string;
       email?: string;
-      cpf?: string;
+      cpfCnpj?: string;
       aniversario?: string;
       observacoes?: string;
       ativo: boolean;

@@ -7,47 +7,59 @@ import {
   Progress,
   Typography,
   Form,
-  Space,
+  message,
+  Badge,
 } from "antd";
-import { ArrowLeft, CheckCircle, MinusCircle, Receipt } from "lucide-react";
+import { ArrowLeft, MinusCircle, Receipt } from "lucide-react";
 import React, { useState } from "react";
-import { CurrencyInput } from "../inputs/CurrencyInput";
+import { CurrencyInput } from "../../inputs/CurrencyInput";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { CardWithDisabled } from "../cards/cardWithDisabled";
+import { CardWithDisabled } from "../../cards/cardWithDisabled";
+import { useSaleCreate, useSaleUpdate } from "@/hooks/use-sales";
+import { formatItem } from "@/utils/cart/formatItem";
+import { usePaymentMethods } from "@/hooks/use-payment-methods";
+import { useReciboVenda } from "@/hooks/use-recibo-venda";
+import { useQueryClient } from "@tanstack/react-query";
+import { getSale } from "@/api/sales";
 
 const { Title, Text } = Typography;
 
-interface TelaPagamentoProps {
-  totalAPagar: number;
-  formasDePagamento: PaymentMethod.Props[];
-  pagamentos: Sale.Props["pagamentos"];
-  setPagamentos: (pagamentos: Sale.Props["pagamentos"]) => void;
-  onFinalizar: (troco: number) => void;
-  onVoltar: () => void;
-  loading: boolean;
+interface PaymentsProps {
+  total: number;
+  salesSession: Sale.SessionProps;
+  updateSaleSession: (updates: Partial<Sale.SessionProps>) => void;
+  clearCart: () => void;
 }
 
-export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
-  totalAPagar,
-  formasDePagamento,
-  pagamentos,
-  setPagamentos,
-  onFinalizar,
-  onVoltar,
-  loading,
+export const Payments: React.FC<PaymentsProps> = ({
+  total,
+  salesSession,
+  updateSaleSession,
+  clearCart,
 }) => {
+  const { mutateAsync: createSale, isPending: isCreatingSale } =
+    useSaleCreate();
+  const { mutateAsync: updateSale, isPending: isUpdateSale } = useSaleUpdate();
+  const { data: paymentMethods = [] } = usePaymentMethods();
+  const { abrirRecibo, ReciboComponent } = useReciboVenda(clearCart);
+  const queryClient = useQueryClient();
+
   const [form] = Form.useForm();
   const [selectedMethod, setSelectedMethod] =
     useState<PaymentMethod.Props | null>(null);
+  const { pagamentos, carrinho, clienteSelecionado, desconto, acrescimo } =
+    salesSession;
 
-  const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0) || 0;
-  const valorRestante = totalAPagar - totalPago;
+  const emptyCart = carrinho.content?.length === 0 || carrinho === null;
+
+  const totalPago = pagamentos?.reduce((acc, p) => acc + p.valor, 0) || 0;
+  const valorRestante = total - totalPago;
   const troco = valorRestante < 0 ? Math.abs(valorRestante) : 0;
 
   const openPaymentModal = (method: PaymentMethod.Props) => {
     setSelectedMethod(method);
     form.setFieldsValue({
-      valor: valorRestante > 0 ? valorRestante : totalAPagar,
+      valor: valorRestante > 0 ? valorRestante : total,
     });
   };
 
@@ -57,33 +69,37 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
   };
 
   const pagamentoExist = (id: string) =>
-    pagamentos.some((p) => p.metodoDePagamentoId === id);
+    pagamentos?.some((p) => p.metodoDePagamentoId === id);
 
   const handleAddPayment = (values: { valor: number }) => {
     if (!selectedMethod) return;
-    setPagamentos([
-      ...pagamentos,
-      {
-        metodoDePagamentoId: selectedMethod.id,
-        valor: Number(values.valor) || 0,
-        installmentCount: 1,
-      },
-    ]);
+    updateSaleSession({
+      pagamentos: [
+        ...pagamentos,
+        {
+          metodoDePagamentoId: selectedMethod.id,
+          valor: Number(values.valor) || 0,
+          installmentCount: 1,
+        },
+      ],
+    });
     closePaymentModal();
   };
 
   const handleRemovePayment = (id: string) => {
-    setPagamentos(pagamentos.filter((p) => p.metodoDePagamentoId !== id));
+    updateSaleSession({
+      pagamentos: pagamentos.filter((p) => p.metodoDePagamentoId !== id),
+    });
   };
 
   const handleInstallmentChange = (id: string) => {
-    setPagamentos(
-      pagamentos.map((p) =>
+    updateSaleSession({
+      pagamentos: pagamentos.map((p) =>
         p.metodoDePagamentoId === id
           ? { ...p, installmentCount: (p.installmentCount || 1) + 1 }
           : p
-      )
-    );
+      ),
+    });
   };
 
   const handlePaymentMethodClick = (forma: PaymentMethod.Props) => {
@@ -96,9 +112,57 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
     }
   };
 
+  console.log("sale session", salesSession);
+
+  const finalizeSale = async () => {
+    if (emptyCart) {
+      message.error("Carrinho vazio!");
+      return;
+    }
+    if (pagamentos?.length === 0) {
+      message.error("Adicione ao menos uma forma de pagamento.");
+      return;
+    }
+
+    const totalPago = pagamentos?.reduce((acc, p) => acc + p.valor, 0);
+    if (totalPago < total) {
+      message.error("O valor pago é menor que o total da venda.");
+      return;
+    }
+
+    try {
+      let payload: Partial<Sale.Props> = {
+        clienteId: clienteSelecionado?.id,
+        itens: carrinho.content.map(formatItem),
+        troco,
+        pagamentos,
+        acrescimo,
+        desconto,
+      };
+
+      if (salesSession.saleId) {
+        console.log("finalizando venda aberta", salesSession.saleId);
+        const update = updateSale({ id: salesSession.saleId, body: payload });
+      }
+
+      /* const newSale = await createSale(payload);
+      const completeSale = await queryClient.fetchQuery({
+        queryKey: ["get-sale", newSale.id],
+        queryFn: () => getSale(newSale.id),
+      });
+      abrirRecibo(completeSale); */
+    } catch (error: any) {
+      console.error(error.message || "Erro ao finalizar a venda.");
+    }
+  };
+
+  const changeToSale = () => {
+    updateSaleSession({ carrinho: { ...carrinho, mode: "sale" } });
+  };
+
   return (
     <div className="space-y-4">
-      <Button icon={<ArrowLeft size={14} />} onClick={onVoltar}>
+      <Button icon={<ArrowLeft size={14} />} onClick={changeToSale}>
         Voltar para o carrinho
       </Button>
 
@@ -107,7 +171,7 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
           <div>
             <Text type="secondary">Total a Pagar</Text>
             <Title level={4} className="!mt-1">
-              {formatCurrency(totalAPagar)}
+              {formatCurrency(total)}
             </Title>
           </div>
           <div>
@@ -128,19 +192,18 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
           </div>
         </div>
         <Progress
-          percent={totalAPagar > 0 ? (totalPago / totalAPagar) * 100 : 0}
+          percent={total > 0 ? (totalPago / total) * 100 : 0}
           showInfo={false}
           status={valorRestante > 0 ? "active" : "success"}
         />
       </Card>
 
-      {pagamentos.length > 0 && (
+      {pagamentos?.length > 0 && (
         <List
           header={<Text strong>Pagamentos Adicionados</Text>}
-          bordered
           dataSource={pagamentos}
           renderItem={(pagamento) => {
-            const method = formasDePagamento.find(
+            const method = paymentMethods?.find(
               (f) => f.id === pagamento.metodoDePagamentoId
             );
             return (
@@ -175,30 +238,27 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
       <Divider>Selecione a forma de pagamento</Divider>
 
       <List
-        dataSource={formasDePagamento.sort((a, b) =>
-          a.nome.localeCompare(b.nome)
-        )}
+        dataSource={paymentMethods}
         grid={{ gutter: 16, xs: 2, sm: 2, md: 3, lg: 3, xl: 3, xxl: 3 }}
         renderItem={(forma) => {
+          const method = pagamentos?.find(
+            (f) => f.metodoDePagamentoId === forma.id
+          );
           const isAdded = pagamentoExist(forma.id);
-          const disableCash = forma.isCash && isAdded;
           return (
             <List.Item key={forma.id}>
-              <CardWithDisabled
-                disabled={disableCash}
-                hoverable
-                onClick={() => handlePaymentMethodClick(forma)}
+              <Badge.Ribbon
+                text={`${method?.installmentCount} x Adicionado`}
+                className={isAdded ? "" : "hidden"}
               >
-                <Space>
-                  {isAdded && <CheckCircle size={14} />}
-                  <Text
-                    disabled={pagamentoExist(forma.id) && forma.isCash}
-                    strong
-                  >
-                    {forma.nome}
-                  </Text>
-                </Space>
-              </CardWithDisabled>
+                <CardWithDisabled
+                  disabled={pagamentoExist(forma.id) && forma.isCash}
+                  hoverable
+                  onClick={() => handlePaymentMethodClick(forma)}
+                >
+                  <Text strong>{forma.nome}</Text>
+                </CardWithDisabled>
+              </Badge.Ribbon>
             </List.Item>
           );
         }}
@@ -209,9 +269,8 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
         block
         size="large"
         icon={<Receipt size={14} />}
-        onClick={() => onFinalizar(troco)}
-        disabled={valorRestante > 0 || loading}
-        loading={loading}
+        onClick={finalizeSale}
+        disabled={valorRestante > 0 || isCreatingSale}
       >
         Finalizar Venda
       </Button>
@@ -223,6 +282,7 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
         onOk={() => form.submit()}
         okText="Confirmar"
         width={400}
+        centered
       >
         <Form form={form} onFinish={handleAddPayment} layout="vertical">
           <Form.Item
@@ -234,6 +294,7 @@ export const TelaPagamento: React.FC<TelaPagamentoProps> = ({
           </Form.Item>
         </Form>
       </Modal>
+      <ReciboComponent />
     </div>
   );
 };

@@ -4,17 +4,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3004:3000"
     volumes:
       - ./backend:/usr/app
       - /usr/app/node_modules
     depends_on:
       db:
         condition: service_healthy
-      # --- ADICIONADO ---
-      # Garante que o redis inicie antes do backend
       redis:
         condition: service_started
     environment:
@@ -34,7 +31,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    restart: unless-stopped
     ports:
       - "5173:5173"
     volumes:
@@ -64,13 +60,11 @@ services:
   redis:
     container_name: salao-x-redis
     image: redis:7-alpine
-    restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
 
 volumes:
   postgres_data:
-  # --- ADICIONADO ---
   redis_data:

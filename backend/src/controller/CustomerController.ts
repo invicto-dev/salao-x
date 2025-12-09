@@ -1,10 +1,22 @@
 import { Request, Response } from "express";
 
 import { prisma } from "../config/database";
+import { Prisma } from "@prisma/client";
 
 export class CustomersController {
   static async getCustomers(req: Request, res: Response) {
+    const search = req.query.search as string;
+
+    const whereClause: Prisma.CustomerWhereInput = {};
+    if (search && search.trim() !== "") {
+      whereClause.OR = [
+        { nome: { contains: search, mode: "insensitive" } },
+        { cpfCnpj: { contains: search, mode: "insensitive" } },
+        { telefone: { contains: search, mode: "insensitive" } },
+      ];
+    }
     const customers = await prisma.customer.findMany({
+      where: whereClause,
       orderBy: { nome: "asc" },
     });
 

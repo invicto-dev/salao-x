@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Card,
   Table,
   Button,
   Input,
@@ -19,14 +18,7 @@ import {
   Tooltip,
   Progress,
 } from "antd";
-import {
-  Plus,
-  Search,
-  Edit,
-  Upload as UploadIcon,
-  Trash2,
-  FileText,
-} from "lucide-react";
+import { Plus, Upload as UploadIcon, FileText } from "lucide-react";
 import {
   useImportProducts,
   useProductCreate,
@@ -35,7 +27,6 @@ import {
   useProductUpdate,
 } from "@/hooks/use-products";
 import { NameInput } from "@/components/inputs/NameInput";
-import { useCategories } from "@/hooks/use-categories";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { unidadeMedidas } from "@/constants/products";
 import { useImportJobStatus } from "@/hooks/use-import-jobs";
@@ -43,21 +34,7 @@ import { productColumns } from "@/constants/tables/products";
 import BarCodeInput from "@/components/inputs/BarCodeInput";
 import { useDebounce } from "@/hooks/use-debounce";
 import CategorySelect from "@/components/selects/CategorySelect";
-
-interface JobStatus {
-  id: string;
-  status:
-    | "PENDENTE"
-    | "PROCESSANDO"
-    | "CONCLUIDO"
-    | "CONCLUIDO_COM_ERROS"
-    | "FALHOU";
-  totalRows: number;
-  processedRows: number;
-  successfulRows: number;
-  failedRows: number;
-  results?: { row: number; errors: string[] }[];
-}
+import PagesLayout from "@/components/layout/PagesLayout";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -73,14 +50,16 @@ const Produtos = () => {
   const [form] = Form.useForm();
   const {
     data: products = [],
-    isLoading: isFetchingProducts,
+    isLoading,
+    isError,
+    isFetching,
     refetch,
   } = useProducts({
     ...params,
     search: useDebounce(params.search) || params.search,
   });
-  const { mutateAsync: createProduct } = useProductCreate();
-  const { mutateAsync: updateProduct } = useProductUpdate();
+  const { mutateAsync: createProduct, isPending: isPendingCreateProduct } = useProductCreate();
+  const { mutateAsync: updateProduct, isPending: isPendingUpdateProduct } = useProductUpdate();
   const { mutateAsync: deleteProduto } = useProductDelete();
   const { data: job } = useImportJobStatus(jobId);
   const { mutateAsync: importProducts, isPending } = useImportProducts();
@@ -167,78 +146,80 @@ const Produtos = () => {
     });
   };
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <Title level={2} className="!mb-0">
-          Gestão de Produtos
-        </Title>
-        <p className="text-muted-foreground">
-          Cadastre e gerencie produtos para venda
-        </p>
-      </div>
-
-      {/* Filtros e Ações */}
-      <Card>
-        <div className="flex flex-col lg:flex-row gap-4 justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <BarCodeInput
-              label="Produto"
-              onChangeValue={(e) => setParams({ ...params, search: e })}
-              value={params.search}
-              sourceLength={products.length}
-            />
-            <CategorySelect
-              onChange={(e) => setParams({ ...params, categoryId: e })}
-              value={params.categoryId}
-              isFilter
-            />
-
-            <Select
-              placeholder="Status"
-              allowClear
-              value={params.status}
-              onChange={(e) => setParams({ ...params, status: e })}
-              className="min-w-[120px]"
-            >
-              <Option value={true}>Ativo</Option>
-              <Option value={false}>Inativo</Option>
-            </Select>
-          </div>
-          <Button
-            icon={<UploadIcon size={14} />}
-            onClick={() => setImportModalVisible(true)}
-          >
-            Importar CSV
-          </Button>
-          <Button
-            type="primary"
-            icon={<Plus size={14} />}
-            onClick={novoProduto}
-          >
-            Novo Produto
-          </Button>
-        </div>
-      </Card>
-
-      {/* Tabela de Produtos */}
-      <Card title="Lista de Produtos">
-        <Table
-          dataSource={products}
-          columns={productColumns(editarProduto, excluirProduto)}
-          rowKey="id"
-          loading={{ spinning: isFetchingProducts }}
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: "Nenhum produto encontrado" }}
+  const filters = [
+    {
+      element: (
+        <BarCodeInput
+          label="Produto"
+          onChangeValue={(e) => setParams({ ...params, search: e })}
+          value={params.search}
+          sourceLength={products.length}
         />
-      </Card>
+      ),
+    },
+    {
+      element: (
+        <CategorySelect
+          onChange={(e) => setParams({ ...params, categoryId: e })}
+          value={params.categoryId}
+          isFilter
+        />
+      ),
+    },
+    {
+      element: (
+        <Select
+          placeholder="Filtrar por status"
+          allowClear
+          onChange={(value) => setParams({ ...params, status: value })}
+          className="w-full md:w-48"
+        >
+          <Option value={true}>Ativo</Option>
+          <Option value={false}>Inativo</Option>
+        </Select>
+      ),
+    },
+  ];
 
-      {/* Modal de Cadastro/Edição */}
+  return (
+    <PagesLayout
+      title="Gestão de Produtos"
+      subtitle="Cadastre e gerencie produtos para venda"
+      filters={filters}
+      buttonsAfterFilters={[
+        {
+          children: "Importar CSV",
+          icon: <UploadIcon size={14} />,
+          onClick: () => setImportModalVisible(true),
+        },
+        {
+          children: "Novo Produto",
+          icon: <Plus size={14} />,
+          onClick: novoProduto,
+          type: "primary",
+        },
+      ]}
+      Error={{
+        isError: isError,
+        onClick: refetch,
+      }}
+    >
+      <Table
+        dataSource={products}
+        columns={productColumns(editarProduto, excluirProduto)}
+        rowKey="id"
+        loading={isLoading || isPendingCreateProduct || isFetching}
+        locale={{ emptyText: "Nenhum produto encontrado" }}
+      />
+
       <Modal
         title={editingProduct ? "Editar Produto" : "Novo Produto"}
         open={modalVisible}
         onCancel={clearForm}
         onOk={() => form.submit()}
+        okButtonProps={{
+          loading: isPendingCreateProduct || isPendingUpdateProduct
+        }}
         okText={editingProduct ? "Salvar" : "Cadastrar"}
         width={800}
       >
@@ -455,7 +436,7 @@ const Produtos = () => {
               multiple={false}
               beforeUpload={(file) => {
                 setSelectedFile(file);
-                return false; // Previne o upload automático do Antd
+                return false;
               }}
               onRemove={() => {
                 setSelectedFile(null);
@@ -523,7 +504,7 @@ const Produtos = () => {
           </div>
         )}
       </Modal>
-    </div>
+    </PagesLayout>
   );
 };
 

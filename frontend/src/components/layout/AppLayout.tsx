@@ -26,7 +26,8 @@ import {
   User2,
   PanelLeft,
   PanelRight,
-  Banknote
+  Banknote,
+  Clipboard,
 } from "lucide-react";
 
 // Pages
@@ -46,7 +47,7 @@ import Vendas from "@/pages/Vendas";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
 import Caixa from "@/pages/Caixa";
-
+import Comandas from "@/pages/Comandas";
 
 const { Header, Sider, Content } = Layout;
 
@@ -75,6 +76,12 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
       key: "/pdv",
       icon: <ShoppingCart size={14} />,
       label: "PDV",
+      permission: "FUNCIONARIO",
+    },
+    {
+      key: "/comandas",
+      icon: <Clipboard size={14} />,
+      label: "Comandas",
       permission: "FUNCIONARIO",
     },
     {
@@ -139,9 +146,9 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
         },
         {
           key: "/caixa",
-          icon: <Banknote size={14} />, 
+          icon: <Banknote size={14} />,
           label: "Caixa",
-        }
+        },
       ],
     },
     /* {
@@ -249,6 +256,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
       items={filteredMenuItems.map((item) => ({
         key: item.key,
         icon: item.icon,
+        extra: item.extra,
         label: item.label,
         children: item.children?.map((child) => ({
           key: child.key,
@@ -322,7 +330,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
               }}
               className="hover:bg-accent"
             />
-            <Breadcrumb items={getBreadcrumb()} />
+            <Breadcrumb className="hidden lg:block" items={getBreadcrumb()} />
           </div>
           <div className="flex items-center gap-2">
             <Segmented
@@ -360,6 +368,7 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
           <Routes>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/pdv" element={<PDV />} />
+            <Route path="/comandas" element={<Comandas />} />
             <Route path="/vendas" element={<Vendas />} />
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/servicos" element={<Servicos />} />

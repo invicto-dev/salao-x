@@ -1,7 +1,9 @@
 import http from "./http";
 
-export const getCustomers = async (): Promise<Customer.Props[]> => {
-  const response = await http.get("/customers");
+export const getCustomers = async (
+  params: Params
+): Promise<Customer.Props[]> => {
+  const response = await http.get("/customers", { params });
   return response.data.data;
 };
 

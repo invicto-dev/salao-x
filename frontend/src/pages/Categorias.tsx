@@ -23,7 +23,7 @@ const { Title } = Typography;
 const { Option } = Select;
 
 const Categorias = () => {
-  const [editingCategory, setEditingCategory] = useState<Category.Props>(null);
+  const [editingCategory, setEditingCategory] = useState<Category.Props>(undefined);
   const [params, setParams] = useState<Params>({});
   const buscaDebounced = useDebounce(params.search, 500);
   const { data: categories = [], isLoading } = useCategories({
@@ -31,7 +31,7 @@ const Categorias = () => {
     search: buscaDebounced,
   });
   const { mutateAsync: deleteCategory } = useCategoryDelete();
-  const { CategoryModal, toogleModal } = useCategoryModal(editingCategory);
+  const { CategoryModal, toggleModal } = useCategoryModal(editingCategory);
 
   const columns: TableColumnProps<Category.Props>[] = [
     {
@@ -108,12 +108,12 @@ const Categorias = () => {
 
   const editarCategoria = (category: Category.Props) => {
     setEditingCategory(category);
-    toogleModal();
+    toggleModal();
   };
 
   const novaCategoria = () => {
     setEditingCategory(null);
-    toogleModal();
+    toggleModal();
   };
 
   return (

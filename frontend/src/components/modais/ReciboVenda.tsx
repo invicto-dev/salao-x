@@ -1,5 +1,6 @@
 // src/components/ReciboVenda.tsx
 import { formatCurrency } from "@/utils/formatCurrency";
+import { formatSaleId } from "@/utils/formatSaleId";
 import { Modal, Button, Typography, Divider, Descriptions, List } from "antd";
 import { Printer } from "lucide-react";
 
@@ -47,7 +48,7 @@ export const ReciboVenda = ({
           <p className="text-sm">Recibo de Venda</p>
           {venda.id && (
             <Text type="secondary" className="text-xs">
-              ID: {venda.id.substring(0, 8)}
+              {formatSaleId(venda.id)}
             </Text>
           )}
         </div>
@@ -70,9 +71,7 @@ export const ReciboVenda = ({
           renderItem={(item) => (
             <List.Item>
               <List.Item.Meta
-                title={`${item.quantidade} x ${
-                  item.produto?.nome || item.servico?.nome || "Item deletado"
-                }`}
+                title={`${item.quantidade} x ${item.nome || "Item deletado"}`}
                 description={formatCurrency(item.preco)}
               />
               <div>{formatCurrency(item.subtotal)}</div>
@@ -88,18 +87,6 @@ export const ReciboVenda = ({
             <span>Subtotal:</span>
             <span>{formatCurrency(venda.subtotal)}</span>
           </div>
-          {venda.acrescimo > 0 && (
-            <div className="flex justify-between">
-              <span>Acréscimo:</span>
-              <span>+ {formatCurrency(venda.acrescimo)}</span>
-            </div>
-          )}
-          {venda.desconto > 0 && (
-            <div className="flex justify-between">
-              <span>Desconto:</span>
-              <span>- {formatCurrency(venda.desconto)}</span>
-            </div>
-          )}
           <div className="flex justify-between font-semibold text-base pt-1">
             <span>Total:</span>
             <span>{formatCurrency(venda.total)}</span>
@@ -110,6 +97,7 @@ export const ReciboVenda = ({
 
         <List
           dataSource={venda.pagamentos}
+          locale={{ emptyText: "Nenhum pagamento informado." }}
           renderItem={(pagamento) => (
             <List.Item>
               <List.Item.Meta

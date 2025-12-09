@@ -3,7 +3,12 @@ import { SaleStatus } from "@prisma/client";
 
 declare global {
   namespace Sales {
+    type increaseOrDecrease = {
+      value: number;
+      type: "PORCENTAGEM" | "VALOR";
+    };
     interface ItemPayload {
+      nome: string;
       produtoId?: string;
       servicoId?: string;
       quantidade: number;
@@ -20,15 +25,13 @@ declare global {
 
     interface CreatePayload {
       clienteId?: string;
-      funcionarioId?: string;
-      subtotal: number;
-      total: number;
       troco?: number;
-      desconto?: number;
-      acrescimo?: number;
+      status?: SaleStatus;
       itens: ItemPayload[];
       pagamentos: PaymentPayload[];
       user: { id: string };
+      acrescimo?: increaseOrDecrease;
+      desconto?: increaseOrDecrease;
     }
 
     interface UpdateStatusPayload {

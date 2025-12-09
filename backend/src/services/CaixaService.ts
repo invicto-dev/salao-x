@@ -6,7 +6,7 @@ export class CaixaService {
    * Helper privado para buscar o caixa aberto. Lança um erro se não encontrar.
    * Usado internamente para evitar repetição.
    */
-  private static async _getOpenCaixaOrFail() {
+  static async getOpenCaixaOrFail() {
     const openCaixa = await prisma.caixa.findFirst({
       where: { status: CaixaStatus.ABERTO },
     });
@@ -91,7 +91,7 @@ export class CaixaService {
    */
   static async close(data: Caixa.BodyClose, funcionarioId: string) {
     return prisma.$transaction(async (tx) => {
-      const openCaixa = await CaixaService._getOpenCaixaOrFail();
+      const openCaixa = await CaixaService.getOpenCaixaOrFail();
       const summary = await CaixaService.calculateCaixaSummary(openCaixa.id);
 
       const valorAbertura = openCaixa.valorAbertura.toNumber();
@@ -124,7 +124,7 @@ export class CaixaService {
    */
   static async move(data: Caixa.BodyMoveCaixa, funcionarioId: string) {
     return prisma.$transaction(async (tx) => {
-      const openCaixa = await CaixaService._getOpenCaixaOrFail();
+      const openCaixa = await CaixaService.getOpenCaixaOrFail();
       return tx.caixaMovimentacao.create({
         data: {
           ...data,

@@ -69,7 +69,7 @@ export const productColumns = (
           {estoqueAtual} un
         </Tag>
       ) : (
-        <div className="text-sm text-muted-foreground">Não habilitado</div>
+        <div className="text-sm text-muted-foreground">Desabilitado</div>
       ),
   },
   {

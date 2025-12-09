@@ -1,4 +1,3 @@
-// NOVO ARQUIVO
 import { Queue } from "bullmq";
 
 export const redisConnection = {

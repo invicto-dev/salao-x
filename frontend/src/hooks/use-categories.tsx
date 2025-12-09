@@ -7,7 +7,7 @@ import {
 } from "@/api/categories";
 import { NameInput } from "@/components/inputs/NameInput";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Col, Form, message, Modal, Row, Switch, Upload } from "antd";
+import { Col, Form, message, Modal, Row, Switch } from "antd";
 import TextArea from "antd/es/input/TextArea";
 import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
@@ -79,47 +79,61 @@ export const useCategoryDelete = () => {
   });
 };
 
-export const useCategoryModal = (initialValues: Category.Props) => {
+export const useCategoryModal = (initialValues?: Category.Props) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [form] = Form.useForm();
 
-  const toogle = () => setModalVisible(!modalVisible);
+  const isEdit = Boolean(initialValues?.id);
+
+  const toggle = () => setModalVisible((v) => !v);
 
   const { mutateAsync: create, isPending: isCreate } = useCategoryCreate();
   const { mutateAsync: update, isPending: isUpdate } = useCategoryUpdate();
 
   const handleCancel = () => {
     form.resetFields();
-    toogle();
+    setModalVisible(false);
   };
 
-  const onFinish = async (values: any) => {
+  useEffect(() => {
+    if (modalVisible) {
+      if (isEdit && initialValues) {
+        form.setFieldsValue({
+          ...initialValues,
+          ativo: initialValues.ativo ?? true, 
+        });
+      } else {
+        form.resetFields();
+        form.setFieldsValue({ ativo: true });
+      }
+    }
+  }, [modalVisible, initialValues]);
+
+  const onFinish = async (values: Category.Props) => {
     try {
-      if (initialValues) {
-        update({ id: initialValues.id, body: values });
+      if (isEdit) {
+        await update({ id: initialValues.id, body: values });
       } else {
         await create(values);
       }
+
       handleCancel();
     } catch (error) {
       console.error(error);
     }
   };
 
-  useEffect(() => {
-    if (initialValues) {
-      form.setFieldsValue(initialValues);
-    }
-  }, [initialValues]);
-
   const CategoryModal = (
     <Modal
-      title={initialValues ? "Editar Categoria" : "Nova Categoria"}
+      title={isEdit ? "Editar Categoria" : "Nova Categoria"}
       centered
       open={modalVisible}
       onOk={() => form.submit()}
       onCancel={handleCancel}
-      okText={initialValues ? "Salvar" : "Cadastrar"}
+      okText={isEdit ? "Salvar" : "Cadastrar"}
+      okButtonProps={{
+        loading: isCreate || isUpdate
+      }}
       confirmLoading={isCreate || isUpdate}
       width={650}
     >
@@ -134,14 +148,16 @@ export const useCategoryModal = (initialValues: Category.Props) => {
               <NameInput placeholder="Ex: Serviços Capilares" />
             </Form.Item>
           </Col>
+
           <Col xs={24} lg={5}>
             <Form.Item label="Status" name="ativo" valuePropName="checked">
               <Switch checkedChildren="Ativo" unCheckedChildren="Inativo" />
             </Form.Item>
           </Col>
         </Row>
+
         <Row>
-          <Col xs={24} sm={24}>
+          <Col xs={24}>
             <Form.Item label="Descrição" name="descricao">
               <TextArea rows={3} placeholder="Descreva a categoria..." />
             </Form.Item>
@@ -152,7 +168,7 @@ export const useCategoryModal = (initialValues: Category.Props) => {
   );
 
   return {
-    toogleModal: toogle,
+    toggleModal: toggle,
     CategoryModal,
   };
 };

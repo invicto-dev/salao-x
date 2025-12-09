@@ -1,12 +1,18 @@
-import { createSale, getSale, getSales, updatesale } from "@/api/sales";
+import {
+  createSale,
+  getSale,
+  getSales,
+  updateSale,
+  updateSaleStatus,
+} from "@/api/sales";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { message } from "antd";
 import { AxiosError } from "axios";
 
-export const useSales = () => {
+export const useSales = (params?: Params) => {
   return useQuery<Sale.Props[]>({
-    queryKey: ["get-sales"],
-    queryFn: getSales,
+    queryKey: ["get-sales", params],
+    queryFn: () => getSales(params),
   });
 };
 
@@ -25,17 +31,47 @@ export const useSaleCreate = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (body: Sale.Props) => {
+    mutationFn: async (body: Partial<Sale.Props>) => {
       return await createSale(body);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["get-stock-products"] });
-      message.success("Venda registrada com sucesso.");
+    onSuccess: (sale) => {
+      const status = sale.status;
+      queryClient.invalidateQueries({ queryKey: ["get-products"] });
+      message.success(
+        status === "PENDENTE"
+          ? "Comanda aberta com sucesso."
+          : "Venda registrada com sucesso."
+      );
     },
     onError: (error: AxiosError<{ error: string }>) => {
       message.error(error.response.data.error);
     },
   });
+};
+
+export const useSaleUpdate = () => {
+  const queryCliente = useQueryClient();
+  const res = useMutation({
+    mutationFn: async ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: Partial<Sale.Props>;
+    }) => {
+      return await updateSale(id, body);
+    },
+    onSuccess: () => {
+      queryCliente.invalidateQueries({ queryKey: ["get-sales"] });
+      message.success("Venda atualizada com sucesso.");
+    },
+    onError: (error: AxiosError<{ error: string }>) => {
+      message.error(error.response.data.error);
+      return error;
+    },
+  });
+
+  return res;
 };
 
 export const useSaleUpdateStatus = () => {
@@ -48,7 +84,7 @@ export const useSaleUpdateStatus = () => {
       id: string;
       body: { status: Sale.Props["status"] };
     }) => {
-      return await updatesale(id, body);
+      return await updateSaleStatus(id, body);
     },
     onSuccess: () => {
       queryCliente.invalidateQueries({ queryKey: ["get-sales"] });

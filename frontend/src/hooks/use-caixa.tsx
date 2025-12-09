@@ -18,7 +18,7 @@ export const usecaixas = () => {
     queryKey: ["get-caixas"],
     queryFn: getCaixas,
   });
-};  
+};
 
 export const useHasOpenCaixa = () => {
   return useQuery<Caixa.Props | null>({
@@ -71,7 +71,8 @@ export const useMoveCaixa = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-caixas"] });
-      message.success("Movimetação realizada com sucesso.")},
+      message.success("Movimetação realizada com sucesso.");
+    },
     onError: (error: AxiosError<{ error: string }>) => {
       message.error(error.response.data.error);
     },

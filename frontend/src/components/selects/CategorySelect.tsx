@@ -11,7 +11,7 @@ export default function CategorySelect({ isFilter, ...props }: Props) {
   const { data: categories = [] } = useCategories({
     status: "true",
   });
-  const { CategoryModal, toogleModal } = useCategoryModal(null);
+  const { CategoryModal, toggleModal } = useCategoryModal(null);
 
   const options = categories.map((c) => ({
     value: c.id,
@@ -35,7 +35,7 @@ export default function CategorySelect({ isFilter, ...props }: Props) {
                 type="text"
                 className="w-full mt-1"
                 icon={<Plus size={14} />}
-                onClick={toogleModal}
+                onClick={toggleModal}
               >
                 Adicionar nova categoria
               </Button>
