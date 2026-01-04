@@ -9,10 +9,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { message } from "antd";
 import { AxiosError } from "axios";
 
-export const useCustomers = () => {
+export const useCustomers = (params?: Params) => {
   return useQuery<Customer.Props[]>({
-    queryKey: ["get-customers"],
-    queryFn: getCustomers,
+    queryKey: ["get-customers", params],
+    queryFn: () => getCustomers(params),
   });
 };
 
@@ -26,11 +26,11 @@ export const useCustomer = (id: string) => {
 export const useCustomerCreate = () => {
   const queryClient = useQueryClient();
   const res = useMutation({
-    mutationFn: async (body: Customer.Props) => {
+    mutationFn: async (body: Customer.Body) => {
       return await createCustomer(body);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["get-customer"] });
+      queryClient.invalidateQueries({ queryKey: ["get-customers"] });
       message.success("Cliente criado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
@@ -45,11 +45,11 @@ export const useCustomerCreate = () => {
 export const useCustomerUpdate = () => {
   const queryClient = useQueryClient();
   const res = useMutation({
-    mutationFn: async ({ id, body }: { id: string; body: Customer.Props }) => {
+    mutationFn: async ({ id, body }: { id: string; body: Customer.Body }) => {
       return await updateCustomer(id, body);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["get-customer"] });
+      queryClient.invalidateQueries({ queryKey: ["get-customers"] });
       message.success("Cliente atualizado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {

@@ -187,7 +187,7 @@ const MetodoDePagamentos = () => {
           <div className="flex flex-col sm:flex-row gap-4 flex-1">
             <Input
               placeholder="Buscar pelo nome..."
-              prefix={<Search size={16} />}
+              prefix={<Search size={14} />}
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               className="max-w-xs"
@@ -205,7 +205,7 @@ const MetodoDePagamentos = () => {
           </div>
           <Button
             type="primary"
-            icon={<Plus size={16} />}
+            icon={<Plus size={14} />}
             onClick={novoMetodoDePagamento}
           >
             Novo Método de Pagamento
@@ -219,6 +219,7 @@ const MetodoDePagamentos = () => {
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 10 }}
+          locale={{ emptyText: "Nenhum método de pagamento encontrado" }}
         />
       </Card>
 

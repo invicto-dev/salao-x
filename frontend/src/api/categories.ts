@@ -1,7 +1,9 @@
 import http from "./http";
 
-export const getCategories = async (): Promise<Category.Props[]> => {
-  const response = await http.get("/categories");
+export const getCategories = async (
+  params?: Params
+): Promise<Category.Props[]> => {
+  const response = await http.get("/categories", { params });
   return response.data.data;
 };
 

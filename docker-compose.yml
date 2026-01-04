@@ -4,15 +4,16 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3004:3000"
     volumes:
       - ./backend:/usr/app
       - /usr/app/node_modules
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
@@ -20,13 +21,16 @@ services:
       - NODE_ENV=${NODE_ENV}
       - FRONTEND_URL_DEV=${FRONTEND_URL_DEV}
       - FRONTEND_URL_PRD=${FRONTEND_URL_PRD}
+      - ASAAS_API_URL=${ASAAS_API_URL}
+      - ASAAS_API_URL_SANDBOX=${ASAAS_API_URL_SANDBOX}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
 
   frontend:
     container_name: salao-x-frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    restart: unless-stopped
     ports:
       - "5173:5173"
     volumes:
@@ -47,12 +51,20 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # Seção de verificação de saúde
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  redis:
+    container_name: salao-x-redis
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   postgres_data:
+  redis_data:

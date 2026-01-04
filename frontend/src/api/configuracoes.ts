@@ -12,6 +12,6 @@ export const updateConfiguracoes = async ({
   id: string;
   body: Salon.Config;
 }): Promise<Salon.Config> => {
-  const response = await http.patch(`/configuracoes/${id}`, { body });
+  const response = await http.patch(`/configuracoes/${id}`, body);
   return response.data;
 };

@@ -24,7 +24,12 @@ export const moveCaixa = async (
   return response.data.data;
 };
 
-export const getCaixaSummary = async (): Promise<Caixa.Summary> => {
+export const getCaixaSummary = async (): Promise<Caixa.SummaryResponse> => {
   const response = await http.get("/caixa/aberto/summary");
+  return response.data.data;
+};
+
+export const getCaixas = async (): Promise<Caixa.Props[]> => {
+  const response = await http.get("/caixa");
   return response.data.data;
 };

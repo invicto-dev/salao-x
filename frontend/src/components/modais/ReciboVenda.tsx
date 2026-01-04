@@ -1,6 +1,7 @@
 // src/components/ReciboVenda.tsx
 import { formatCurrency } from "@/utils/formatCurrency";
-import { Modal, Button, Typography, Divider, Descriptions } from "antd";
+import { formatSaleId } from "@/utils/formatSaleId";
+import { Modal, Button, Typography, Divider, Descriptions, List } from "antd";
 import { Printer } from "lucide-react";
 
 const { Title, Text } = Typography;
@@ -20,6 +21,8 @@ export const ReciboVenda = ({
 }: ReciboVendaProps) => {
   if (!venda) return null;
 
+  console.log("detro", venda)
+
   const handlePrint = () => {
     window.print();
   };
@@ -37,7 +40,7 @@ export const ReciboVenda = ({
           Fechar
         </Button>,
       ]}
-      width={400}
+      width={450}
     >
       <div id="recibo-content" className="space-y-4">
         <div className="text-center">
@@ -47,7 +50,7 @@ export const ReciboVenda = ({
           <p className="text-sm">Recibo de Venda</p>
           {venda.id && (
             <Text type="secondary" className="text-xs">
-              ID: {venda.id.substring(0, 8)}
+              {formatSaleId(venda.id)}
             </Text>
           )}
         </div>
@@ -65,36 +68,27 @@ export const ReciboVenda = ({
 
         <Divider className="!my-2 !text-xs !font-semibold">ITENS</Divider>
 
-        <div className="space-y-1">
-          {venda.itens.map((item, index) => (
-            <div key={index} className="flex justify-between text-sm">
-              <span className="break-words pr-2 truncate">
-                {item.quantidade}x {item.produto?.nome || item.servico?.nome}
-              </span>
-              <span>{formatCurrency(item.subtotal)}</span>
-            </div>
-          ))}
-        </div>
+        <List
+          dataSource={venda.itens}
+          renderItem={(item) => (
+            <List.Item>
+              <List.Item.Meta
+                title={`${item.quantidade} x ${item.nome || "Item deletado"}`}
+                description={formatCurrency(item.preco)}
+              />
+              <div>{formatCurrency(item.subtotal)}</div>
+            </List.Item>
+          )}
+          size="small"
+        />
 
         <Divider className="!my-2" />
 
-        <div className="space-y-1 text-sm">
+        <div className="space-y-1 mx-4 text-sm">
           <div className="flex justify-between">
             <span>Subtotal:</span>
             <span>{formatCurrency(venda.subtotal)}</span>
           </div>
-          {venda.acrescimo > 0 && (
-            <div className="flex justify-between">
-              <span>Acréscimo:</span>
-              <span>+ {formatCurrency(venda.acrescimo)}</span>
-            </div>
-          )}
-          {venda.desconto > 0 && (
-            <div className="flex justify-between">
-              <span>Desconto:</span>
-              <span>- {formatCurrency(venda.desconto)}</span>
-            </div>
-          )}
           <div className="flex justify-between font-semibold text-base pt-1">
             <span>Total:</span>
             <span>{formatCurrency(venda.total)}</span>
@@ -103,22 +97,40 @@ export const ReciboVenda = ({
 
         <Divider className="!my-2 !text-xs !font-semibold">PAGAMENTOS</Divider>
 
-        <div className="space-y-1 text-sm">
-          {venda.pagamentos.map((p, index) => (
-            <div key={index} className="flex justify-between">
-              <span>{p.metodoDePagamento.nome}</span>
-              <span>{formatCurrency(p.valor)}</span>
-            </div>
-          ))}
-          <div className="flex justify-between">
-            <span>Troco</span>
-            <span>{formatCurrency(venda.troco)}</span>
-          </div>
-        </div>
+        <List
+          dataSource={venda.pagamentos}
+          locale={{ emptyText: "Nenhum pagamento informado." }}
+          renderItem={(pagamento) => (
+            <List.Item>
+              <List.Item.Meta
+                title={pagamento.metodoDePagamento.nome}
+                description={
+                  pagamento.metodoDePagamento.isCash && venda.troco > 0 ? (
+                    <Typography className="text-xs">{`Troco: ${formatCurrency(
+                      venda.troco
+                    )}`}</Typography>
+                  ) : (
+                    <div>
+                      {pagamento.installmentCount && (
+                        <Typography className="text-xs">{`${
+                          pagamento.installmentCount
+                        } X ${formatCurrency(
+                          pagamento.valor / pagamento.installmentCount
+                        )}`}</Typography>
+                      )}
+                    </div>
+                  )
+                }
+              />
+              <div>{formatCurrency(pagamento.valor)}</div>
+            </List.Item>
+          )}
+          size="small"
+        />
+      </div>
 
-        <div className="text-center text-xs text-gray-500 pt-4">
-          <p>Obrigado pela preferência!</p>
-        </div>
+      <div className="text-center text-xs text-gray-500 pt-4">
+        <p>Obrigado pela preferência!</p>
       </div>
     </Modal>
   );

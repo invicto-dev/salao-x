@@ -9,7 +9,6 @@ import {
   Modal,
   Form,
   Switch,
-  Space,
   Typography,
   Row,
   Col,
@@ -17,6 +16,7 @@ import {
   TableColumnProps,
   Checkbox,
   Tooltip,
+  List,
 } from "antd";
 import { Scissors, Plus, Search, Edit, Clock, Trash2 } from "lucide-react";
 import dayjs from "dayjs";
@@ -30,6 +30,11 @@ import { NameInput } from "@/components/inputs/NameInput";
 import { useCategories } from "@/hooks/use-categories";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import DropdownComponent from "@/components/Dropdown";
+import { useDebounce } from "@/hooks/use-debounce";
+import BarCodeInput from "@/components/inputs/BarCodeInput";
+import CategorySelect from "@/components/selects/CategorySelect";
+import PagesLayout from "@/components/layout/PagesLayout";
+import { ResponsiveTable } from "@/components/tables/ResponsiveTable";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -41,11 +46,15 @@ const Servicos = () => {
   const [filtroCategoria, setFiltroCategoria] = useState(undefined);
   const [filtroStatus, setFiltroStatus] = useState(undefined);
   const [busca, setBusca] = useState("");
+  const debouncedBusca = useDebounce(busca, 500);
   const [form] = Form.useForm();
-  const { data: servicos } = useServices();
+  const { data: servicos, isFetching, isLoading } = useServices({
+    search: debouncedBusca,
+    status: filtroStatus,
+  });
   const { data: categorias = [] } = useCategories();
-  const { mutateAsync: createService } = useServiceCreate();
-  const { mutateAsync: updateService } = useServiceUpdate();
+  const { mutateAsync: createService, isPending: isPendingCreateService } = useServiceCreate();
+  const { mutateAsync: updateService, isPending: isPendingUpdateService } = useServiceUpdate();
   const { mutateAsync: deleteServico } = useServiceDelete();
 
   const servicosFiltrados = (servicos || []).filter((servico) => {
@@ -210,71 +219,85 @@ const Servicos = () => {
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <Title level={2} className="!mb-2">
-          Gestão de Serviços
-        </Title>
-        <p className="text-muted-foreground">
-          Cadastre e gerencie serviços oferecidos pelo salão
-        </p>
-      </div>
-
-      {/* Filtros e Ações */}
-      <Card>
-        <div className="flex flex-col lg:flex-row gap-4 justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <Input
-              placeholder="Buscar por nome ou código..."
-              prefix={<Search size={16} />}
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="max-w-xs"
-            />
-            <Select
-              showSearch
-              optionFilterProp="label"
-              placeholder="Categoria"
-              allowClear
-              value={filtroCategoria}
-              onChange={setFiltroCategoria}
-              className="min-w-[250px]"
-              options={categoriasOptions}
-            />
-
-            <Select
-              placeholder="Status"
-              allowClear
-              value={filtroStatus}
-              onChange={setFiltroStatus}
-              className="min-w-[120px]"
-            >
-              <Option value="ativo">Ativo</Option>
-              <Option value="inativo">Inativo</Option>
-            </Select>
-          </div>
-          <Button
-            type="primary"
-            icon={<Plus size={16} />}
-            onClick={novoServico}
-          >
-            Novo Serviço
-          </Button>
-        </div>
-      </Card>
-
-      {/* Tabela de Serviços */}
-      <Card title="Lista de Serviços">
-        <Table
-          dataSource={servicosFiltrados}
-          columns={columns}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
+  const filters = [
+    {
+      element: (
+        <BarCodeInput label="Serviços" value={busca} onChangeValue={setBusca} />
+      ),
+    },
+    {
+      element: (
+        <CategorySelect
+          value={filtroCategoria}
+          onChange={setFiltroCategoria}
+          isFilter
         />
-      </Card>
+      ),
+    },
+    {
+      element: (
+        <Select
+          placeholder="Filtrar por status"
+          allowClear
+          value={filtroStatus}
+          onChange={setFiltroStatus}
+          className="w-full md:w-48"
+        >
+          <Option value="ativo">Ativo</Option>
+          <Option value="inativo">Inativo</Option>
+        </Select>
+      ),
+    },
+  ];
 
-      {/* Modal de Cadastro/Edição */}
+  return (
+    <PagesLayout
+      title="Gestão de Serviços"
+      subtitle="Cadastre e gerencie serviços oferecidos pelo sistema."
+      filters={filters}
+      buttonsAfterFilters={[
+        {
+          children: "Novo Serviço",
+          icon: <Plus size={14} />,
+          onClick: novoServico,
+          type: "primary",
+        },
+      ]}
+    >
+      <ResponsiveTable
+        dataSource={servicosFiltrados}
+        columns={columns}
+        loading={isLoading || isFetching}
+        locale={{ emptyText: "Nenhum serviço encontrado" }}
+        renderItem={(item) => (
+          <List.Item>
+            <List.Item.Meta
+              title={item.nome}
+              description={item.codigo}
+              avatar={<Scissors size={20} />}
+            />
+            <DropdownComponent
+              menu={{
+                items: [
+                  {
+                    key: "editar",
+                    icon: <Edit size={14} />,
+                    label: "Editar",
+                    onClick: () => editarServico(item),
+                  },
+                  {
+                    key: "excluir",
+                    icon: <Trash2 size={14} />,
+                    label: "Excluir",
+                    onClick: () => excluirServico(item),
+                  },
+                ],
+              }}
+            />
+          </List.Item>
+        )}
+      />
+
       <Modal
         title={editingService ? "Editar Serviço" : "Novo Serviço"}
         open={modalVisible}
@@ -282,6 +305,9 @@ const Servicos = () => {
           setModalVisible(false);
           form.resetFields();
           setEditingService(null);
+        }}
+        okButtonProps={{
+          loading: isPendingCreateService || isPendingUpdateService
         }}
         onOk={() => form.submit()}
         okText={editingService ? "Salvar" : "Cadastrar"}
@@ -306,13 +332,7 @@ const Servicos = () => {
           </Row>
 
           <Form.Item label="Categoria" name="categoriaId">
-            <Select
-              showSearch
-              optionFilterProp="label"
-              placeholder="Selecione uma categoria"
-              allowClear
-              options={categoriasOptions}
-            />
+            <CategorySelect />
           </Form.Item>
 
           <Form.Item label="Descrição" name="descricao">
@@ -377,7 +397,7 @@ const Servicos = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </PagesLayout>
   );
 };
 

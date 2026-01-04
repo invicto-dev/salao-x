@@ -38,3 +38,17 @@ export const deleteProduct = async (id: string): Promise<Product.Props> => {
   const response = await http.delete(`/products/${id}`);
   return response.data.data;
 };
+
+export const importProducts = async (
+  file: File
+): Promise<{ data: { jobId: string }; message: string }> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await http.post("/products/import", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data;
+};

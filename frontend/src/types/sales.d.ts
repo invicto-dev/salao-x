@@ -2,12 +2,16 @@ export {};
 
 declare global {
   namespace Sale {
-    type CartType = "venda" | "pagamento";
+    type CartType = "sale" | "payment";
+    type increaseOrDecrease = {
+      value: number;
+      type: "PORCENTAGEM" | "VALOR";
+    };
 
     interface CartItem {
       id: string;
       nome: string;
-      tipo: "produto" | "servico";
+      tipo: "produto" | "servico" | "increaseOrDecrease";
       preco: number;
       quantidade: number;
       funcionario?: string;
@@ -16,6 +20,7 @@ declare global {
     }
 
     interface ItemProps {
+      nome?: string;
       produtoId?: string;
       produto?: Product.Props;
       servicoId?: string;
@@ -23,6 +28,22 @@ declare global {
       subtotal?: number;
       quantidade: number;
       preco: number;
+      desconto?: increaseOrDecrease["value"];
+      descontoTipo?: increaseOrDecrease["type"];
+      acrescimo?: increaseOrDecrease["value"];
+      acrescimoTipo?: increaseOrDecrease["type"];
+    }
+
+    interface SessionProps {
+      saleId?: string;
+      clienteSelecionado?: Customer.Props;
+      carrinho?: {
+        mode: CartType;
+        content: Sale.CartItem[];
+      };
+      pagamentos?: Sale.Props["pagamentos"];
+      desconto?: increaseOrDecrease;
+      acrescimo?: increaseOrDecrease;
     }
 
     interface Props {
@@ -32,13 +53,15 @@ declare global {
       funcionarioId?: string;
       itens: ItemProps[];
       pagamentos: {
+        externalChargeUrl?: string;
         metodoDePagamentoId: string;
         metodoDePagamento?: PaymentMethod.Props;
+        installmentCount?: number;
         valor: number;
         observacao?: string;
       }[];
-      desconto: number;
-      acrescimo: number;
+      desconto?: increaseOrDecrease;
+      acrescimo?: increaseOrDecrease;
       total?: number;
       subtotal?: number;
       troco?: number;

@@ -10,4 +10,11 @@ declare global {
     user: User;
     token: string;
   }
+
+  interface Params {
+    search?: string;
+    categoryId?: string;
+    contarEstoque?: boolean;
+    status?: string;
+  }
 }

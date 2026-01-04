@@ -1,20 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   Typography,
-  Card,
-  Table,
   Input,
   Select,
-  DatePicker,
   Tag,
   Modal,
   Drawer,
   Descriptions,
   List,
-  Row,
-  Col,
   TableColumnProps,
-  Divider,
   Button,
 } from "antd";
 import { useSales, useSaleUpdateStatus } from "@/hooks/use-sales";
@@ -22,19 +16,31 @@ import { Ban, Receipt, Search } from "lucide-react";
 import { useReciboVenda } from "@/hooks/use-recibo-venda";
 import { formatCurrency } from "@/utils/formatCurrency";
 import DropdownComponent from "@/components/Dropdown";
+import { formatSaleId } from "@/utils/formatSaleId";
+import PagesLayout from "@/components/layout/PagesLayout";
+import { useDebounce } from "@/hooks/use-debounce";
+import { ResponsiveTable } from "@/components/tables/ResponsiveTable";
+import { formatDateTime } from "@/utils/formatDateTime";
+import { format } from "path";
 
-const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
+const { Text } = Typography;
 
 type Venda = ReturnType<typeof useSales>["data"][0];
 
 const Vendas = () => {
-  const { data: vendas, isLoading } = useSales();
+  const [params, setParams] = useState<Params>({});
+  const {
+    data: vendas = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useSales({
+    ...params,
+    search: useDebounce(params.search),
+  });
   const { mutate: update } = useSaleUpdateStatus();
 
-  const [buscaCliente, setBuscaCliente] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<string | null>(null);
-  const [filtroData, setFiltroData] = useState<[any, any] | null>(null);
+  console.log("Vendas renderizadas:", vendas);
 
   const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null);
 
@@ -66,30 +72,6 @@ const Vendas = () => {
     });
   };
 
-  // Memoizando os dados filtrados para melhor performance
-  const vendasFiltradas = useMemo(() => {
-    if (!vendas) return [];
-
-    return vendas.filter((venda) => {
-      // Filtro por nome do cliente
-      const matchCliente =
-        !buscaCliente ||
-        venda.cliente?.nome.toLowerCase().includes(buscaCliente.toLowerCase());
-
-      // Filtro por status
-      const matchStatus = !filtroStatus || venda.status === filtroStatus;
-
-      // Filtro por data
-      const matchData =
-        !filtroData ||
-        (new Date(venda.createdAt) >= filtroData[0].startOf("day").toDate() &&
-          new Date(venda.createdAt) <= filtroData[1].endOf("day").toDate());
-
-      return matchCliente && matchStatus && matchData;
-    });
-  }, [vendas, buscaCliente, filtroStatus, filtroData]);
-
-  // Função para mapear status para cor da Tag
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PAGO":
@@ -105,10 +87,17 @@ const Vendas = () => {
 
   const columns: TableColumnProps<Venda>[] = [
     {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      className: "font-bold",
+      render: (id) => formatSaleId(id),
+    },
+    {
       title: "Data/Hora",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (text: string) => new Date(text).toLocaleString("pt-BR"),
+      render: (text: string) => formatDateTime(text),
     },
     {
       title: "Cliente",
@@ -123,10 +112,7 @@ const Vendas = () => {
       dataIndex: "total",
       key: "total",
       render: (total: string) =>
-        Number(total).toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        }),
+       formatCurrency(total)
     },
     {
       title: "Status",
@@ -136,6 +122,12 @@ const Vendas = () => {
       render: (status: string) => (
         <Tag color={getStatusColor(status)}>{status}</Tag>
       ),
+    },
+    {
+      title: "Caixa",
+      dataIndex: "caixaId",
+      align: "center",
+      render: (caixaId: string) => <span>{formatSaleId(caixaId)}</span>,
     },
     {
       title: "Ações",
@@ -170,69 +162,99 @@ const Vendas = () => {
     },
   ];
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <Title level={2} className="!mb-2">
-          Histórico de Vendas
-        </Title>
-        <p className="text-muted-foreground">
-          Gerencie e consulte todas as vendas registradas no sistema.
-        </p>
-      </div>
-
-      <Card>
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <Input
-            placeholder="Buscar por cliente..."
-            prefix={<Search size={14} />}
-            value={buscaCliente}
-            onChange={(e) => setBuscaCliente(e.target.value)}
-            className="flex-1"
-          />
-          <div className="flex gap-4">
-            <Select
-              placeholder="Filtrar por status"
-              allowClear
-              onChange={(value) => setFiltroStatus(value)}
-              className="w-full md:w-48"
-            >
-              <Select.Option value="PAGO">Pago</Select.Option>
-              <Select.Option value="PENDENTE">Pendente</Select.Option>
-              <Select.Option value="CANCELADO">Cancelado</Select.Option>
-            </Select>
-            <RangePicker
-              placeholder={["Data de início", "Data de fim"]}
-              onChange={(dates) => setFiltroData(dates as any)}
-              className="w-full md:w-auto"
-            />
-          </div>
-        </div>
-        <Table
-          dataSource={vendasFiltradas}
-          columns={columns}
-          loading={isLoading}
-          rowKey="id"
-          onRow={(record) => ({
-            onClick: () => setVendaSelecionada(record),
-          })}
-          rowClassName={() => "cursor-pointer"}
-          pagination={{ pageSize: 10 }}
-          locale={{
-            emptyText:
-              vendasFiltradas.length === 0
-                ? "Nenhuma venda encontrada"
-                : "Nenhuma venda para mostrar",
-          }}
+  const filters = [
+    {
+      element: (
+        <Input
+          placeholder="Buscar venda por cliente ou ID..."
+          prefix={<Search size={14} />}
+          value={params.search}
+          onChange={(e) => setParams({ ...params, search: e.target.value })}
+          allowClear
         />
-      </Card>
+      ),
+    },
+    {
+      element: (
+        <Select
+          placeholder="Filtrar por status"
+          allowClear
+          onChange={(value) => setParams({ ...params, status: value })}
+          className="w-full md:w-48"
+        >
+          <Select.Option value="PAGO">Pago</Select.Option>
+          <Select.Option value="PENDENTE">Pendente</Select.Option>
+          <Select.Option value="CANCELADO">Cancelado</Select.Option>
+        </Select>
+      ),
+    },
+  ];
 
-      {/* Drawer para exibir detalhes da venda */}
+  return (
+    <PagesLayout
+      title="Histórico de Vendas"
+      subtitle="Gerencie e consulte todas as vendas registradas no sistema."
+      filters={filters}
+      Error={{
+        isError: isError,
+        onClick: refetch,
+      }}
+    >
+      <ResponsiveTable
+        dataSource={vendas}
+        columns={columns}
+        loading={isLoading}
+        onRow={(record) => ({
+          onClick: () => setVendaSelecionada(record),
+        })}
+        rowClassName={() => "cursor-pointer"}
+        locale={{
+          emptyText:
+            vendas.length === 0
+              ? "Nenhuma venda encontrada"
+              : "Nenhuma venda para mostrar",
+        }}
+        renderItem={(item) => (
+          <List.Item onClick={() => setVendaSelecionada(item)}>
+            <List.Item.Meta
+              title={item.cliente?.nome || "Consumidor Final"}
+              description={`${formatSaleId(item.id)} - ${formatDateTime(
+                item.createdAt
+              )}`}
+            />
+            <DropdownComponent
+              menu={{
+                items: [
+                  {
+                    key: "1",
+                    label: "Imprimir Recibo",
+                    icon: <Receipt size={14} />,
+                    onClick: (e) => {
+                      e.domEvent.stopPropagation();
+                      abrirRecibo(item);
+                    },
+                  },
+                  {
+                    key: "2",
+                    label: "Cancelar Venda",
+                    icon: <Ban size={14} />,
+                    onClick: (e) => {
+                      e.domEvent.stopPropagation();
+                      showModalCancelamento(item);
+                    },
+                  },
+                ],
+              }}
+            />
+          </List.Item>
+        )}
+      />
+
       <Drawer
-        title={`Detalhes da Venda #${vendaSelecionada?.id.substring(0, 8)}`}
-        width={500}
+        title={`Detalhes da Venda ${formatSaleId(vendaSelecionada?.id)}`}
         onClose={() => setVendaSelecionada(null)}
         open={!!vendaSelecionada}
+        width={450}
       >
         {vendaSelecionada && (
           <div className="space-y-6">
@@ -251,12 +273,6 @@ const Vendas = () => {
               <Descriptions.Item label="Subtotal da Venda">
                 <span>{formatCurrency(vendaSelecionada.subtotal)}</span>
               </Descriptions.Item>
-              <Descriptions.Item label="(+) Acréscimo">
-                <span>{formatCurrency(vendaSelecionada.acrescimo)}</span>
-              </Descriptions.Item>
-              <Descriptions.Item label="(-) Desconto">
-                <span>{formatCurrency(vendaSelecionada.desconto)}</span>
-              </Descriptions.Item>
               <Descriptions.Item label="Total da Venda">
                 <span className="font-bold">
                   {formatCurrency(vendaSelecionada.total)}
@@ -265,34 +281,18 @@ const Vendas = () => {
             </Descriptions>
 
             <div>
-              <Title level={5}>Itens Vendidos</Title>
               <List
+                header={<Text strong>Itens Vendidos</Text>}
                 dataSource={vendaSelecionada.itens}
                 renderItem={(item) => (
                   <List.Item>
-                    <Row justify="space-between" className="w-full">
-                      <Col>
-                        <Row>
-                          <Text
-                            ellipsis={{
-                              tooltip:
-                                item.produto?.nome ||
-                                item.servico?.nome ||
-                                "item deletado",
-                            }}
-                          >
-                            {item.quantidade} x{" "}
-                            {item.produto?.nome ||
-                              item.servico?.nome ||
-                              "Item Deletado"}
-                          </Text>
-                        </Row>
-                        <Row className="text-xs text-muted-foreground">
-                          {formatCurrency(item.preco)}
-                        </Row>
-                      </Col>
-                      <Col>{formatCurrency(item.subtotal)}</Col>
-                    </Row>
+                    <List.Item.Meta
+                      title={`${item.quantidade} x ${
+                        item.nome || "Item deletado"
+                      }`}
+                      description={formatCurrency(item.preco)}
+                    />
+                    <div>{formatCurrency(item.subtotal)}</div>
                   </List.Item>
                 )}
                 size="small"
@@ -300,36 +300,46 @@ const Vendas = () => {
             </div>
 
             <div>
-              <Title level={5}>Pagamentos</Title>
               <List
+                header={<Text strong>Pagamentos Adicionados</Text>}
                 dataSource={vendaSelecionada.pagamentos}
+                locale={{ emptyText: "Nenhum pagamento informado." }}
                 renderItem={(pagamento) => (
                   <List.Item>
-                    <Row justify="space-between" className="w-full">
-                      <Col>{pagamento.metodoDePagamento.nome}</Col>
-                      <Col>
-                        {Number(pagamento.valor).toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })}
-                      </Col>
-                    </Row>
+                    <List.Item.Meta
+                      title={pagamento.metodoDePagamento.nome}
+                      description={
+                        pagamento.metodoDePagamento.isCash &&
+                        vendaSelecionada.troco > 0 ? (
+                          <Typography className="text-xs">{`Troco: ${formatCurrency(
+                            vendaSelecionada.troco
+                          )}`}</Typography>
+                        ) : (
+                          <div>
+                            {pagamento.installmentCount && (
+                              <Typography className="text-xs">{`${
+                                pagamento.installmentCount
+                              } X ${formatCurrency(
+                                pagamento.valor / pagamento.installmentCount
+                              )}`}</Typography>
+                            )}
+                            {pagamento.externalChargeUrl && (
+                              <Typography.Link
+                                href={pagamento.externalChargeUrl}
+                                target="_blank"
+                              >
+                                {pagamento.externalChargeUrl}
+                              </Typography.Link>
+                            )}
+                          </div>
+                        )
+                      }
+                    />
+                    <div>{formatCurrency(pagamento.valor)}</div>
                   </List.Item>
                 )}
                 size="small"
               />
-              <Divider />
-              <div className="mx-4">
-                <Row justify="space-between" className="w-full">
-                  <Col>Troco</Col>
-                  <Col>
-                    {Number(vendaSelecionada.troco).toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })}
-                  </Col>
-                </Row>
-              </div>
             </div>
             <div className="space-y-2">
               <Button
@@ -354,9 +364,8 @@ const Vendas = () => {
         )}
       </Drawer>
 
-      {/* Recibo de Venda Modal */}
       <ReciboComponent />
-    </div>
+    </PagesLayout>
   );
 };
 

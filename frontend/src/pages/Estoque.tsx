@@ -1,9 +1,7 @@
 import { useState } from "react";
 import {
   Card,
-  Table,
   Button,
-  Input,
   Select,
   Tag,
   Modal,
@@ -14,50 +12,45 @@ import {
   Statistic,
   Row,
   Col,
+  TableColumnsType,
+  Table,
 } from "antd";
-import { Package, Plus, Search, AlertTriangle, Edit } from "lucide-react";
-import { useCategories } from "@/hooks/use-categories";
+import { Package, Plus, AlertTriangle, Edit } from "lucide-react";
 import {
-  useStockProducts,
   useStockKpis,
   useRecentStockMovements,
   useStockMovementCreate,
 } from "@/hooks/use-stock";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { useProductUpdate } from "@/hooks/use-products";
+import { useProducts, useProductUpdate } from "@/hooks/use-products";
 import { NameInput } from "@/components/inputs/NameInput";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
+import { useDebounce } from "@/hooks/use-debounce";
+import BarCodeInput from "@/components/inputs/BarCodeInput";
+import CategorySelect from "@/components/selects/CategorySelect";
 
 const { Title } = Typography;
 const { Option } = Select;
 
-// Componente
 const Estoque = () => {
   const [modalEditar, setModalEditar] = useState(false);
   const [modalMovimentacao, setModalMovimentacao] = useState(false);
   const [produtoSelecionado, setProdutoSelecionado] =
     useState<Stock.StockProduct | null>(null);
 
-  const [busca, setBusca] = useState("");
-  const [filtroCategoria, setFiltroCategoria] = useState<string | undefined>(
-    undefined
-  );
-  const { mutateAsync: updateProduct } = useProductUpdate();
+  const [params, setParams] = useState<Params>({});
+  const { data: products = [], isLoading: isLoadingProducts } = useProducts({
+    ...params,
+    contarEstoque: true,
+    search: useDebounce(params.search) || params.search,
+  });
 
   const [formEditar] = Form.useForm();
   const [formMovimentacao] = Form.useForm();
-
-  const { data: products = [], isLoading: isLoadingProducts } =
-    useStockProducts({
-      search: busca,
-      categoryId: filtroCategoria,
-      contarEstoque: true,
-    });
+  const { mutateAsync: updateProduct } = useProductUpdate();
   const { data: kpis, isLoading: isLoadingKpis } = useStockKpis();
   const { data: recentMovements = [], isLoading: isLoadingMovements } =
     useRecentStockMovements();
-  const { data: categories = [], isLoading: isLoadingCategories } =
-    useCategories();
 
   const { mutate: createMovement, isPending: isCreatingMovement } =
     useStockMovementCreate();
@@ -105,7 +98,7 @@ const Estoque = () => {
     return { color: "green", text: "Normal" };
   };
 
-  const columns = [
+  const columns: TableColumnsType<Product.Props> = [
     {
       title: "Produto",
       dataIndex: "nome",
@@ -114,7 +107,7 @@ const Estoque = () => {
         <div>
           <div className="font-medium">{text}</div>
           <div className="text-sm text-muted-foreground">
-            {record.categoria}
+            {record.categoria || "Sem categoria"}
           </div>
         </div>
       ),
@@ -123,6 +116,7 @@ const Estoque = () => {
       title: "Estoque Atual",
       dataIndex: "estoqueAtual",
       key: "estoqueAtual",
+      align: "center",
       render: (estoque: number, record: Stock.StockProduct) => {
         const status = getStatusEstoque(estoque, record.estoqueMinimo);
         return (
@@ -139,6 +133,7 @@ const Estoque = () => {
       title: "Estoque Mínimo",
       dataIndex: "estoqueMinimo",
       key: "estoqueMinimo",
+      align: "center",
       render: (estoqueMinimo: number, record: Stock.StockProduct) => (
         <div>
           <div className="font-medium text-salao-primary">
@@ -150,7 +145,7 @@ const Estoque = () => {
     {
       title: "Preço/Custo",
       key: "preco",
-      render: (_: any, record: Stock.StockProduct) => (
+      render: (_, record: Stock.StockProduct) => (
         <div>
           <div className="font-medium text-salao-primary">
             {formatCurrency(record.preco ?? 0)}
@@ -164,7 +159,8 @@ const Estoque = () => {
     {
       title: "Ações",
       key: "acoes",
-      render: (_: any, record: Stock.StockProduct) => (
+      align: "center",
+      render: (_, record: Stock.StockProduct) => (
         <Space>
           <Button
             type="text"
@@ -173,7 +169,6 @@ const Estoque = () => {
           >
             Editar
           </Button>
-          {/* O botão de movimentar agora abre o modal geral */}
         </Space>
       ),
     },
@@ -248,29 +243,19 @@ const Estoque = () => {
       {/* Filtros */}
       <Card>
         <div className="flex gap-4">
-          <Input
-            placeholder="Buscar produtos..."
-            prefix={<Search size={16} />}
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
+          <BarCodeInput
+            value={params.search}
+            onChangeValue={(e) => setParams({ ...params, search: e })}
           />
-          <Select
-            placeholder="Filtrar por categoria"
-            allowClear
-            value={filtroCategoria}
-            onChange={setFiltroCategoria}
-            style={{ width: 200 }}
-            loading={isLoadingCategories}
-          >
-            {categories.map((cat) => (
-              <Option key={cat.id} value={cat.id}>
-                {cat.nome}
-              </Option>
-            ))}
-          </Select>
+          <CategorySelect
+            value={params.categoryId}
+            onChange={(e) => setParams({ ...params, categoryId: e })}
+            isFilter
+          />
+
           <Button
             type="primary"
-            icon={<Plus size={16} />}
+            icon={<Plus size={14} />}
             onClick={abrirModalMovimentacao}
           >
             Nova Movimentação
@@ -285,6 +270,7 @@ const Estoque = () => {
           columns={columns}
           rowKey="id"
           loading={isLoadingProducts}
+          locale={{ emptyText: "Nenhum produto encontrado" }}
         />
       </Card>
 
@@ -297,6 +283,7 @@ const Estoque = () => {
           pagination={false}
           size="small"
           loading={isLoadingMovements}
+          locale={{ emptyText: "Nenhuma movimentação encontrada" }}
         />
       </Card>
 

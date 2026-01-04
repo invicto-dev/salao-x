@@ -8,41 +8,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Setting {
-  id String @id @default(uuid())
-
-  // Informações da Empresa
-  nomeEmpresa String
-  cnpj        String  @unique
-  endereco    String
-  bairro      String
-  cidade      String
-  cep         String
-  telefone    String
-  email       String  @unique
-  site        String?
-
-  // Configurações de Negócio
-  horarioFuncionamento Json // Armazena Record<DiaSemana, Horario>
-  intervaloPadrao      Int // minutos
-  antecedenciaMinima   Int // minutos
-
-  // Notificações
-  notificarAgendamentos Boolean
-  notificarEstoqueBaixo Boolean
-  notificarAniversarios Boolean
-  whatsappAtivo         Boolean
-  emailAtivo            Boolean
-
-  // Sistema
-  backupAutomatico       Boolean
-  manterHistorico        Int // meses
-  timezone               String
-  exigirAprovacaoEstoque Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+// ============================
+// Enums
+// ============================
 
 enum Role {
   ROOT
@@ -50,88 +18,6 @@ enum Role {
   GERENTE
   SECRETARIO
   FUNCIONARIO
-}
-
-model Employee {
-  id       String  @id @default(uuid())
-  nome     String
-  email    String  @unique
-  telefone String
-  funcao   String
-  comissao Decimal
-  ativo    Boolean
-  senha    String
-  role     Role
-
-  vendas                   Sale[]
-  movimentacoesSolicitadas StockMovement[] @relation("SolicitadoPor")
-  movimentacoesAprovadas   StockMovement[] @relation("AprovadoPor")
-
-  caixasAbertos      Caixa[]             @relation("CaixaAbertoPor")
-  caixasFechados     Caixa[]             @relation("CaixaFechadoPor")
-  caixaMovimentacoes CaixaMovimentacao[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Customer {
-  id          String    @id @default(uuid())
-  nome        String
-  telefone    String?
-  email       String?   @unique
-  cpf         String?   @unique
-  aniversario DateTime?
-  observacoes String?
-  ativo       Boolean   @default(true)
-
-  vendas Sale[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Service {
-  id            String   @id @default(uuid())
-  nome          String
-  codigo        String?  @unique
-  valorEmAberto Boolean  @default(false)
-  preco         Decimal?
-  duracao       Int?
-  ativo         Boolean  @default(true)
-  descricao     String?
-
-  categoriaId String?
-  categoria   Category? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
-
-  itensVenda SaleItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Product {
-  id            String   @id @default(uuid())
-  nome          String
-  codigo        String?  @unique
-  preco         Decimal?
-  custo         Decimal?
-  valorEmAberto Boolean  @default(false)
-  contarEstoque Boolean  @default(true)
-  estoqueMinimo Int?     @default(1)
-  unidadeMedida String   @default("un")
-  ativo         Boolean  @default(true)
-  descricao     String?
-
-  // Relation with Category
-  categoriaId String?
-  categoria   Category? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
-
-  itensVenda    SaleItem[]
-  movimentacoes StockMovement[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 enum StockMovementType {
@@ -157,6 +43,232 @@ enum ApprovalStatus {
   REJEITADO
 }
 
+enum JobStatus {
+  PENDENTE
+  PROCESSANDO
+  CONCLUIDO
+  CONCLUIDO_COM_ERROS
+  FALHOU
+}
+
+enum FiscalNoteStatus {
+  PENDENTE
+  PROCESSANDO
+  AUTORIZADA
+  ERRO
+  CANCELADA
+}
+
+enum FiscalNoteType {
+  NFE
+  NFCE
+}
+
+enum SaleStatus {
+  PENDENTE
+  PAGO
+  CANCELADO
+}
+
+enum CaixaStatus {
+  ABERTO
+  FECHADO
+}
+
+enum CaixaMovimentacaoTipo {
+  ENTRADA // Cash supply (suprimento)
+  SAIDA // Cash withdrawal (sangria)
+}
+
+enum DescontoOuAcrescimoTipo {
+  PORCENTAGEM
+  VALOR
+}
+
+// ============================
+// Core Models
+// ============================
+
+/// System-wide settings and configuration
+model Setting {
+  id String @id @default(uuid())
+
+  // Company information
+  nomeEmpresa          String
+  cnpj                 String? @unique
+  endereco             String?
+  numero               String?
+  complemento          String?
+  uf                   String?
+  codigoIbge           String?
+  bairro               String?
+  cidade               String?
+  cep                  String?
+  telefone             String?
+  email                String? @unique
+  site                 String?
+  horarioFuncionamento Json? // Business hours: Record<Day, Hour>
+  intervaloPadrao      Int?
+  antecedenciaMinima   Int?
+
+  inscricaoEstadual  String?
+  inscricaoMunicipal String?
+  regimeTributario   String?
+
+  certificadoA1    Bytes?
+  senhaCertificado String?
+
+  // Notifications
+  notificarAgendamentos Boolean? @default(false)
+  notificarEstoqueBaixo Boolean? @default(false)
+  notificarAniversarios Boolean? @default(false)
+  whatsappAtivo         Boolean? @default(false)
+  emailAtivo            Boolean? @default(false)
+
+  // System settings
+  timezone               String?
+  exigirAprovacaoEstoque Boolean? @default(false)
+  currency               String?  @default("BRL")
+  asaasActive            Boolean  @default(false)
+  asaasApiKey            String?
+  asaasEnvironment       String?  @default("production")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ImportJob {
+  id               String    @id @default(uuid())
+  status           JobStatus @default(PENDENTE)
+  totalRows        Int       @default(0)
+  processedRows    Int       @default(0)
+  successfulRows   Int       @default(0)
+  failedRows       Int       @default(0)
+  results          Json? // Armazena detalhes de erros por linha
+  originalFilename String
+  storedFilename   String    @unique // Nome do arquivo salvo no servidor
+
+  createdByUserId String?   @map("created_by_user_id")
+  createdBy       Employee? @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+}
+
+/// Employee with role-based access and related records
+model Employee {
+  id       String  @id @default(uuid())
+  nome     String
+  email    String  @unique
+  telefone String
+  funcao   String
+  comissao Decimal
+  ativo    Boolean
+  senha    String
+  role     Role
+
+  vendas                   Sale[]
+  movimentacoesSolicitadas StockMovement[] @relation("SolicitadoPor")
+  movimentacoesAprovadas   StockMovement[] @relation("AprovadoPor")
+
+  caixasAbertos      Caixa[]             @relation("CaixaAbertoPor")
+  caixasFechados     Caixa[]             @relation("CaixaFechadoPor")
+  caixaMovimentacoes CaixaMovimentacao[]
+  mportJobs          ImportJob[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Customer information and credit settings
+model Customer {
+  id          String    @id @default(uuid())
+  nome        String
+  telefone    String?
+  email       String?   @unique
+  cpfCnpj     String?   @unique
+  aniversario DateTime?
+  observacoes String?
+  ativo       Boolean   @default(true)
+
+  fine            Decimal? @default(0) // Fine percentage
+  interest        Decimal? @default(0) // Interest percentage
+  creditLimit     Decimal? @default(0) // Credit limit
+  paymentDueDay   Int? // Preferred due day (e.g. 5, 10, 15, 20, 25)
+  asaasCustomerId String?  @unique // Asaas customer ID
+
+  vendas Sale[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Services offered by the company
+model Service {
+  id            String   @id @default(uuid())
+  nome          String
+  codigo        String?  @unique
+  valorEmAberto Boolean  @default(false)
+  preco         Decimal?
+  duracao       Int?
+  ativo         Boolean  @default(true)
+  descricao     String?
+
+  categoriaId String?
+  categoria   Category? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+
+  itensVenda SaleItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Products stored in inventory
+model Product {
+  id            String   @id @default(uuid())
+  nome          String
+  codigo        String?  @unique
+  preco         Decimal?
+  custo         Decimal?
+  valorEmAberto Boolean  @default(false)
+  contarEstoque Boolean  @default(true)
+  estoqueMinimo Int?     @default(1)
+  unidadeMedida String   @default("un")
+  ativo         Boolean  @default(true)
+  descricao     String?
+
+  ncm    String?
+  cfop   String?
+  origem Int?
+
+  icmsCst      String?
+  icmsAliquota Decimal?
+
+  pisCst      String?
+  pisAliquota Decimal?
+
+  cofinsCst      String?
+  cofinsAliquota Decimal?
+
+  unidadeTributavel    String?  @default("un")
+  quantidadeTributavel Decimal? @default(1)
+
+  categoriaId String?
+  categoria   Category? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+
+  itensVenda    SaleItem[]
+  movimentacoes StockMovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([nome])
+  @@index([codigo])
+  @@index([categoriaId])
+  @@index([ativo])
+}
+
+/// Stock movement for products (inbound/outbound/adjustments)
 model StockMovement {
   id String @id @default(uuid())
 
@@ -167,14 +279,15 @@ model StockMovement {
   motivo     StockMovementReason
   quantidade Decimal
 
-  saleId String? // Opcional, pois nem toda movimentação vem de uma venda
+  saleId String? // Optional: not all movements are linked to a sale
   sale   Sale?   @relation(fields: [saleId], references: [id], onDelete: SetNull)
 
-  custoUnitario   Decimal?
-  observacao      String?
-  status          ApprovalStatus @default(PENDENTE)
+  custoUnitario Decimal?
+  observacao    String?
+  status        ApprovalStatus @default(PENDENTE)
+
   solicitadoPorId String
-  solicitadoPor   Employee       @relation("SolicitadoPor", fields: [solicitadoPorId], references: [id])
+  solicitadoPor   Employee @relation("SolicitadoPor", fields: [solicitadoPorId], references: [id])
 
   aprovadoPorId String?
   aprovadoPor   Employee? @relation("AprovadoPor", fields: [aprovadoPorId], references: [id])
@@ -184,8 +297,11 @@ model StockMovement {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([produtoId, status])
 }
 
+/// Payment methods supported by the system
 model PaymentMethod {
   id        String  @id @default(uuid())
   nome      String  @unique
@@ -194,12 +310,15 @@ model PaymentMethod {
   chavePix  String?
   isCash    Boolean @default(false)
 
+  integration String? @unique // Example: 'Asaas'
+
   pagamentos SalePayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+/// Product/service categories
 model Category {
   id        String  @id @default(uuid())
   nome      String  @unique
@@ -213,37 +332,57 @@ model Category {
   updatedAt DateTime @updatedAt
 }
 
-enum SaleStatus {
-  PENDENTE
-  PAGO
-  CANCELADO
-}
+// ============================
+// Sales & Payments
+// ============================
 
-model Sale {
-  id            String    @id @default(uuid())
-  clienteId     String? // Customer optional (e.g sale avulso)
-  cliente       Customer? @relation(fields: [clienteId], references: [id])
-  funcionarioId String? // Funcionario optional (e.g sale avulso)
-  funcionario   Employee? @relation(fields: [funcionarioId], references: [id])
+model FiscalNote {
+  id String @id @default(uuid())
 
-  subtotal  Decimal
-  total     Decimal
-  troco     Decimal?
-  desconto  Decimal?
-  acrescimo Decimal?
-  status    SaleStatus @default(PENDENTE)
+  saleId String @unique
+  sale   Sale   @relation(fields: [saleId], references: [id])
 
-  itens         SaleItem[]
-  pagamentos    SalePayment[]
-  movimentacoes StockMovement[]
+  status FiscalNoteStatus @default(PENDENTE)
+  tipo   FiscalNoteType
 
-  caixaId String?
-  caixa   Caixa?  @relation(fields: [caixaId], references: [id], onDelete: SetNull)
+  providerId  String? @unique
+  chaveAcesso String? @unique
+  numero      String?
+  serie       String?
+  xmlUrl      String?
+  danfeUrl    String?
+
+  mensagemErro String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+/// Sale record (order)
+model Sale {
+  id            String    @id @default(uuid())
+  clienteId     String?
+  cliente       Customer? @relation(fields: [clienteId], references: [id])
+  funcionarioId String?
+  funcionario   Employee? @relation(fields: [funcionarioId], references: [id])
+
+  subtotal Decimal
+  total    Decimal
+  troco    Decimal?
+  status   SaleStatus @default(PENDENTE)
+
+  itens         SaleItem[]
+  pagamentos    SalePayment[]
+  movimentacoes StockMovement[]
+  fiscalNote    FiscalNote?
+  caixaId       String?
+  caixa         Caixa?          @relation(fields: [caixaId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Items belonging to a sale (products or services)
 model SaleItem {
   id      String @id @default(uuid())
   vendaId String
@@ -251,18 +390,25 @@ model SaleItem {
 
   produtoId String?
   produto   Product? @relation(fields: [produtoId], references: [id], onDelete: SetNull)
-
   servicoId String?
   servico   Service? @relation(fields: [servicoId], references: [id], onDelete: SetNull)
 
+  nome String
+
+  desconto      Decimal?
+  descontoTipo  DescontoOuAcrescimoTipo? @default(PORCENTAGEM)
+  acrescimo     Decimal?
+  acrescimoTipo DescontoOuAcrescimoTipo? @default(PORCENTAGEM)
+
   quantidade Int     @default(1)
   preco      Decimal
-  subtotal   Decimal
+  subtotal   Decimal // (preco * quantidade) - desconto + acréscimo
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+/// Payments associated with a sale
 model SalePayment {
   id      String @id @default(uuid())
   vendaId String
@@ -274,30 +420,28 @@ model SalePayment {
   valor      Decimal
   observacao String?
 
+  externalChargeId  String? @unique // External Asaas charge ID
+  externalChargeUrl String? // Asaas invoice link
+  installmentCount  Int? // Number of installments
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-enum CaixaStatus {
-  ABERTO
-  FECHADO
-}
+// ============================
+// Cash Register (Caixa)
+// ============================
 
-enum CaixaMovimentacaoTipo {
-  ENTRADA // Suprimento, reforço de caixa
-  SAIDA // Sangria, pagamento de despesas
-}
-
-// Representa uma sessão de trabalho do caixa
+/// Cash register session
 model Caixa {
   id String @id @default(uuid())
 
   dataAbertura             DateTime    @default(now())
   dataFechamento           DateTime?
-  valorAbertura            Decimal // Fundo de troco inicial
-  valorFechamentoInformado Decimal? // Valor contado pelo funcionário no final
-  valorFechamentoCalculado Decimal? // Valor que o sistema calculou que deveria ter
-  diferenca                Decimal? // (Informado - Calculado) pode ser positivo (sobra) ou negativo (quebra)
+  valorAbertura            Decimal
+  valorFechamentoInformado Decimal?
+  valorFechamentoCalculado Decimal?
+  diferenca                Decimal?
   status                   CaixaStatus @default(ABERTO)
   observacoes              String?
 
@@ -306,7 +450,6 @@ model Caixa {
   funcionarioFechamentoId String?
   funcionarioFechamento   Employee? @relation("CaixaFechadoPor", fields: [funcionarioFechamentoId], references: [id])
 
-  // Relações com outras partes do sistema
   vendas        Sale[]
   movimentacoes CaixaMovimentacao[]
 
@@ -314,11 +457,12 @@ model Caixa {
   updatedAt DateTime @updatedAt
 }
 
+/// Cash register transactions (in/out)
 model CaixaMovimentacao {
   id     String                @id @default(uuid())
   valor  Decimal
   tipo   CaixaMovimentacaoTipo
-  motivo String // Ex: "Pagamento fornecedor de limpeza", "Reforço de troco"
+  motivo String // Example: "Supplier payment", "Cash reinforcement"
 
   caixaId       String
   caixa         Caixa    @relation(fields: [caixaId], references: [id], onDelete: Cascade)

@@ -6,7 +6,6 @@ import {
   Input,
   Modal,
   Form,
-  Space,
   Typography,
   Row,
   Col,
@@ -16,6 +15,9 @@ import {
   Avatar,
   Statistic,
   Switch,
+  Select,
+  InputNumber,
+  TableColumnsType,
 } from "antd";
 import {
   Plus,
@@ -42,6 +44,7 @@ import { CpfInput } from "@/components/inputs/CpfInput";
 import { NameInput } from "@/components/inputs/NameInput";
 import { ColumnsType } from "antd/es/table";
 import DropdownComponent from "@/components/Dropdown";
+import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -55,9 +58,9 @@ const Clientes = () => {
   const [busca, setBusca] = useState("");
   const [form] = Form.useForm();
   const { data: costumers, isLoading } = useCustomers();
-  const { mutate: createCustomer } = useCustomerCreate();
-  const { mutate: updateCustomer } = useCustomerUpdate();
-  const { mutate: deleteCustomer } = useCustomerDelete();
+  const { mutateAsync: createCustomer } = useCustomerCreate();
+  const { mutateAsync: updateCustomer } = useCustomerUpdate();
+  const { mutateAsync: deleteCustomer } = useCustomerDelete();
 
   // Mock histórico de compras
   const historicoCompras = [
@@ -108,7 +111,7 @@ const Clientes = () => {
       cliente?.email?.toLowerCase().includes(busca.toLowerCase())
   );
 
-  const columns: ColumnsType<Customer.Props> = [
+  const columns: TableColumnsType<Customer.Props> = [
     {
       title: "Cliente",
       key: "cliente",
@@ -159,7 +162,7 @@ const Clientes = () => {
       key: "fidelidade",
       render: (_: any, record: any) => (
         <div className="flex items-center gap-2">
-          <Gift size={16} className="text-salao-accent" />
+          <Gift size={14} className="text-salao-accent" />
           <span className="font-semibold text-salao-accent">
             {record.pontosFidelidade} pts
           </span>
@@ -232,7 +235,7 @@ const Clientes = () => {
   const novoCliente = () => {
     setEditingClient(null);
     form.resetFields();
-    form.setFieldsValue({ ativo: true });
+    form.setFieldsValue({ ativo: true, creditLimit: null });
     setModalVisible(true);
   };
 
@@ -241,14 +244,14 @@ const Clientes = () => {
     setDetalhesModal(true);
   };
 
-  const handleSubmit = (values: Customer.Props) => {
+  const handleSubmit = async (values: Customer.Body) => {
     try {
       if (!editingClient) {
-        createCustomer(values);
+        await createCustomer(values);
         setModalVisible(false);
         form.resetFields();
       } else {
-        updateCustomer({
+        await updateCustomer({
           id: editingClient.id,
           body: values,
         });
@@ -349,14 +352,14 @@ const Clientes = () => {
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <Input
             placeholder="Buscar por nome, telefone ou email..."
-            prefix={<Search size={16} />}
+            prefix={<Search size={14} />}
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="max-w-md"
           />
           <Button
             type="primary"
-            icon={<Plus size={16} />}
+            icon={<Plus size={14} />}
             onClick={novoCliente}
           >
             Novo Cliente
@@ -367,10 +370,12 @@ const Clientes = () => {
       {/* Tabela de Clientes */}
       <Card title="Lista de Clientes">
         <Table
+          loading={isLoading}
           dataSource={clientesFiltrados}
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 10 }}
+          locale={{ emptyText: "Nenhum cliente encontrado" }}
         />
       </Card>
 
@@ -426,8 +431,8 @@ const Clientes = () => {
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item
-                label="CPF"
-                name="cpf"
+                label="CPF/CNPJ"
+                name="cpfCnpj"
                 rules={[
                   {
                     pattern: /^\d{3}\.\d{3}\.\d{3}-\d{2}$/,
@@ -436,6 +441,59 @@ const Clientes = () => {
                 ]}
               >
                 <CpfInput />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Limite de Crédito" name="creditLimit">
+                <CurrencyInput />
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} sm={12}>
+              <Form.Item label="Juros de Atraso (Mês)" name="interest">
+                <InputNumber
+                  className="w-full"
+                  addonBefore="%"
+                  min={0}
+                  max={10}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} sm={12}>
+              <Form.Item label="Melhor dia para pagamento" name="paymentDueDay">
+                <Select
+                  options={[
+                    { label: "5", value: 5 },
+                    {
+                      label: "10",
+                      value: 10,
+                    },
+                    {
+                      label: "15",
+                      value: 15,
+                    },
+                    {
+                      label: "20",
+                      value: 20,
+                    },
+                    {
+                      label: "25",
+                      value: 25,
+                    },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} sm={12}>
+              <Form.Item label="Multa por Atraso" name="fine">
+                <InputNumber
+                  className="w-full"
+                  addonBefore="%"
+                  min={0}
+                  max={99}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -486,7 +544,7 @@ const Clientes = () => {
                   <Statistic
                     title="Pontos de Fidelidade"
                     value={clienteSelecionado.pontosFidelidade}
-                    prefix={<Gift className="text-salao-accent" size={16} />}
+                    prefix={<Gift className="text-salao-accent" size={14} />}
                     valueStyle={{ color: "#ec4899" }}
                   />
                 </Card>
@@ -499,7 +557,7 @@ const Clientes = () => {
                       "DD/MM/YYYY"
                     )}
                     prefix={
-                      <Calendar className="text-salao-primary" size={16} />
+                      <Calendar className="text-salao-primary" size={14} />
                     }
                   />
                 </Card>
@@ -512,7 +570,7 @@ const Clientes = () => {
                       "DD/MM/YYYY"
                     )}
                     prefix={
-                      <ShoppingBag className="text-salao-success" size={16} />
+                      <ShoppingBag className="text-salao-success" size={14} />
                     }
                   />
                 </Card>

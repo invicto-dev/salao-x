@@ -3,6 +3,7 @@ import {
   deleteProduct,
   getProduct,
   getProducts,
+  importProducts,
   updateProduct,
 } from "../api/products";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +13,7 @@ import { AxiosError } from "axios";
 export const useProducts = (filters: {
   search?: string;
   categoryId?: string;
+  status?: string;
   contarEstoque?: boolean;
 }) => {
   return useQuery<Product.Props[]>({
@@ -87,6 +89,21 @@ export const useProductDelete = () => {
         queryKey: ["get-stock-products"],
       });
       message.success("Produto excluído com sucesso.");
+    },
+    onError: (error: AxiosError<{ error: string }>) => {
+      message.error(error.response.data.error);
+    },
+  });
+};
+
+export const useImportProducts = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      return await importProducts(file);
+    },
+    onSuccess: (res) => {
+      message.success(res.message);
     },
     onError: (error: AxiosError<{ error: string }>) => {
       message.error(error.response.data.error);

@@ -1,55 +1,53 @@
 import { Request, Response } from "express";
 
 import { prisma } from "../config/database";
-import {
-  ApprovalStatus,
-  StockMovementReason,
-  StockMovementType,
-} from "@prisma/client";
+import { ApprovalStatus } from "@prisma/client";
 import { AuthRequest } from "../middlewares/auth";
+import { productImportQueue } from "../lib/queue";
+import { ProductService } from "../services/ProductService";
 
 export class ProductsController {
-  static async getProducts(req: Request, res: Response) {
-    const { search, categoryId, contarEstoque } = req.query;
-
-    const products = await prisma.product.findMany({
-      where: {
-        nome: { contains: search as string, mode: "insensitive" },
-        categoriaId: categoryId as string,
-        contarEstoque: contarEstoque ? contarEstoque === "true" : undefined,
-      },
-      include: { categoria: { select: { nome: true } } },
-      orderBy: { nome: "asc" },
-    });
-
-    if (products.length === 0) {
-      return res.status(200).json({ success: true, data: [] });
+  static async importCSV(req: AuthRequest, res: Response) {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: "Nenhum arquivo enviado.",
+      });
     }
 
-    const productIds = products.map((p) => p.id);
-    const stockAggregates = await prisma.stockMovement.groupBy({
-      by: ["produtoId"],
-      _sum: { quantidade: true },
-      where: {
-        produtoId: { in: productIds },
-        status: ApprovalStatus.APROVADO,
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Usuário não autenticado." });
+    }
+
+    const newJob = await prisma.importJob.create({
+      data: {
+        originalFilename: req.file.originalname,
+        storedFilename: req.file.filename,
+        status: "PENDENTE",
+        createdByUserId: req.user.id,
       },
     });
 
-    const stockMap = new Map<string, number>();
-    stockAggregates.forEach((agg) => {
-      stockMap.set(agg.produtoId, agg._sum.quantidade?.toNumber() ?? 0);
+    await productImportQueue.add("process-csv-file", {
+      jobId: newJob.id,
     });
 
-    const productsWithStock = products.map((product) => ({
-      ...product,
-      estoqueAtual: stockMap.get(product.id) ?? 0,
-      categoria: product.categoria?.nome,
-    }));
+    return res.status(202).json({
+      sucess: true,
+      message: "A importação foi iniciada e será processada em segundo plano.",
+      data: {
+        jobId: newJob.id,
+      },
+    });
+  }
 
+  static async getProducts(req: Request, res: Response) {
+    const products = await ProductService.getAll(req.query);
     return res.status(200).json({
       success: true,
-      data: productsWithStock,
+      data: products,
     });
   }
 
@@ -81,55 +79,20 @@ export class ProductsController {
   }
 
   static async createProduct(req: AuthRequest, res: Response) {
-    const { estoqueInicial, ...productData } = req.body;
-
-    if (!req.body) {
-      return res.status(400).json({
-        success: false,
-        error: "Nenhuma informação do produto fornecida",
-      });
-    }
-
-    const user = req.user;
-    if (!user) {
+    if (!req.user) {
       return res
         .status(401)
         .json({ success: false, error: "Usuário não autenticado." });
     }
 
-    const newProduct = await prisma.$transaction(async (tx) => {
-      const product = await tx.product.create({
-        data: productData,
-      });
+    const payload: Product.CreatePayload = {
+      ...req.body,
+      user: { id: req.user.id },
+    };
 
-      if (estoqueInicial && estoqueInicial > 0) {
-        await tx.stockMovement.create({
-          data: {
-            produtoId: product.id,
-            quantidade: estoqueInicial,
-            tipo: StockMovementType.ENTRADA,
-            motivo: StockMovementReason.COMPRA,
-            status: ApprovalStatus.APROVADO,
-            observacao: "Estoque inicial criado automaticamente",
-            solicitadoPorId: user.id,
-          },
-        });
-      }
+    const newProduct = await ProductService.create(payload);
 
-      return product;
-    });
-
-    if (!newProduct) {
-      return res.status(404).json({
-        success: false,
-        error: "Não foi possível criar o produto",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: newProduct,
-    });
+    return res.status(201).json({ success: true, data: newProduct });
   }
 
   static async deleteProduct(req: Request, res: Response) {

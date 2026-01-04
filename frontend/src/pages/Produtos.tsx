@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Card,
   Table,
   Button,
   Input,
@@ -16,28 +15,26 @@ import {
   Col,
   Upload,
   Checkbox,
-  TableColumnProps,
   Tooltip,
+  Progress,
 } from "antd";
+import { Plus, Upload as UploadIcon, FileText, ScanBarcode } from "lucide-react";
 import {
-  Package,
-  Plus,
-  Search,
-  Edit,
-  Upload as UploadIcon,
-  Trash2,
-} from "lucide-react";
-import {
+  useImportProducts,
   useProductCreate,
   useProductDelete,
   useProducts,
   useProductUpdate,
 } from "@/hooks/use-products";
 import { NameInput } from "@/components/inputs/NameInput";
-import { useCategories } from "@/hooks/use-categories";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
-import { formatCurrency } from "@/utils/formatCurrency";
-import DropdownComponent from "@/components/Dropdown";
+import { unidadeMedidas } from "@/constants/products";
+import { useImportJobStatus } from "@/hooks/use-import-jobs";
+import { productColumns } from "@/constants/tables/products";
+import BarCodeInput from "@/components/inputs/BarCodeInput";
+import { useDebounce } from "@/hooks/use-debounce";
+import CategorySelect from "@/components/selects/CategorySelect";
+import PagesLayout from "@/components/layout/PagesLayout";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -46,129 +43,26 @@ const { TextArea } = Input;
 const Produtos = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [filtroCategoria, setFiltroCategoria] = useState(undefined);
-  const [filtroStatus, setFiltroStatus] = useState(undefined);
-  const [busca, setBusca] = useState("");
+  const [params, setParams] = useState<Params>({});
+  const [importModalVisible, setImportModalVisible] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [form] = Form.useForm();
-  const { data: products, isFetching: isFetchingProducts } = useProducts({
-    search: busca,
-    categoryId: filtroCategoria,
+  const {
+    data: products = [],
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useProducts({
+    ...params,
+    search: useDebounce(params.search) || params.search,
   });
-  const { data: categories } = useCategories();
-  const { mutateAsync: createProduct } = useProductCreate();
-  const { mutateAsync: updateProduct } = useProductUpdate();
+  const { mutateAsync: createProduct, isPending: isPendingCreateProduct } = useProductCreate();
+  const { mutateAsync: updateProduct, isPending: isPendingUpdateProduct } = useProductUpdate();
   const { mutateAsync: deleteProduto } = useProductDelete();
-
-  const unidadeMedidas = ["un", "m", "kg", "g", "mg", "cm", "mm"];
-
-  const productsFiltered = (products || []).filter((produto) => {
-    const matchStatus =
-      (filtroStatus || "") === "" ||
-      (filtroStatus === "ativo" && produto.ativo) ||
-      (filtroStatus === "inativo" && !produto.ativo);
-    return matchStatus;
-  });
-
-  const columns: TableColumnProps<Product.Props>[] = [
-    {
-      title: "Produto",
-      key: "produto",
-      render: (_: any, record) => (
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-            <Package size={20} className="text-muted-foreground" />
-          </div>
-          <div>
-            <div className="font-medium">{record.nome}</div>
-            <div className="text-sm text-muted-foreground">
-              {record.codigo || "Sem código"} •{" "}
-              {record.categoria || "Sem categoria"}
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Preços",
-      key: "precos",
-      render: (_, record) => (
-        <div>
-          <div className="font-semibold text-salao-primary">
-            {formatCurrency(record.preco)}
-          </div>
-          {record.valorEmAberto && (
-            <div className="text-sm text-muted-foreground">Valor em aberto</div>
-          )}
-          {record.custo && record.custo > 0 && (
-            <div className="text-sm text-muted-foreground">
-              Custo: {formatCurrency(record.custo)}
-            </div>
-          )}
-
-          {!record.valorEmAberto &&
-            record.custo &&
-            record.custo > 0 &&
-            record.preco && (
-              <div className="text-xs text-salao-success">{`Margem: ${(
-                ((record.preco - record.custo) / record.custo) *
-                100
-              ).toFixed(2)} %`}</div>
-            )}
-        </div>
-      ),
-    },
-    {
-      title: "Estoque",
-      dataIndex: "estoqueAtual",
-      key: "estoque",
-      render: (estoqueAtual: number, record) =>
-        record.contarEstoque ? (
-          <Tag
-            color={
-              estoqueAtual > 10 ? "green" : estoqueAtual > 0 ? "orange" : "red"
-            }
-          >
-            {estoqueAtual} un
-          </Tag>
-        ) : (
-          <div className="text-sm text-muted-foreground">Não habilitado</div>
-        ),
-    },
-    {
-      title: "Status",
-      dataIndex: "ativo",
-      key: "ativo",
-      align: "center",
-      render: (ativo: boolean) => (
-        <Tag color={ativo ? "green" : "red"}>{ativo ? "Ativo" : "Inativo"}</Tag>
-      ),
-    },
-    {
-      title: "Ações",
-      key: "acoes",
-      align: "center",
-      render: (_, record) => (
-        <DropdownComponent
-          menu={{
-            items: [
-              {
-                key: "editar",
-                icon: <Edit size={14} />,
-                label: "Editar",
-                onClick: () => editarProduto(record),
-              },
-              {
-                key: "excluir",
-                icon: <Trash2 size={14} />,
-                label: "Excluir",
-                onClick: () => excluirProduto(record),
-              },
-            ],
-          }}
-        />
-      ),
-    },
-  ];
+  const { data: job } = useImportJobStatus(jobId);
+  const { mutateAsync: importProducts, isPending } = useImportProducts();
 
   const editarProduto = (produto: Product.Props) => {
     setEditingProduct(produto);
@@ -209,6 +103,21 @@ const Produtos = () => {
     }
   };
 
+  const handleUpload = async () => {
+    try {
+      const data = await importProducts(selectedFile!);
+      setJobId(data.data.jobId);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const clearImportModal = () => {
+    setImportModalVisible(false);
+    setSelectedFile(null);
+    refetch();
+  };
+
   const uploadProps = {
     name: "file",
     showUploadList: false,
@@ -237,101 +146,80 @@ const Produtos = () => {
     });
   };
 
-  const SelectCategory = ({
-    value,
-    placeholder,
-    onChange,
-  }: {
-    value?: string;
-    placeholder: string;
-    onChange?: (value: string) => void;
-  }) => (
-    <Select
-      placeholder={placeholder}
-      allowClear
-      value={value}
-      onChange={onChange}
-      className="min-w-[250px]"
-      showSearch
-      optionFilterProp="label"
-      filterSort={(optionA, optionB) =>
-        (optionA?.label ?? "")
-          .toLowerCase()
-          .localeCompare((optionB?.label ?? "").toLowerCase())
-      }
-      options={categories?.map((cat) => ({
-        value: cat.id,
-        label: cat.nome,
-      }))}
-    />
-  );
+  const filters = [
+    {
+      element: (
+        <BarCodeInput
+          label="Produto"
+          onChangeValue={(e) => setParams({ ...params, search: e })}
+          value={params.search}
+          sourceLength={products.length}
+        />
+      ),
+    },
+    {
+      element: (
+        <CategorySelect
+          onChange={(e) => setParams({ ...params, categoryId: e })}
+          value={params.categoryId}
+          isFilter
+        />
+      ),
+    },
+    {
+      element: (
+        <Select
+          placeholder="Filtrar por status"
+          allowClear
+          onChange={(value) => setParams({ ...params, status: value })}
+          className="w-full md:w-48"
+        >
+          <Option value={true}>Ativo</Option>
+          <Option value={false}>Inativo</Option>
+        </Select>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Title level={2} className="!mb-0">
-          Gestão de Produtos
-        </Title>
-        <p className="text-muted-foreground">
-          Cadastre e gerencie produtos para venda
-        </p>
-      </div>
+    <PagesLayout
+      title="Gestão de Produtos"
+      subtitle="Cadastre e gerencie produtos para venda"
+      filters={filters}
+      buttonsAfterFilters={[
+        {
+          children: "Importar CSV",
+          icon: <UploadIcon size={14} />,
+          onClick: () => setImportModalVisible(true),
+        },
+        {
+          children: "Novo Produto",
+          icon: <Plus size={14} />,
+          onClick: novoProduto,
+          type: "primary",
+        },
+      ]}
+      Error={{
+        isError: isError,
+        onClick: refetch,
+      }}
+    >
+      <Table
+        dataSource={products}
+        columns={productColumns(editarProduto, excluirProduto)}
+        rowKey="id"
+        loading={isLoading || isPendingCreateProduct || isFetching}
+        locale={{ emptyText: "Nenhum produto encontrado" }}
+      />
 
-      {/* Filtros e Ações */}
-      <Card>
-        <div className="flex flex-col lg:flex-row gap-4 justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <Input
-              placeholder="Buscar por nome ou código..."
-              prefix={<Search size={16} />}
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="max-w-xs"
-            />
-            <SelectCategory
-              onChange={setFiltroCategoria}
-              value={filtroCategoria}
-              placeholder="Categoria"
-            />
-
-            <Select
-              placeholder="Status"
-              allowClear
-              value={filtroStatus}
-              onChange={setFiltroStatus}
-              className="min-w-[120px]"
-            >
-              <Option value="ativo">Ativo</Option>
-              <Option value="inativo">Inativo</Option>
-            </Select>
-          </div>
-          <Button
-            type="primary"
-            icon={<Plus size={16} />}
-            onClick={novoProduto}
-          >
-            Novo Produto
-          </Button>
-        </div>
-      </Card>
-
-      {/* Tabela de Produtos */}
-      <Card title="Lista de Produtos">
-        <Table
-          dataSource={productsFiltered}
-          columns={columns}
-          rowKey="id"
-          loading={{ spinning: isFetchingProducts }}
-          pagination={{ pageSize: 10 }}
-        />
-      </Card>
-
-      {/* Modal de Cadastro/Edição */}
       <Modal
         title={editingProduct ? "Editar Produto" : "Novo Produto"}
         open={modalVisible}
         onCancel={clearForm}
         onOk={() => form.submit()}
+        okButtonProps={{
+          loading: isPendingCreateProduct || isPendingUpdateProduct
+        }}
         okText={editingProduct ? "Salvar" : "Cadastrar"}
         width={800}
       >
@@ -360,7 +248,7 @@ const Produtos = () => {
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.Item label="Código/SKU" name="codigo">
-                    <Input placeholder="Ex: SHAM001" />
+                    <Input placeholder="Ex: SHAM001" suffix={<ScanBarcode size={14} />} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -368,7 +256,7 @@ const Produtos = () => {
               <Row gutter={16}>
                 <Col xs={24} sm={12}>
                   <Form.Item label="Categoria" name="categoriaId">
-                    <SelectCategory placeholder="Selecionar categoria" />
+                    <CategorySelect placeholder="Selecionar categoria" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
@@ -511,7 +399,112 @@ const Produtos = () => {
           </Row>
         </Form>
       </Modal>
-    </div>
+      <Modal
+        title="Importar Produtos via CSV"
+        open={importModalVisible}
+        onCancel={clearImportModal}
+        footer={[
+          <Button key="back" onClick={clearImportModal}>
+            {job ? "Fechar" : "Cancelar"}
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={isPending}
+            onClick={handleUpload}
+            disabled={!selectedFile || !!job}
+          >
+            Iniciar Importação
+          </Button>,
+        ]}
+        width={600}
+      >
+        {!job ? (
+          <>
+            <Typography.Text>
+              Selecione um arquivo no formato CSV para adicionar produtos em
+              massa. Certifique-se de que o arquivo segue o modelo padrão.
+            </Typography.Text>
+            <div className="my-4">
+              <a href="/produtos_modelo.csv" download>
+                <Button icon={<FileText size={14} />}>Baixar Modelo CSV</Button>
+              </a>
+            </div>
+            <Upload.Dragger
+              name="file"
+              accept=".csv"
+              multiple={false}
+              beforeUpload={(file) => {
+                setSelectedFile(file);
+                return false;
+              }}
+              onRemove={() => {
+                setSelectedFile(null);
+              }}
+              fileList={selectedFile ? [selectedFile as any] : []}
+            >
+              <p className="ant-upload-drag-icon">
+                <UploadIcon size={48} className="mx-auto text-gray-400" />
+              </p>
+              <p className="ant-upload-text">
+                Clique ou arraste o arquivo CSV para esta área
+              </p>
+              <p className="ant-upload-hint">
+                Suporte para um único arquivo. Use o modelo para evitar erros.
+              </p>
+            </Upload.Dragger>
+          </>
+        ) : (
+          <div>
+            <Title level={5}>Progresso da Importação</Title>
+            <p>
+              Status: <Tag>{job.status}</Tag>
+            </p>
+            <Progress
+              percent={
+                job.totalRows > 0
+                  ? Math.round((job.processedRows / job.totalRows) * 100)
+                  : 0
+              }
+            />
+            <Typography.Text type="secondary">
+              {job.processedRows} de {job.totalRows} linhas processadas.
+            </Typography.Text>
+
+            {(job.status === "CONCLUIDO" ||
+              job.status === "CONCLUIDO_COM_ERROS") && (
+              <div className="mt-4">
+                <p>
+                  ✅ <strong>{job.successfulRows}</strong> produtos importados
+                  com sucesso.
+                </p>
+                {job.failedRows > 0 && (
+                  <p>
+                    ❌ <strong>{job.failedRows}</strong> produtos falharam.
+                  </p>
+                )}
+
+                {job.results && job.results.length > 0 && (
+                  <div className="mt-4">
+                    <Typography.Text strong>
+                      Detalhes dos Erros:
+                    </Typography.Text>
+                    <div className="mt-2 p-2 border rounded bg-gray-50 max-h-40 overflow-y-auto">
+                      {job.results.map((res, index) => (
+                        <p key={index} className="text-xs">
+                          <strong>Linha {res.row}:</strong>{" "}
+                          {res.errors.join(", ")}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+    </PagesLayout>
   );
 };
 

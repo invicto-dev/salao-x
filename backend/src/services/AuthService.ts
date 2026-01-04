@@ -17,15 +17,8 @@ export class AuthService {
       throw new Error("Credenciais inválidas");
     }
 
-    console.log("senha salva no db: ", user.senha);
-
-    console.log("senha inserida: ", senha);
-
-    console.log("validação de igualdade: ", user.senha === senha);
-
     // Verificar senha
     const isValidPassword = await bcrypt.compare(senha, user.senha);
-    console.log("validação bcypt: ", isValidPassword);
     if (!isValidPassword) {
       throw new Error("Credenciais inválidas");
     }
