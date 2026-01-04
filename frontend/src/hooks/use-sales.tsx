@@ -1,8 +1,8 @@
 import {
   createSale,
+  finishedCommand,
   getSale,
   getSales,
-  updateSale,
   updateSaleStatus,
 } from "@/api/sales";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -49,7 +49,7 @@ export const useSaleCreate = () => {
   });
 };
 
-export const useSaleUpdate = () => {
+export const useFinishedCommand = () => {
   const queryCliente = useQueryClient();
   const res = useMutation({
     mutationFn: async ({
@@ -59,11 +59,11 @@ export const useSaleUpdate = () => {
       id: string;
       body: Partial<Sale.Props>;
     }) => {
-      return await updateSale(id, body);
+      return await finishedCommand(id, body);
     },
     onSuccess: () => {
       queryCliente.invalidateQueries({ queryKey: ["get-sales"] });
-      message.success("Venda atualizada com sucesso.");
+      message.success("Comanda registrada com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
       message.error(error.response.data.error);

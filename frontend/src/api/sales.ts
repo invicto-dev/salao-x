@@ -17,11 +17,11 @@ export const createSale = async (
   return response.data.data;
 };
 
-export const updateSale = async (
+export const finishedCommand = async (
   id: string,
   body: Partial<Sale.Props>
 ): Promise<Sale.Props> => {
-  const response = await http.patch(`/sales/${id}`, body);
+  const response = await http.put(`/sales/finish-command/${id}`, body);
   return response.data.data;
 };
 

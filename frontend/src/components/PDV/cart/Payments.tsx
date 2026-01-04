@@ -15,12 +15,13 @@ import React, { useState } from "react";
 import { CurrencyInput } from "../../inputs/CurrencyInput";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { CardWithDisabled } from "../../cards/cardWithDisabled";
-import { useSaleCreate, useSaleUpdate } from "@/hooks/use-sales";
+import { useFinishedCommand, useSaleCreate } from "@/hooks/use-sales";
 import { formatItem } from "@/utils/cart/formatItem";
 import { usePaymentMethods } from "@/hooks/use-payment-methods";
 import { useReciboVenda } from "@/hooks/use-recibo-venda";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSale } from "@/api/sales";
+import { useNavigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
 
@@ -37,9 +38,11 @@ export const Payments: React.FC<PaymentsProps> = ({
   updateSaleSession,
   clearCart,
 }) => {
+  const navigate = useNavigate();
   const { mutateAsync: createSale, isPending: isCreatingSale } =
     useSaleCreate();
-  const { mutateAsync: updateSale, isPending: isUpdateSale } = useSaleUpdate();
+  const { mutateAsync: finishedCommand, isPending: isFinishedCommand } =
+    useFinishedCommand();
   const { data: paymentMethods = [] } = usePaymentMethods();
   const { abrirRecibo, ReciboComponent } = useReciboVenda(clearCart);
   const queryClient = useQueryClient();
@@ -141,16 +144,31 @@ export const Payments: React.FC<PaymentsProps> = ({
       };
 
       if (salesSession.saleId) {
-        console.log("finalizando venda aberta", salesSession.saleId);
-        const update = updateSale({ id: salesSession.saleId, body: payload });
-      }
+        const updateSale = await finishedCommand({
+          id: salesSession.saleId,
+          body: payload,
+        });
 
-      /* const newSale = await createSale(payload);
-      const completeSale = await queryClient.fetchQuery({
-        queryKey: ["get-sale", newSale.id],
-        queryFn: () => getSale(newSale.id),
-      });
-      abrirRecibo(completeSale); */
+        const completeSale = await queryClient.fetchQuery({
+          queryKey: ["get-sale", updateSale.id],
+          queryFn: () => getSale(updateSale.id),
+        });
+
+        console.log("complete sale", completeSale);
+        abrirRecibo(completeSale);
+
+        /*  abrirRecibo(updateSale); */
+
+        navigate(".", { replace: true });
+        /* clearCart(); */
+      } else {
+        const newSale = await createSale(payload);
+        const completeSale = await queryClient.fetchQuery({
+          queryKey: ["get-sale", newSale.id],
+          queryFn: () => getSale(newSale.id),
+        });
+        abrirRecibo(completeSale);
+      }
     } catch (error: any) {
       console.error(error.message || "Erro ao finalizar a venda.");
     }

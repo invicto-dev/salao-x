@@ -21,6 +21,8 @@ export const ReciboVenda = ({
 }: ReciboVendaProps) => {
   if (!venda) return null;
 
+  console.log("detro", venda)
+
   const handlePrint = () => {
     window.print();
   };

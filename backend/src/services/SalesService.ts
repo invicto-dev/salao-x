@@ -249,7 +249,7 @@ export class SalesService {
     });
   }
 
-  static async update(payload: Sales.CreatePayload) {
+  static async finishCommand(saleId: string, payload: Sales.CreatePayload) {
     const {
       clienteId,
       itens,
@@ -259,6 +259,42 @@ export class SalesService {
       desconto,
       ...saleData
     } = payload;
+
+    const { finalItens, subtotal, total } = this._calculateTransactionDetails(
+      itens,
+      desconto,
+      acrescimo
+    );
+
+    const updateSale = await prisma.$transaction(async (tx) => {
+      const sale = await tx.sale.update({
+        where: { id: saleId },
+        data: {
+          ...saleData,
+          clienteId,
+          subtotal,
+          total,
+          status: "PAGO",
+          itens: {
+            deleteMany: {},
+            create: finalItens.map(({ contarEstoque, ...item }) => item),
+          },
+        },
+      });
+      await this._finalizeSaleTransaction(tx, {
+        saleId,
+        pagamentos,
+        clienteId,
+        itens,
+        user,
+      });
+      return sale;
+    });
+
+    return prisma.sale.findUnique({
+      where: { id: updateSale.id },
+      include: { itens: true, pagamentos: true },
+    });
   }
 
   static async finalize(

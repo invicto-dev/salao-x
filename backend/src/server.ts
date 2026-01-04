@@ -30,7 +30,7 @@ app.use(
   cors({
     origin:
       NODE_ENV == "development"
-        ? process.env.FRONTEND_URL_DEV
+        ? [process.env.FRONTEND_URL_DEV, `${process.env.FRONTEND_URL_DEV}/`]
         : process.env.FRONTEND_URL_PRD,
     credentials: true,
   })

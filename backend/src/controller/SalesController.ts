@@ -31,7 +31,7 @@ export class SalesController {
     res.status(201).json({ success: true, data: newSale });
   }
 
-  static async update(req: AuthRequest, res: Response) {
+  static async finishCommand(req: AuthRequest, res: Response) {
     if (!req.user) {
       return res
         .status(401)
@@ -45,7 +45,7 @@ export class SalesController {
       user: { id: req.user.id },
     };
 
-    const updatedSale = await SalesService.update(id, payload);
+    const updatedSale = await SalesService.finishCommand(id, payload);
     res.status(200).json({ success: true, data: updatedSale });
   }
 
