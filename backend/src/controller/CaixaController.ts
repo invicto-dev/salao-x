@@ -27,7 +27,7 @@ export class CaixaController {
         ...summary,
         valorFechamentoCalculado:
           valorAbertura +
-          summary.totalLiquidoVendasDinheiro +
+          summary.saldoFisicoDinheiro +
           summary.totalEntradas -
           summary.totalSaidas,
       },
@@ -75,8 +75,8 @@ export class CaixaController {
               },
             },
           },
-        }
-      }
+        },
+      },
     });
     return res.status(200).json({ sucess: true, data: caixas });
   }

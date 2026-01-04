@@ -31,17 +31,27 @@ declare global {
       motivo: string;
       caixaId: string;
       funcionarioId: string;
-    funcionario: Employee.Props;
+      funcionario: Employee.Props;
       createdAt: Date;
       updatedAt: Date;
     }
 
-    interface Summary {
-      valorAbertura: number;
-      totalLiquidoVendasDinheiro: number;
+    export interface MetodoResumo {
+      metodoId: string;
+      nome: string;
+      isCash: boolean;
+      valorBruto: number;
+      valorLiquido: number;
+    }
+
+    export interface SummaryResponse {
+      resumoPorMetodo: MetodoResumo[];
+      totalVendasGeral: number;
+      totalTroco: number;
       totalEntradas: number;
       totalSaidas: number;
-      valorFechamentoCalculado: number;
+      saldoFisicoDinheiro: number;
+      valorAbertura: number;
     }
 
     interface BodyOpen {

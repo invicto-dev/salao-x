@@ -1,11 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   Typography,
-  Card,
-  Table,
   Input,
   Select,
-  DatePicker,
   Tag,
   Modal,
   Drawer,
@@ -15,7 +12,7 @@ import {
   Button,
 } from "antd";
 import { useSales, useSaleUpdateStatus } from "@/hooks/use-sales";
-import { Ban, DollarSign, Edit, Receipt, Search, Trash2 } from "lucide-react";
+import { Ban, Receipt, Search } from "lucide-react";
 import { useReciboVenda } from "@/hooks/use-recibo-venda";
 import { formatCurrency } from "@/utils/formatCurrency";
 import DropdownComponent from "@/components/Dropdown";
@@ -24,8 +21,9 @@ import PagesLayout from "@/components/layout/PagesLayout";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ResponsiveTable } from "@/components/tables/ResponsiveTable";
 import { formatDateTime } from "@/utils/formatDateTime";
+import { format } from "path";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 type Venda = ReturnType<typeof useSales>["data"][0];
 
@@ -41,6 +39,8 @@ const Vendas = () => {
     search: useDebounce(params.search),
   });
   const { mutate: update } = useSaleUpdateStatus();
+
+  console.log("Vendas renderizadas:", vendas);
 
   const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null);
 
@@ -72,7 +72,6 @@ const Vendas = () => {
     });
   };
 
-  // Função para mapear status para cor da Tag
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PAGO":
@@ -98,7 +97,7 @@ const Vendas = () => {
       title: "Data/Hora",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (text: string) => new Date(text).toLocaleString("pt-BR"),
+      render: (text: string) => formatDateTime(text),
     },
     {
       title: "Cliente",
@@ -113,10 +112,7 @@ const Vendas = () => {
       dataIndex: "total",
       key: "total",
       render: (total: string) =>
-        Number(total).toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        }),
+       formatCurrency(total)
     },
     {
       title: "Status",
@@ -126,6 +122,12 @@ const Vendas = () => {
       render: (status: string) => (
         <Tag color={getStatusColor(status)}>{status}</Tag>
       ),
+    },
+    {
+      title: "Caixa",
+      dataIndex: "caixaId",
+      align: "center",
+      render: (caixaId: string) => <span>{formatSaleId(caixaId)}</span>,
     },
     {
       title: "Ações",

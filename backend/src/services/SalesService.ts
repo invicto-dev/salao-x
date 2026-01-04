@@ -30,6 +30,7 @@ export class SalesService {
         funcionario: true,
         itens: { include: { produto: true, servico: true } },
         pagamentos: { include: { metodoDePagamento: true } },
+        caixa: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -317,6 +318,8 @@ export class SalesService {
       const saleItemsPayload = saleToFinalize.itens.map((item) => ({
         ...item,
         preco: Number(item.preco),
+        produtoId: item.produtoId ?? undefined,
+        servicoId: item.servicoId ?? undefined,
       }));
 
       // Reutiliza a mesma lógica de finalização!

@@ -18,7 +18,7 @@ import {
   Tooltip,
   Progress,
 } from "antd";
-import { Plus, Upload as UploadIcon, FileText } from "lucide-react";
+import { Plus, Upload as UploadIcon, FileText, ScanBarcode } from "lucide-react";
 import {
   useImportProducts,
   useProductCreate,
@@ -248,7 +248,7 @@ const Produtos = () => {
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.Item label="Código/SKU" name="codigo">
-                    <Input placeholder="Ex: SHAM001" />
+                    <Input placeholder="Ex: SHAM001" suffix={<ScanBarcode size={14} />} />
                   </Form.Item>
                 </Col>
               </Row>

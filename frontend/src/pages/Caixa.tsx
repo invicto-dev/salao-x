@@ -144,7 +144,7 @@ const Caixa = () => {
       </Card>
 
       <Drawer
-        title={"Detalhes da Caixa"}
+        title={"Detalhes do Caixa"}
         open={drawerVisible}
         onClose={() => {
           setDrawerVisible(false);
