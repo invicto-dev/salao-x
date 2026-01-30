@@ -1,0 +1,61 @@
+name: Build & Push to Registry
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: 167.86.71.194:5000
+  BACKEND_IMAGE: salao-x-backend
+  FRONTEND_IMAGE: salao-x-frontend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest # <--- Mudou aqui: Roda na nuvem do GitHub
+    steps:
+      - name: 📥 Checkout do Código
+        uses: actions/checkout@v4
+
+      # --- PASSO NOVO E OBRIGATÓRIO ---
+      # Como seu registry é HTTP, precisamos configurar o Docker do GitHub para aceitá-lo
+      - name: 🔓 Configurar Insecure Registry
+        run: |
+          # Cria/Edita o daemon.json
+          echo "{ \"insecure-registries\": [\"$REGISTRY\"] }" | sudo tee /etc/docker/daemon.json
+          # Reinicia o Docker para aplicar
+          sudo systemctl restart docker
+
+      - name: 🐳 Login no Registry Privado
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # --- BUILD BACKEND ---
+      - name: 🛠️ Build & Push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+          build-args: |
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+
+      # --- BUILD FRONTEND ---
+      - name: 🎨 Build & Push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+          # Lembre-se de ajustar a URL se necessário ou usar .env
+          build-args: |
+            VITE_API_URL=http://167.86.71.194:3004/api
