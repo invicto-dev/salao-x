@@ -6,7 +6,7 @@ import {
   updateFuncionario,
 } from "@/api/funcionarios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { toast } from "sonner";
 import { AxiosError } from "axios";
 
 export const useFuncionarios = () => {
@@ -31,10 +31,10 @@ export const useFuncionarioCreate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-funcionarios"] });
-      message.success("Funcionário criado com sucesso.");
+      toast.success("Funcionário criado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
       return error;
     },
   });
@@ -50,10 +50,10 @@ export const useFuncionarioUpdate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-funcionarios"] });
-      message.success("Funcionário atualizado com sucesso.");
+      toast.success("Funcionário atualizado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 
@@ -68,10 +68,10 @@ export const useFuncionarioDelete = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-funcionarios"] });
-      message.success("Funcionário excluído com sucesso.");
+      toast.success("Funcionário excluído com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 };

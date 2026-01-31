@@ -6,7 +6,7 @@ import {
   updateService,
 } from "../api/services";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { toast } from "sonner";
 import { AxiosError } from "axios";
 
 export const useServices = (params: { search?: string; status?: string }) => {
@@ -31,10 +31,10 @@ export const useServiceCreate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-services"] });
-      message.success("Serviço criado com sucesso.");
+      toast.success("Serviço criado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
       return error;
     },
   });
@@ -50,10 +50,10 @@ export const useServiceUpdate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-services"] });
-      message.success("Serviço atualizado com sucesso.");
+      toast.success("Serviço atualizado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 
@@ -68,10 +68,10 @@ export const useServiceDelete = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-services"] });
-      message.success("Serviço excluído com sucesso.");
+      toast.success("Serviço excluído com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 };

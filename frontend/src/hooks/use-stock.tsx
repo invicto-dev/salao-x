@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { toast } from "sonner";
 import { AxiosError } from "axios";
 import {
   getStockKpis,
@@ -31,10 +31,10 @@ export const useStockMovementCreate = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-stock-kpis"] });
       queryClient.invalidateQueries({ queryKey: ["get-recent-movements"] });
-      message.success("Movimentação registrada com sucesso!");
+      toast.success("Movimentação registrada com sucesso!");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(
+      toast.error(
         error.response?.data?.error || "Falha ao registrar movimentação."
       );
     },

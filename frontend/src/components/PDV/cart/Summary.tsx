@@ -1,14 +1,13 @@
-import { Card, Divider, Flex, Typography, theme } from "antd";
+import React from "react";
 import { calPercentual } from "@/utils/cart/calculeIncreaseOrDecrease";
 import { formatCurrency } from "@/utils/formatCurrency";
-
-const { Text } = Typography;
+import { Separator } from "@/components/ui/separator";
 
 interface Props {
   subtotal: number;
   total: number;
-  increase: Sale.increaseOrDecrease;
-  decrease: Sale.increaseOrDecrease;
+  increase: any;
+  decrease: any;
 }
 
 export default function CartSummary({
@@ -17,94 +16,44 @@ export default function CartSummary({
   increase,
   decrease,
 }: Props) {
-  const { token } = theme.useToken();
-
   const increaseValue =
     increase?.value > 0 ? calPercentual(subtotal, increase) : 0;
   const decreaseValue =
     decrease?.value > 0 ? calPercentual(subtotal, decrease) : 0;
 
   return (
-    <Card
-      style={{
-        background: token.colorBgContainer,
-        borderRadius: token.borderRadiusLG,
-        padding: token.paddingLG,
-        boxShadow: "0 0 0 1px rgba(0,0,0,0.04)",
-      }}
-      className="!p-0"
-    >
-      <Flex vertical gap={token.marginXS}>
-        {/* Subtotal */}
-        <Flex justify="space-between" align="center">
-          <Text type="secondary">Subtotal</Text>
-          <Text>{formatCurrency(subtotal)}</Text>
-        </Flex>
+    <div className="bg-muted/10 rounded-lg p-4 border space-y-3">
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-muted-foreground">Subtotal</span>
+        <span className="font-medium">{formatCurrency(subtotal)}</span>
+      </div>
 
-        {/* Acréscimo */}
-        {increase?.value > 0 && (
-          <Flex justify="space-between" align="center">
-            <Text
-              style={{
-                color: token.colorSuccessText,
-                fontSize: token.fontSizeSM,
-              }}
-            >
-              Acréscimo
-              {increase?.type === "PORCENTAGEM" && ` (${increase.value}%)`}
-            </Text>
-            <Text
-              style={{
-                color: token.colorSuccessText,
-                fontSize: token.fontSizeSM,
-              }}
-            >
-              + {formatCurrency(increaseValue)}
-            </Text>
-          </Flex>
-        )}
+      {increase?.value > 0 && (
+        <div className="flex justify-between items-center text-sm text-emerald-600">
+          <span>
+            Acréscimo
+            {increase?.type === "PORCENTAGEM" && ` (${increase.value}%)`}
+          </span>
+          <span className="font-medium">+ {formatCurrency(increaseValue)}</span>
+        </div>
+      )}
 
-        {/* Desconto */}
-        {decrease?.value > 0 && (
-          <Flex justify="space-between" align="center">
-            <Text
-              style={{
-                color: token.colorErrorText,
-                fontSize: token.fontSizeSM,
-              }}
-            >
-              Desconto
-              {decrease?.type === "PORCENTAGEM" && ` (${decrease?.value}%)`}
-            </Text>
-            <Text
-              style={{
-                color: token.colorErrorText,
-                fontSize: token.fontSizeSM,
-              }}
-            >
-              - {formatCurrency(decreaseValue)}
-            </Text>
-          </Flex>
-        )}
+      {decrease?.value > 0 && (
+        <div className="flex justify-between items-center text-sm text-destructive">
+          <span>
+            Desconto
+            {decrease?.type === "PORCENTAGEM" && ` (${decrease?.value}%)`}
+          </span>
+          <span className="font-medium">- {formatCurrency(decreaseValue)}</span>
+        </div>
+      )}
 
-        <Divider style={{ margin: `${token.marginXS}px 0` }} />
+      <Separator />
 
-        {/* Total */}
-        <Flex justify="space-between" align="center">
-          <Text strong style={{ fontSize: token.fontSizeLG }}>
-            Total
-          </Text>
-          <Text
-            strong
-            style={{
-              fontSize: token.fontSizeLG,
-              color: token.colorText,
-            }}
-          >
-            {formatCurrency(total)}
-          </Text>
-        </Flex>
-      </Flex>
-    </Card>
+      <div className="flex justify-between items-center">
+        <span className="font-bold text-lg">Total</span>
+        <span className="font-bold text-xl text-primary">{formatCurrency(total)}</span>
+      </div>
+    </div>
   );
 }

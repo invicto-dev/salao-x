@@ -1,3 +1,12 @@
+import React, { useState, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
 import {
   createCategory,
   deleteCategory,
@@ -6,21 +15,35 @@ import {
   updateCategory,
 } from "@/api/categories";
 import { NameInput } from "@/components/inputs/NameInput";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Col, Form, message, Modal, Row, Switch } from "antd";
-import TextArea from "antd/es/input/TextArea";
-import { AxiosError } from "axios";
-import { useEffect, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 
-export const useCategories = (params?: Params) => {
-  return useQuery<Category.Props[]>({
+export const useCategories = (params?: any) => {
+  return useQuery<any[]>({
     queryKey: ["get-categories", params],
     queryFn: () => getCategories(params),
   });
 };
 
 export const useCategory = (id: string) => {
-  return useQuery<Category.Props>({
+  return useQuery<any>({
     queryKey: ["get-categories", id],
     queryFn: () => getCategory(id),
   });
@@ -28,39 +51,34 @@ export const useCategory = (id: string) => {
 
 export const useCategoryCreate = () => {
   const queryClient = useQueryClient();
-  const res = useMutation({
-    mutationFn: async (body: Category.Props) => {
+  return useMutation({
+    mutationFn: async (body: any) => {
       return await createCategory(body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-categories"] });
-      message.success("Categoria criada com sucesso.");
+      toast.success("Categoria criada com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
-      return error;
+      toast.error(error.response?.data?.error || "Erro ao criar categoria");
     },
   });
-
-  return res;
 };
 
 export const useCategoryUpdate = () => {
   const queryClient = useQueryClient();
-  const res = useMutation({
-    mutationFn: async ({ id, body }: { id: string; body: Category.Props }) => {
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: any }) => {
       return await updateCategory(id, body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-categories"] });
-      message.success("Categoria atualizada com sucesso.");
+      toast.success("Categoria atualizada com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response?.data?.error || "Erro ao atualizar categoria");
     },
   });
-
-  return res;
 };
 
 export const useCategoryDelete = () => {
@@ -71,52 +89,68 @@ export const useCategoryDelete = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-categories"] });
-      message.success("Categoria excluída com sucesso.");
+      toast.success("Categoria excluída com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response?.data?.error || "Erro ao excluir categoria");
     },
   });
 };
 
-export const useCategoryModal = (initialValues?: Category.Props) => {
+const categorySchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+  descricao: z.string().optional(),
+  ativo: z.boolean().default(true),
+});
+
+export const useCategoryModal = (initialValues?: any) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [form] = Form.useForm();
-
   const isEdit = Boolean(initialValues?.id);
-
-  const toggle = () => setModalVisible((v) => !v);
 
   const { mutateAsync: create, isPending: isCreate } = useCategoryCreate();
   const { mutateAsync: update, isPending: isUpdate } = useCategoryUpdate();
 
+  const form = useForm({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      nome: "",
+      descricao: "",
+      ativo: true,
+    },
+  });
+
+  const toggle = () => setModalVisible((v) => !v);
+
   const handleCancel = () => {
-    form.resetFields();
+    form.reset();
     setModalVisible(false);
   };
 
   useEffect(() => {
     if (modalVisible) {
       if (isEdit && initialValues) {
-        form.setFieldsValue({
-          ...initialValues,
-          ativo: initialValues.ativo ?? true, 
+        form.reset({
+          nome: initialValues.nome,
+          descricao: initialValues.descricao || "",
+          ativo: initialValues.ativo ?? true,
         });
       } else {
-        form.resetFields();
-        form.setFieldsValue({ ativo: true });
+        form.reset({
+          nome: "",
+          descricao: "",
+          ativo: true,
+        });
       }
     }
-  }, [modalVisible, initialValues]);
+  }, [modalVisible, initialValues, isEdit]);
 
-  const onFinish = async (values: Category.Props) => {
+  const onFinish = async (values: any) => {
     try {
       if (isEdit) {
         await update({ id: initialValues.id, body: values });
       } else {
         await create(values);
       }
-
       handleCancel();
     } catch (error) {
       console.error(error);
@@ -124,47 +158,71 @@ export const useCategoryModal = (initialValues?: Category.Props) => {
   };
 
   const CategoryModal = (
-    <Modal
-      title={isEdit ? "Editar Categoria" : "Nova Categoria"}
-      centered
-      open={modalVisible}
-      onOk={() => form.submit()}
-      onCancel={handleCancel}
-      okText={isEdit ? "Salvar" : "Cadastrar"}
-      okButtonProps={{
-        loading: isCreate || isUpdate
-      }}
-      confirmLoading={isCreate || isUpdate}
-      width={650}
-    >
-      <Form form={form} layout="vertical" onFinish={onFinish}>
-        <Row gutter={16}>
-          <Col xs={24} lg={18}>
-            <Form.Item
-              label="Nome"
-              name="nome"
-              rules={[{ required: true, message: "Nome é obrigatório" }]}
-            >
-              <NameInput placeholder="Ex: Serviços Capilares" />
-            </Form.Item>
-          </Col>
+    <Dialog open={modalVisible} onOpenChange={setModalVisible}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
+        </DialogHeader>
 
-          <Col xs={24} lg={5}>
-            <Form.Item label="Status" name="ativo" valuePropName="checked">
-              <Switch checkedChildren="Ativo" unCheckedChildren="Inativo" />
-            </Form.Item>
-          </Col>
-        </Row>
+        <Form {...form}>
+          <form id="category-form" onSubmit={form.handleSubmit(onFinish)} className="space-y-4">
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-3">
+                <FormField
+                  control={form.control}
+                  name="nome"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome</FormLabel>
+                      <FormControl>
+                        <NameInput placeholder="Ex: Serviços Capilares" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex flex-col justify-end pb-2">
+                 <FormField
+                  control={form.control}
+                  name="ativo"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2 space-y-0">
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="text-xs font-normal">Ativo</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
-        <Row>
-          <Col xs={24}>
-            <Form.Item label="Descrição" name="descricao">
-              <TextArea rows={3} placeholder="Descreva a categoria..." />
-            </Form.Item>
-          </Col>
-        </Row>
-      </Form>
-    </Modal>
+            <FormField
+              control={form.control}
+              name="descricao"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição</FormLabel>
+                  <FormControl>
+                    <Textarea rows={3} placeholder="Descreva a categoria..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={handleCancel}>Cancelar</Button>
+          <Button type="submit" form="category-form" disabled={isCreate || isUpdate}>
+            {(isCreate || isUpdate) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEdit ? "Salvar" : "Cadastrar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 
   return {

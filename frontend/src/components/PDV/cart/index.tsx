@@ -1,14 +1,4 @@
-import {
-  Button,
-  ButtonProps,
-  Card,
-  Col,
-  List,
-  message,
-  Row,
-  Tooltip,
-  Typography,
-} from "antd";
+import React, { useState } from "react";
 import {
   ShoppingCart,
   User,
@@ -18,28 +8,35 @@ import {
   ClipboardPenLine,
   CreditCard,
   Eraser,
+  Trash2,
+  Plus,
+  Minus,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
+
 import { useCaixaManager, useHasOpenCaixa } from "@/hooks/use-caixa";
-import { useState } from "react";
 import SelectCustomerDrawer from "../../drawers/SelectCustomer";
-import { carrinhoColumns } from "@/constants/tables/pdv";
-import { ResponsiveTable } from "../../tables/ResponsiveTable";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { useSaleCreate} from "@/hooks/use-sales";
+import { useSaleCreate } from "@/hooks/use-sales";
 import CartSummary from "./Summary";
 import { formatItem } from "@/utils/cart/formatItem";
 import PercentageOrCurrencyInput from "../../inputs/PercentagemOrCurrency";
 import { INITIAL_STATE } from "@/constants/sales";
 import { Payments } from "./Payments";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   total: number;
   subtotal: number;
-  salesSession: Sale.SessionProps;
-  updateSaleSession: (updates: Partial<Sale.SessionProps>) => void;
+  salesSession: any;
+  updateSaleSession: (updates: any) => void;
 }
-
-const { Text, Title } = Typography;
 
 export default function Cart({
   total,
@@ -50,22 +47,16 @@ export default function Cart({
   const { data: cash, isFetching: isFetchingCaixa } = useHasOpenCaixa();
   const { mutateAsync: create, isPending: isOpenOrder } = useSaleCreate();
 
-  const { CaixaManagerModal, openCaixaModal, closeCaixaModal } =
-    useCaixaManager();
+  const { CaixaManagerModal, openCaixaModal, closeCaixaModal } = useCaixaManager();
 
-  const [openSelectCustomerModal, setOpenSelectCustomerModal] =
-    useState<boolean>(false);
+  const [openSelectCustomerModal, setOpenSelectCustomerModal] = useState<boolean>(false);
 
-  const isOpenCash: boolean =
-    !isFetchingCaixa && cash && cash.id && cash.id.length > 0;
+  const isOpenCash = !isFetchingCaixa && cash && cash.id;
 
   const { carrinho, clienteSelecionado, acrescimo, desconto } = salesSession;
-  const emptyCart = carrinho.content.length === 0 || carrinho === null;
+  const emptyCart = !carrinho?.content?.length;
 
-  const onToggleSelectCustomerModal = () =>
-    setOpenSelectCustomerModal((prev) => !prev);
-
-  const handleSelectCustomer = (customer: Customer.Props) => {
+  const handleSelectCustomer = (customer: any) => {
     updateSaleSession({ clienteSelecionado: customer });
   };
 
@@ -73,7 +64,7 @@ export default function Cart({
     updateSaleSession({
       carrinho: {
         mode: carrinho.mode,
-        content: carrinho.content.filter((_, i) => i !== index),
+        content: carrinho.content.filter((_: any, i: number) => i !== index),
       },
     });
   };
@@ -84,7 +75,7 @@ export default function Cart({
       return;
     }
 
-    const newCart = carrinho.content.map((item, i) =>
+    const newCart = carrinho.content.map((item: any, i: number) =>
       i === index ? { ...item, quantidade: novaQuantidade } : item
     );
     updateSaleSession({ carrinho: { mode: carrinho.mode, content: newCart } });
@@ -95,7 +86,10 @@ export default function Cart({
   };
 
   const openOrder = async () => {
-    if (emptyCart) message.error("O carrinho está vazio.");
+    if (emptyCart) {
+      toast.error("O carrinho está vazio.");
+      return;
+    }
     try {
       await create({
         clienteId: clienteSelecionado?.id,
@@ -104,6 +98,7 @@ export default function Cart({
         itens: carrinho.content.map(formatItem),
         status: "PENDENTE",
       });
+      toast.success("Comanda aberta com sucesso!");
       clearCart();
     } catch (error) {
       console.error(error);
@@ -114,165 +109,176 @@ export default function Cart({
     updateSaleSession({ carrinho: { ...carrinho, mode: "payment" } });
   };
 
-  const buttons: ButtonProps[] = [
-    {
-      children: "Limpar Carrinho",
-      icon: <Eraser size={14} />,
-      onClick: clearCart,
-      danger: true,
-      disabled: emptyCart,
-    },
-    {
-      children: "Abrir Comanda",
-      icon: <ClipboardPenLine size={14} />,
-      onClick: openOrder,
-      disabled: emptyCart,
-      loading: isOpenOrder,
-    },
-    {
-      children: "Pagamento",
-      icon: <CreditCard size={14} />,
-      onClick: changeToPayment,
-      type: "primary",
-      disabled: emptyCart,
-    },
-  ];
-
   return (
-    <>
-      <Card
-        loading={isFetchingCaixa}
-        title={
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <ShoppingCart size={14} />
-              Carrinho ({carrinho?.content?.length || 0})
-            </div>
-            <div className="flex items-center gap-2">
-              {!clienteSelecionado ? (
-                <Button
-                  type="primary"
-                  onClick={onToggleSelectCustomerModal}
-                  icon={<User size={14} />}
-                >
-                  Vincular Cliente
-                </Button>
-              ) : (
-                <Tooltip title="Desvincular Cliente">
-                  <Button
-                    onClick={() =>
-                      updateSaleSession({
-                        clienteSelecionado: null,
-                        pagamentos: [],
-                      })
-                    }
-                    type="text"
-                    icon={<X size={14} />}
-                  >
-                    {clienteSelecionado?.nome || "Nenhum cliente selecionado"}
-                  </Button>
+    <Card className="h-full flex flex-col shadow-sm border-none overflow-hidden relative">
+      <CardHeader className="border-b pb-4">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5" />
+            Carrinho
+            <Badge variant="secondary" className="ml-1">{carrinho?.content?.length || 0}</Badge>
+          </CardTitle>
+
+          <div className="flex items-center gap-2">
+            {clienteSelecionado ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
+                      onClick={() => updateSaleSession({ clienteSelecionado: null, pagamentos: [] })}
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      {clienteSelecionado.nome.split(" ")[0]}
+                      <X className="ml-2 h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Desvincular Cliente</TooltipContent>
                 </Tooltip>
-              )}
-              {isOpenCash && (
-                <div className="flex items-center gap-4">
-                  <Button
-                    icon={<CircleX size={14} />}
-                    onClick={closeCaixaModal}
-                  >
-                    Fechar Caixa
-                  </Button>
-                </div>
-              )}
-            </div>
+              </TooltipProvider>
+            ) : (
+              <Button size="sm" onClick={() => setOpenSelectCustomerModal(true)}>
+                <User className="mr-2 h-4 w-4" />
+                Vincular Cliente
+              </Button>
+            )}
+
+            {isOpenCash && (
+              <Button variant="ghost" size="icon" onClick={closeCaixaModal} title="Fechar Caixa">
+                <CircleX className="h-5 w-5 text-muted-foreground hover:text-destructive transition-colors" />
+              </Button>
+            )}
           </div>
-        }
-        className="h-full relative"
-      >
-        {!isOpenCash && (
-          <div className="absolute inset-0 bg-white/70 dark:bg-black/70 z-10 flex flex-col justify-center items-center space-y-4 rounded-lg">
-            <CircleMinus size={48} className="text-salao-primary" />
-            <Title level={4}>Caixa Fechado</Title>
-            <Text type="secondary">
-              Você precisa abrir o caixa para iniciar as vendas.
-            </Text>
-            <Button type="primary" size="large" onClick={openCaixaModal}>
+        </div>
+      </CardHeader>
+
+      <CardContent className="flex-1 overflow-hidden flex flex-col p-0">
+        {!isOpenCash && !isFetchingCaixa && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px] z-20 flex flex-col justify-center items-center p-6 text-center space-y-4">
+            <div className="bg-muted p-4 rounded-full">
+               <CircleMinus size={40} className="text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold">Caixa Fechado</h3>
+              <p className="text-sm text-muted-foreground">
+                Você precisa abrir o caixa para iniciar as vendas.
+              </p>
+            </div>
+            <Button size="large" onClick={openCaixaModal} className="w-full max-w-xs">
               Abrir Caixa
             </Button>
           </div>
         )}
-        <div className="space-y-8">
+
+        <div className="flex-1 overflow-hidden flex flex-col">
           {carrinho.mode === "sale" ? (
             <>
-              <ResponsiveTable
-                dataSource={carrinho.content}
-                columns={carrinhoColumns(alterarQuantidade, removeFromCart)}
-                scroll={{ y: 230 }}
-                locale={{ emptyText: "Carrinho vazio" }}
-                rowKey={(r) => `${r.tipo}-${r.id}`}
-                size="small"
-                pagination={false}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={`${item.quantidade} x ${item.nome}`}
-                      description={formatCurrency(item.preco)}
-                    />
-                    <div>{formatCurrency(item.preco)}</div>
-                  </List.Item>
-                )}
-              />
-              <>
-                <Row gutter={18}>
-                  <Col span={6}>
-                    <Text strong>Acréscimo</Text>
-                    <PercentageOrCurrencyInput
-                      type={acrescimo?.type}
-                      value={acrescimo?.value}
-                      onChange={(value) =>
-                        updateSaleSession({
-                          acrescimo: { ...acrescimo, value: Number(value) },
-                        })
-                      }
-                      onChangeAddon={(value) =>
-                        updateSaleSession({
-                          acrescimo: { ...acrescimo, type: value },
-                        })
-                      }
-                    />
-                  </Col>
-                  <Col span={6}>
-                    <Text strong>Desconto</Text>
-                    <PercentageOrCurrencyInput
-                      maxCurrency={total}
-                      type={desconto?.type}
-                      value={desconto?.value}
-                      onChange={(value) =>
-                        updateSaleSession({
-                          desconto: { ...desconto, value: Number(value) },
-                        })
-                      }
-                      onChangeAddon={(value) =>
-                        updateSaleSession({
-                          desconto: { ...desconto, type: value },
-                        })
-                      }
-                    />
-                  </Col>
-                </Row>
-                <Row gutter={8}>
-                  {buttons.map((button) => (
-                    <Col span={8}>
-                      <Button block {...button} />
-                    </Col>
-                  ))}
-                </Row>
+              <ScrollArea className="flex-1 px-6">
+                <div className="py-4 space-y-4">
+                  {emptyCart ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground italic">
+                      <p className="text-sm text-center">O carrinho está vazio.</p>
+                    </div>
+                  ) : (
+                    carrinho.content.map((item: any, index: number) => (
+                      <div key={`${item.id}-${index}`} className="flex justify-between items-start gap-4 pb-4 border-b last:border-0">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{item.nome}</p>
+                          <p className="text-xs text-muted-foreground">{formatCurrency(item.preco)}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                           <div className="flex items-center border rounded-md h-8 overflow-hidden">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-none border-r"
+                                onClick={() => alterarQuantidade(index, item.quantidade - 1)}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-10 text-center text-sm font-medium">{item.quantidade}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-none border-l"
+                                onClick={() => alterarQuantidade(index, item.quantidade + 1)}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                           </div>
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                             onClick={() => removeFromCart(index)}
+                           >
+                             <Trash2 className="h-3 w-3" />
+                           </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+
+              <div className="p-6 bg-muted/20 border-t space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Acréscimo</label>
+                      <PercentageOrCurrencyInput
+                        type={acrescimo?.type}
+                        value={acrescimo?.value}
+                        onChange={(value) => updateSaleSession({ acrescimo: { ...acrescimo, value: Number(value) } })}
+                        onChangeAddon={(value) => updateSaleSession({ acrescimo: { ...acrescimo, type: value } })}
+                      />
+                   </div>
+                   <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Desconto</label>
+                      <PercentageOrCurrencyInput
+                        maxCurrency={total}
+                        type={desconto?.type}
+                        value={desconto?.value}
+                        onChange={(value) => updateSaleSession({ desconto: { ...desconto, value: Number(value) } })}
+                        onChangeAddon={(value) => updateSaleSession({ desconto: { ...desconto, type: value } })}
+                      />
+                   </div>
+                </div>
+
                 <CartSummary
                   total={total}
                   subtotal={subtotal}
                   decrease={salesSession.desconto}
                   increase={salesSession.acrescimo}
                 />
-              </>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    variant="outline"
+                    className="text-destructive hover:bg-destructive/5 hover:text-destructive"
+                    onClick={clearCart}
+                    disabled={emptyCart}
+                  >
+                    <Eraser className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={openOrder}
+                    disabled={emptyCart || isOpenOrder}
+                  >
+                    {isOpenOrder ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardPenLine className="h-4 w-4 mr-2" />}
+                    Comanda
+                  </Button>
+                  <Button
+                    onClick={changeToPayment}
+                    disabled={emptyCart}
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Pagar
+                  </Button>
+                </div>
+              </div>
             </>
           ) : (
             <Payments
@@ -283,13 +289,14 @@ export default function Cart({
             />
           )}
         </div>
-      </Card>
+      </CardContent>
+
       <SelectCustomerDrawer
         open={openSelectCustomerModal}
-        onClose={onToggleSelectCustomerModal}
+        onClose={() => setOpenSelectCustomerModal(false)}
         onSelect={handleSelectCustomer}
       />
       {CaixaManagerModal}
-    </>
+    </Card>
   );
 }

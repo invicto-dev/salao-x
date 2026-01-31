@@ -1,13 +1,21 @@
-import { InputNumber, Select } from "antd";
+import React from "react";
 import { CurrencyInput } from "./CurrencyInput";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Props {
   maxCurrency?: number;
-  type: Sale.increaseOrDecrease["type"];
-  value: Sale.increaseOrDecrease["value"];
-  onChange: (value: number | string) => void;
+  type: "PORCENTAGEM" | "VALOR";
+  value: number;
+  onChange: (value: number) => void;
   disabled?: boolean;
-  onChangeAddon: (value: Props["type"]) => void;
+  onChangeAddon: (value: "PORCENTAGEM" | "VALOR") => void;
 }
 
 export default function PercentageOrCurrencyInput({
@@ -18,49 +26,40 @@ export default function PercentageOrCurrencyInput({
   disabled,
   onChangeAddon,
 }: Props) {
-  const commumProps = {
-    value: value,
-    onChange: onChange,
-    disabled: disabled,
-    addonBefore: (
-      <Select
-        value={type}
-        onChange={onChangeAddon}
-        options={[
-          {
-            label: "%",
-            value: "PORCENTAGEM",
-          },
-          {
-            label: "R$",
-            value: "VALOR",
-          },
-        ]}
-      />
-    ),
-  };
-
-  if (type === "PORCENTAGEM") {
-    return (
-      <InputNumber
-        controls={false}
-        className="w-full"
-        min={0}
-        max={100}
-        placeholder="0.0"
-        {...commumProps}
-      />
-    );
-  }
-
   return (
-    <CurrencyInput
-      max={maxCurrency}
-      controls={false}
-      prefix={null}
-      min={0}
-      placeholder="0,00"
-      {...commumProps}
-    />
+    <div className="flex w-full">
+      <Select value={type} onValueChange={(val: any) => onChangeAddon(val)} disabled={disabled}>
+        <SelectTrigger className="w-[70px] rounded-r-none border-r-0 focus:ring-0">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="PORCENTAGEM">%</SelectItem>
+          <SelectItem value="VALOR">R$</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <div className="flex-1">
+        {type === "PORCENTAGEM" ? (
+          <Input
+            type="number"
+            min={0}
+            max={100}
+            disabled={disabled}
+            value={value || ""}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="rounded-l-none"
+            placeholder="0.0"
+          />
+        ) : (
+          <CurrencyInput
+            disabled={disabled}
+            value={value || 0}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="rounded-l-none"
+            placeholder="0,00"
+          />
+        )}
+      </div>
+    </div>
   );
 }

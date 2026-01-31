@@ -1,11 +1,21 @@
-import { useEffect, useState } from "react";
-import { Card, Row, Col, Button, Typography, Form, Modal, Alert } from "antd";
-import { Package, Scissors } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import {
+  Package,
+  Scissors,
+  Search,
+  Plus,
+  Loader2,
+  AlertCircle
+} from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
 import { useServices } from "@/hooks/use-services";
 import { useSale } from "@/hooks/use-sales";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import { useHasOpenCaixa } from "@/hooks/use-caixa";
 import BarCodeInput from "@/components/inputs/BarCodeInput";
 import { useProducts } from "@/hooks/use-products";
@@ -14,11 +24,33 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { INITIAL_STATE, PDV_SESSION_KEY } from "@/constants/sales";
 import { calPercentual } from "@/utils/cart/calculeIncreaseOrDecrease";
 import Cart from "@/components/PDV/cart";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 type ItemType = "produto" | "servico";
-type ItemProps = Product.Props | Service.Props;
+type ItemProps = any; // Simplify for now
 
-const { Title, Text } = Typography;
+const openValueSchema = z.object({
+  preco: z.coerce.number().min(0.01, "O valor deve ser maior que zero"),
+});
 
 const PDV = () => {
   const [searchParams] = useSearchParams();
@@ -26,9 +58,7 @@ const PDV = () => {
   const pedido = searchParams.get("pedido");
   const { data: sale } = useSale(pedido);
 
-  const [formModal] = Form.useForm();
-
-  const [saleSession, setSaleSession] = useState<Sale.SessionProps>(() => {
+  const [saleSession, setSaleSession] = useState<any>(() => {
     try {
       const savedSession = window.localStorage.getItem(PDV_SESSION_KEY);
       return savedSession ? JSON.parse(savedSession) : INITIAL_STATE(sale);
@@ -42,7 +72,7 @@ const PDV = () => {
 
   const [modalValorAberto, setModalValorAberto] = useState<{
     visible: boolean;
-    item: ItemProps | null;
+    item: any | null;
     tipo: ItemType | null;
   }>({
     visible: false,
@@ -65,14 +95,18 @@ const PDV = () => {
 
   const isCaixaFechado = !isFetchingCaixa && !hasOpenCaixa;
 
+  const form = useForm({
+    resolver: zodResolver(openValueSchema),
+    defaultValues: { preco: 0 },
+  });
+
   const notStockProduct = (id: string) => {
-    return (
-      carrinho?.content.find((c) => c.id === id)?.quantidade >=
-      produtos?.find((p) => p.id === id)?.estoqueAtual
-    );
+    const cartItem = carrinho?.content.find((c: any) => c.id === id);
+    const product = produtos?.find((p: any) => p.id === id);
+    return cartItem && product && cartItem.quantidade >= product.estoqueAtual;
   };
 
-  const disabledItem = (item: Product.Props) => {
+  const disabledItem = (item: any) => {
     return (
       (item.contarEstoque && item.estoqueAtual == 0) ||
       (item.contarEstoque && notStockProduct(item.id))
@@ -91,29 +125,29 @@ const PDV = () => {
     }
   }, [saleSession, sale]);
 
-  const updateSaleSession = (updates: Partial<Sale.SessionProps>) => {
-    setSaleSession((prev) => ({ ...prev, ...updates }));
+  const updateSaleSession = (updates: any) => {
+    setSaleSession((prev: any) => ({ ...prev, ...updates }));
   };
 
   const itemExistente = (itemId: string) =>
-    carrinho?.content.find((c) => c.id === itemId);
+    carrinho?.content.find((c: any) => c.id === itemId);
 
-  const adicionarAoCarrinho = (item: ItemProps, tipo: ItemType) => {
+  const adicionarAoCarrinho = (item: any, tipo: ItemType) => {
     const itemNoCarrinho = itemExistente(item.id);
 
     let novoCarrinho;
     if (itemNoCarrinho) {
-      novoCarrinho = carrinho.content.map((c) =>
+      novoCarrinho = carrinho.content.map((c: any) =>
         c.id === item.id ? { ...c, quantidade: c.quantidade + 1 } : c
       );
     } else {
-      const novoItem: Sale.CartItem = {
+      const novoItem: any = {
         id: item.id,
         nome: item.nome,
         tipo,
         preco: item.preco,
         quantidade: 1,
-        contarEstoque: (item as Product.Props).contarEstoque,
+        contarEstoque: item.contarEstoque,
       };
       novoCarrinho = [...carrinho.content, novoItem];
     }
@@ -122,18 +156,13 @@ const PDV = () => {
     });
   };
 
-  const handleItemClick = (item: ItemProps, tipo: ItemType) => {
+  const handleItemClick = (item: any, tipo: ItemType) => {
     if (item.valorEmAberto && !itemExistente(item.id)) {
-      formModal.setFieldsValue({ preco: item.preco });
+      form.reset({ preco: item.preco });
       setModalValorAberto({ visible: true, item, tipo });
     } else {
       adicionarAoCarrinho(item, tipo);
     }
-  };
-
-  const handleCloseModalValorAberto = () => {
-    formModal.resetFields();
-    setModalValorAberto({ visible: false, item: null, tipo: null });
   };
 
   const handleDefinirValor = (values: { preco: number }) => {
@@ -142,211 +171,173 @@ const PDV = () => {
       const itemComNovoPreco = { ...item, preco: values.preco };
       adicionarAoCarrinho(itemComNovoPreco, tipo);
     }
-    handleCloseModalValorAberto();
+    setModalValorAberto({ visible: false, item: null, tipo: null });
+  };
+
+  const calcularSubtotal = () => {
+    if (!carrinho?.content?.length) return 0;
+    return carrinho.content.reduce(
+      (acc: number, item: any) => acc + item.preco * item.quantidade,
+      0
+    );
   };
 
   const calcularTotal = () => {
-    if (carrinho.content.length === 0) return 0;
     const subtotal = calcularSubtotal();
     const valorAcrescimo = calPercentual(subtotal, acrescimo);
     const valorDesconto = calPercentual(subtotal, desconto);
     return subtotal + valorAcrescimo - valorDesconto;
   };
 
-  const calcularSubtotal = () => {
-    if (carrinho.content.length === 0) return 0;
-    return carrinho?.content?.reduce(
-      (acc, item) => acc + item.preco * item.quantidade,
-      0
-    );
-  };
-
   return (
     <div className="space-y-6">
-      <div>
-        <Title level={2} className="!mb-2">
-          PDV - Ponto de Venda
-        </Title>
-        <p className="text-muted-foreground">
-          Sistema completo para vendas e atendimento
-        </p>
+      <div className="flex flex-col gap-1">
+        <h2 className="text-3xl font-bold tracking-tight">PDV - Ponto de Venda</h2>
+        <p className="text-muted-foreground">Sistema completo para vendas e atendimento</p>
       </div>
 
-      <Row gutter={[16, 16]} className="h-[75vh]">
-        <Col xs={24} lg={12}>
-          <Card title="Produtos e Serviços" className="h-full">
-            <BarCodeInput
-              label="produto ou serviço"
-              value={busca}
-              onChangeValue={setBusca}
-              sourceLength={produtos.length + servicos.length}
-            />
-            <div className="mt-4">
-              {!produtos.length &&
-              !servicos.length &&
-              !isLoadingProdutos &&
-              !isLoadingServicos ? (
-                <div className="flex flex-col gap-4 justify-center items-center h-48">
-                  <p className="text-center text-sm text-muted-foreground">
-                    Nenhum item encontrado
-                  </p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-200px)]">
+        <Card className="flex flex-col shadow-sm border-none overflow-hidden">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+               <Package className="h-5 w-5" />
+               Produtos e Serviços
+            </CardTitle>
+            <div className="pt-2">
+              <BarCodeInput
+                label="produto ou serviço"
+                value={busca}
+                onChangeValue={setBusca}
+                sourceLength={produtos.length + servicos.length}
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-hidden p-0 px-6">
+            <ScrollArea className="h-full pr-4 pb-6">
+              {!produtos.length && !servicos.length && !isLoadingProdutos && !isLoadingServicos ? (
+                <div className="flex flex-col gap-6 justify-center items-center h-64 text-center">
+                  <div className="bg-muted p-4 rounded-full">
+                     <Search className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground">Nenhum item encontrado</p>
                   <div className="flex gap-2">
-                    <Button
-                      size="large"
-                      onClick={() => navigate("/produtos")}
-                      type="dashed"
-                      icon={<Package size={14} />}
-                    >
-                      Adicionar Produtos
+                    <Button variant="outline" onClick={() => navigate("/produtos")}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Novo Produto
                     </Button>
-                    <Button
-                      size="large"
-                      onClick={() => navigate("/servicos")}
-                      type="dashed"
-                      icon={<Scissors size={14} />}
-                    >
-                      Adicionar Serviços
+                    <Button variant="outline" onClick={() => navigate("/servicos")}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Novo Serviço
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div
-                  className={
-                    isCaixaFechado
-                      ? "pointer-events-none opacity-50"
-                      : "space-y-8"
-                  }
-                >
+                <div className={isCaixaFechado ? "pointer-events-none opacity-50 grayscale" : "space-y-8 py-2"}>
                   {produtos.length > 0 && (
-                    <div>
-                      <Title level={5} className="!mb-3">
-                        Produtos
-                      </Title>
-                      <div className="max-h-[180px] overflow-y-auto overflow-x-hidden">
-                        <Row gutter={[8, 8]}>
-                          {produtos.map((produto) => (
-                            <Col xs={12} sm={8} md={6} key={produto.id}>
-                              <CardWithDisabled
-                                size="small"
-                                hoverable
-                                onClick={() =>
-                                  handleItemClick(produto, "produto")
-                                }
-                                disabled={disabledItem(produto)}
-                              >
-                                <Text
-                                  ellipsis={{ tooltip: produto.nome }}
-                                  className="font-medium text-sm block"
-                                >
-                                  {produto.nome}
-                                </Text>
-                                <div className="text-salao-primary font-semibold">
-                                  {formatCurrency(produto.preco)}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {produto.contarEstoque &&
-                                  produto.estoqueAtual > 0
-                                    ? `${produto.estoqueAtual} ${produto.unidadeMedida}`
-                                    : produto.estoqueAtual == 0 &&
-                                      produto.contarEstoque
-                                    ? "Sem estoque"
-                                    : produto.contarEstoque === false
-                                    ? "-"
-                                    : "-"}
-                                </div>
-                              </CardWithDisabled>
-                            </Col>
-                          ))}
-                        </Row>
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Produtos</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {produtos.map((produto: any) => (
+                          <CardWithDisabled
+                            key={produto.id}
+                            onClick={() => handleItemClick(produto, "produto")}
+                            disabled={disabledItem(produto)}
+                            className="p-3 text-left"
+                          >
+                            <p className="font-medium text-sm truncate" title={produto.nome}>{produto.nome}</p>
+                            <p className="text-primary font-bold">{formatCurrency(produto.preco)}</p>
+                            {produto.contarEstoque && (
+                              <Badge variant={produto.estoqueAtual > 0 ? "outline" : "destructive"} className="mt-1 text-[10px] h-4">
+                                {produto.estoqueAtual > 0 ? `${produto.estoqueAtual} ${produto.unidadeMedida}` : "Sem estoque"}
+                              </Badge>
+                            )}
+                          </CardWithDisabled>
+                        ))}
                       </div>
                     </div>
                   )}
+
                   {servicos.length > 0 && (
-                    <div>
-                      <Title level={5} className="!mb-3">
-                        Serviços
-                      </Title>
-                      <div className="max-h-[180px] overflow-y-auto overflow-x-hidden">
-                        <Row gutter={[8, 8]}>
-                          {servicos.map((servico) => (
-                            <Col xs={12} sm={8} md={6} key={servico.id}>
-                              <Card
-                                size="small"
-                                hoverable
-                                onClick={() =>
-                                  handleItemClick(servico, "servico")
-                                }
-                              >
-                                <Text
-                                  ellipsis={{ tooltip: servico.nome }}
-                                  className="font-medium text-sm block"
-                                >
-                                  {servico.nome}
-                                </Text>
-                                <div className="text-salao-primary font-semibold">
-                                  {formatCurrency(servico.preco)}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {servico.duracao}min
-                                </div>
-                              </Card>
-                            </Col>
-                          ))}
-                        </Row>
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Serviços</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {servicos.map((servico: any) => (
+                          <Card
+                            key={servico.id}
+                            className="p-3 cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all"
+                            onClick={() => handleItemClick(servico, "servico")}
+                          >
+                            <p className="font-medium text-sm truncate" title={servico.nome}>{servico.nome}</p>
+                            <p className="text-primary font-bold">{formatCurrency(servico.preco)}</p>
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
+                              <Scissors className="h-3 w-3" />
+                              {servico.duracao}min
+                            </div>
+                          </Card>
+                        ))}
                       </div>
                     </div>
                   )}
                 </div>
               )}
-            </div>
-          </Card>
-        </Col>
+            </ScrollArea>
+          </CardContent>
+        </Card>
 
-        <Col xs={24} lg={12}>
+        <div className="h-full">
           <Cart
             total={calcularTotal()}
             subtotal={calcularSubtotal()}
             salesSession={saleSession}
             updateSaleSession={updateSaleSession}
           />
-        </Col>
-      </Row>
+        </div>
+      </div>
 
-      <Modal
-        title="Definir Valor Aberto"
+      {/* Modal Valor Aberto */}
+      <Dialog
         open={modalValorAberto.visible}
-        onCancel={handleCloseModalValorAberto}
-        destroyOnHidden
-        okText="Adicionar ao Carrinho"
-        onOk={() => formModal.submit()}
-        width={400}
+        onOpenChange={(val) => !val && setModalValorAberto({ visible: false, item: null, tipo: null })}
       >
-        <Form form={formModal} onFinish={handleDefinirValor} layout="vertical">
-          <Alert
-            message={modalValorAberto.item?.nome}
-            type="info"
-            showIcon
-            className="!mb-6"
-          />
-          <Form.Item
-            name="preco"
-            label="Valor"
-            rules={[
-              { required: true, message: "O valor é obrigatório." },
-              {
-                validator: (_, value) =>
-                  value > 0
-                    ? Promise.resolve()
-                    : Promise.reject(
-                        new Error("O valor deve ser maior que zero.")
-                      ),
-              },
-            ]}
-          >
-            <CurrencyInput />
-          </Form.Item>
-        </Form>
-      </Modal>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Definir Valor Aberto</DialogTitle>
+          </DialogHeader>
+
+          <Alert className="bg-primary/5 border-primary/20 text-primary">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Item</AlertTitle>
+            <AlertDescription>{modalValorAberto.item?.nome}</AlertDescription>
+          </Alert>
+
+          <Form {...form}>
+            <form id="open-value-form" onSubmit={form.handleSubmit(handleDefinirValor)} className="space-y-4 pt-4">
+              <FormField
+                control={form.control}
+                name="preco"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor Unitário</FormLabel>
+                    <FormControl>
+                      <CurrencyInput {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setModalValorAberto({ visible: false, item: null, tipo: null })}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="open-value-form">
+              Adicionar ao Carrinho
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

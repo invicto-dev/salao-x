@@ -7,7 +7,7 @@ import {
   updateProduct,
 } from "../api/products";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { toast } from "sonner";
 import { AxiosError } from "axios";
 
 export const useProducts = (filters: {
@@ -43,10 +43,10 @@ export const useProductCreate = () => {
       queryClient.invalidateQueries({
         queryKey: ["get-stock-products"],
       });
-      message.success("Produto criado com sucesso.");
+      toast.success("Produto criado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
       return error;
     },
   });
@@ -65,10 +65,10 @@ export const useProductUpdate = () => {
       queryClient.invalidateQueries({
         queryKey: ["get-stock-products"],
       });
-      message.success("Produto atualizado com sucesso.");
+      toast.success("Produto atualizado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 
@@ -88,10 +88,10 @@ export const useProductDelete = () => {
       queryClient.invalidateQueries({
         queryKey: ["get-stock-products"],
       });
-      message.success("Produto excluído com sucesso.");
+      toast.success("Produto excluído com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 };
@@ -103,10 +103,10 @@ export const useImportProducts = () => {
       return await importProducts(file);
     },
     onSuccess: (res) => {
-      message.success(res.message);
+      toast.success(res.message);
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 };

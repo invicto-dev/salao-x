@@ -1,39 +1,47 @@
-import { Card, Col, Row, Statistic, Table, Tag, Progress, Typography } from 'antd';
-import { TrendingUp, TrendingDown, DollarSign, Users, Package, Calendar } from 'lucide-react';
-
-const { Title } = Typography;
+import React from "react";
+import { TrendingUp, TrendingDown, DollarSign, Users, Package, Calendar } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/utils/formatCurrency";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const Dashboard = () => {
-  // Mock data para demonstração
   const kpis = [
     {
       title: 'Faturamento Hoje',
       value: 2850.50,
-      prefix: 'R$',
-      suffix: '',
+      isCurrency: true,
       change: 12.5,
-      icon: <DollarSign className="text-salao-success" size={24} />
+      icon: <DollarSign className="text-emerald-500" size={24} />
     },
     {
       title: 'Clientes Atendidos',
       value: 24,
       suffix: 'hoje',
       change: 8.3,
-      icon: <Users className="text-salao-primary" size={24} />
+      icon: <Users className="text-primary" size={24} />
     },
     {
       title: 'Produtos Vendidos',
       value: 45,
       suffix: 'unidades',
       change: -3.2,
-      icon: <Package className="text-salao-accent" size={24} />
+      icon: <Package className="text-pink-500" size={24} />
     },
     {
       title: 'Agendamentos',
       value: 18,
       suffix: 'hoje',
       change: 15.7,
-      icon: <Calendar className="text-salao-warning" size={24} />
+      icon: <Calendar className="text-amber-500" size={24} />
     }
   ];
 
@@ -60,196 +68,174 @@ const Dashboard = () => {
     { funcionario: 'Julia Costa', valor: 98.50, servicos: 4 }
   ];
 
-  const servicosColumns = [
-    {
-      title: 'Serviço',
-      dataIndex: 'nome',
-      key: 'nome',
-    },
-    {
-      title: 'Vendas',
-      dataIndex: 'vendas',
-      key: 'vendas',
-      render: (value: number) => <Tag color="blue">{value}</Tag>
-    },
-    {
-      title: 'Receita',
-      dataIndex: 'receita',
-      key: 'receita',
-      render: (value: number) => `R$ ${value.toFixed(2)}`
-    }
-  ];
-
-  const produtosColumns = [
-    {
-      title: 'Produto',
-      dataIndex: 'nome',
-      key: 'nome',
-    },
-    {
-      title: 'Vendas',
-      dataIndex: 'vendas',
-      key: 'vendas',
-      render: (value: number) => <Tag color="green">{value}</Tag>
-    },
-    {
-      title: 'Receita',
-      dataIndex: 'receita',
-      key: 'receita',
-      render: (value: number) => `R$ ${value.toFixed(2)}`
-    }
-  ];
-
-  const comissoesColumns = [
-    {
-      title: 'Funcionário',
-      dataIndex: 'funcionario',
-      key: 'funcionario',
-    },
-    {
-      title: 'Serviços',
-      dataIndex: 'servicos',
-      key: 'servicos',
-      render: (value: number) => <Tag color="purple">{value}</Tag>
-    },
-    {
-      title: 'Comissão',
-      dataIndex: 'valor',
-      key: 'valor',
-      render: (value: number) => (
-        <span className="font-semibold text-salao-success">
-          R$ {value.toFixed(2)}
-        </span>
-      )
-    }
-  ];
+  const totalComissoes = comissoesAPagar.reduce((acc, item) => acc + item.valor, 0);
 
   return (
     <div className="space-y-6">
-      <div>
-        <Title level={2} className="!mb-2">Dashboard</Title>
-        <p className="text-muted-foreground">
-          Visão geral do seu salão de beleza
-        </p>
+      <div className="flex flex-col gap-1">
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        <p className="text-muted-foreground">Visão geral do seu salão de beleza</p>
       </div>
 
       {/* KPIs */}
-      <Row gutter={[16, 16]}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi, index) => (
-          <Col xs={24} sm={12} lg={6} key={index}>
-            <Card>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <Statistic
-                    title={kpi.title}
-                    value={kpi.value}
-                    prefix={kpi.prefix}
-                    suffix={kpi.suffix}
-                    precision={kpi.prefix === 'R$' ? 2 : 0}
-                  />
-                  <div className="flex items-center mt-2 text-sm">
-                    {kpi.change > 0 ? (
-                      <TrendingUp size={14} className="text-salao-success mr-1" />
-                    ) : (
-                      <TrendingDown size={14} className="text-salao-error mr-1" />
-                    )}
-                    <span className={kpi.change > 0 ? 'text-salao-success' : 'text-salao-error'}>
-                      {Math.abs(kpi.change)}%
-                    </span>
-                    <span className="text-muted-foreground ml-1">vs ontem</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  {kpi.icon}
-                </div>
+          <Card key={index} className="border-none shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium text-muted-foreground">{kpi.title}</CardTitle>
+              {kpi.icon}
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {kpi.isCurrency ? formatCurrency(kpi.value) : kpi.value}
+                {kpi.suffix && <span className="ml-1 text-xs font-normal text-muted-foreground">{kpi.suffix}</span>}
               </div>
-            </Card>
-          </Col>
+              <div className="flex items-center mt-1 text-xs">
+                {kpi.change > 0 ? (
+                  <TrendingUp size={12} className="text-emerald-500 mr-1" />
+                ) : (
+                  <TrendingDown size={12} className="text-destructive mr-1" />
+                )}
+                <span className={kpi.change > 0 ? 'text-emerald-600 font-medium' : 'text-destructive font-medium'}>
+                  {Math.abs(kpi.change)}%
+                </span>
+                <span className="text-muted-foreground ml-1">vs ontem</span>
+              </div>
+            </CardContent>
+          </Card>
         ))}
-      </Row>
+      </div>
 
-      {/* Charts e Tabelas */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>
-          <Card title="🏆 Top Serviços do Dia" className="h-full">
-            <Table
-              dataSource={topServicos}
-              columns={servicosColumns}
-              pagination={false}
-              size="small"
-              rowKey="nome"
-            />
-          </Card>
-        </Col>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Serviços */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">🏆 Top Serviços do Dia</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Serviço</TableHead>
+                  <TableHead className="text-center">Vendas</TableHead>
+                  <TableHead className="text-right">Receita</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {topServicos.map((item) => (
+                  <TableRow key={item.nome}>
+                    <TableCell className="font-medium">{item.nome}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">{item.vendas}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(item.receita)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
-        <Col xs={24} lg={12}>
-          <Card title="📦 Top Produtos Vendidos" className="h-full">
-            <Table
-              dataSource={topProdutos}
-              columns={produtosColumns}
-              pagination={false}
-              size="small"
-              rowKey="nome"
-            />
-          </Card>
-        </Col>
-      </Row>
+        {/* Top Produtos */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">📦 Top Produtos Vendidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produto</TableHead>
+                  <TableHead className="text-center">Vendas</TableHead>
+                  <TableHead className="text-right">Receita</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {topProdutos.map((item) => (
+                  <TableRow key={item.nome}>
+                    <TableCell className="font-medium">{item.nome}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">{item.vendas}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(item.receita)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>
-          <Card title="💰 Comissões a Pagar" className="h-full">
-            <Table
-              dataSource={comissoesAPagar}
-              columns={comissoesColumns}
-              pagination={false}
-              size="small"
-              rowKey="funcionario"
-            />
-            <div className="mt-4 p-3 bg-salao-primary-light rounded-lg">
-              <div className="text-sm text-muted-foreground">Total de comissões</div>
-              <div className="text-lg font-semibold text-salao-primary">
-                R$ {comissoesAPagar.reduce((acc, item) => acc + item.valor, 0).toFixed(2)}
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Comissões */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">💰 Comissões a Pagar</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Funcionário</TableHead>
+                  <TableHead className="text-center">Serviços</TableHead>
+                  <TableHead className="text-right">Comissão</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {comissoesAPagar.map((item) => (
+                  <TableRow key={item.funcionario}>
+                    <TableCell className="font-medium">{item.funcionario}</TableCell>
+                    <TableCell className="text-center">{item.servicos}</TableCell>
+                    <TableCell className="text-right font-semibold text-emerald-600">{formatCurrency(item.valor)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="mt-4 p-4 rounded-lg bg-primary/5 flex justify-between items-center border border-primary/10">
+              <span className="text-sm font-medium text-muted-foreground">Total de comissões</span>
+              <span className="text-xl font-bold text-primary">{formatCurrency(totalComissoes)}</span>
             </div>
-          </Card>
-        </Col>
+          </CardContent>
+        </Card>
 
-        <Col xs={24} lg={12}>
-          <Card title="📊 Meta Mensal" className="h-full">
-            <div className="space-y-6">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Faturamento</span>
-                  <span className="text-sm text-muted-foreground">
-                    R$ 45.650 / R$ 60.000
-                  </span>
-                </div>
-                <Progress percent={76} strokeColor="#7c3aed" />
+        {/* Metas */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">📊 Meta Mensal</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-8 py-6">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Faturamento</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatCurrency(45650)} / {formatCurrency(60000)}
+                </span>
               </div>
-              
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Clientes Atendidos</span>
-                  <span className="text-sm text-muted-foreground">
-                    387 / 500
-                  </span>
-                </div>
-                <Progress percent={77} strokeColor="#ec4899" />
-              </div>
-              
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Produtos Vendidos</span>
-                  <span className="text-sm text-muted-foreground">
-                    645 / 800
-                  </span>
-                </div>
-                <Progress percent={81} strokeColor="#059669" />
-              </div>
+              <Progress value={76} className="h-2" />
             </div>
-          </Card>
-        </Col>
-      </Row>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Clientes Atendidos</span>
+                <span className="text-xs text-muted-foreground">
+                  387 / 500
+                </span>
+              </div>
+              <Progress value={77} className="h-2" />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Produtos Vendidos</span>
+                <span className="text-xs text-muted-foreground">
+                  645 / 800
+                </span>
+              </div>
+              <Progress value={81} className="h-2" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

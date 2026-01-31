@@ -1,6 +1,6 @@
 import { getConfiguracoes, updateConfiguracoes } from "@/api/configuracoes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { toast } from "sonner";
 import { AxiosError } from "axios";
 
 // obter configurações
@@ -21,10 +21,10 @@ export const useConfiguracoesUpdate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-configuracoes"] });
-      message.success("Configurações atualizadas.");
+      toast.success("Configurações atualizadas.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 };

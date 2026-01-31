@@ -1,3 +1,12 @@
+import React, { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { toast } from "sonner";
+import { Loader2, DollarSign, Info, AlertTriangle } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
 import {
   closeCaixa,
   getCaixas,
@@ -6,34 +15,40 @@ import {
   moveCaixa,
   openCaixa,
 } from "@/api/caixa";
-import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import {
-  Alert,
-  Col,
-  Divider,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Form,
-  Input,
-  message,
-  Modal,
-  Row,
-  Spin,
-  Statistic,
-  Typography,
-} from "antd";
-import { AxiosError } from "axios";
-import { useState } from "react";
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const usecaixas = () => {
-  return useQuery<Caixa.Props[]>({
+  return useQuery<any[]>({
     queryKey: ["get-caixas"],
     queryFn: getCaixas,
   });
 };
 
 export const useHasOpenCaixa = () => {
-  return useQuery<Caixa.Props | null>({
+  return useQuery<any | null>({
     queryKey: ["has-open-caixa"],
     queryFn: hasOpenCaixa,
   });
@@ -42,16 +57,16 @@ export const useHasOpenCaixa = () => {
 export const useOpenCaixa = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ body }: { body: Caixa.BodyOpen }) => {
+    mutationFn: async ({ body }: { body: any }) => {
       return await openCaixa(body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["has-open-caixa"] });
       queryClient.invalidateQueries({ queryKey: ["get-caixas"] });
-      message.success("Caixa aberto com sucesso.");
+      toast.success("Caixa aberto com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response?.data?.error || "Erro ao abrir caixa");
+      toast.error(error.response?.data?.error || "Erro ao abrir caixa");
     },
   });
 };
@@ -60,16 +75,16 @@ export const useCloseCaixa = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ body }: { body: Caixa.BodyClose }) => {
+    mutationFn: async ({ body }: { body: any }) => {
       return await closeCaixa(body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["has-open-caixa"] });
       queryClient.invalidateQueries({ queryKey: ["get-caixas"] });
-      message.success("Caixa fechado com sucesso.");
+      toast.success("Caixa fechado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response?.data?.error || "Erro ao fechar caixa");
+      toast.error(error.response?.data?.error || "Erro ao fechar caixa");
     },
   });
 };
@@ -78,26 +93,34 @@ export const useMoveCaixa = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ body }: { body: Caixa.BodyMoveCaixa }) => {
+    mutationFn: async ({ body }: { body: any }) => {
       return await moveCaixa(body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-caixas"] });
       queryClient.invalidateQueries({ queryKey: ["get-caixa-summary"] });
-      message.success("Movimentação realizada com sucesso.");
+      toast.success("Movimentação realizada com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response?.data?.error || "Erro na movimentação");
+      toast.error(error.response?.data?.error || "Erro na movimentação");
     },
   });
 };
 
+const openCaixaSchema = z.object({
+  valorAbertura: z.coerce.number().min(0, "Valor deve ser zero ou maior"),
+});
+
+const closeCaixaSchema = z.object({
+  valorFechamentoInformado: z.coerce.number().min(0, "Valor deve ser zero ou maior"),
+  observacoes: z.string().optional(),
+});
+
 export const useCaixaManager = () => {
   const [modalMode, setModalMode] = useState<"open" | "close" | null>(null);
-  const [form] = Form.useForm();
 
   const { data: summary, isLoading: isLoadingSummary } =
-    useQuery<Caixa.SummaryResponse>({
+    useQuery<any>({
       queryKey: ["get-caixa-summary"],
       queryFn: getCaixaSummary,
       enabled: modalMode === "close",
@@ -106,196 +129,205 @@ export const useCaixaManager = () => {
   const { mutate: openCaixaMutate, isPending: isOpening } = useOpenCaixa();
   const { mutate: closeCaixaMutate, isPending: isClosing } = useCloseCaixa();
 
+  const openForm = useForm({
+    resolver: zodResolver(openCaixaSchema),
+    defaultValues: { valorAbertura: 0 },
+  });
+
+  const closeForm = useForm({
+    resolver: zodResolver(closeCaixaSchema),
+    defaultValues: { valorFechamentoInformado: 0, observacoes: "" },
+  });
+
   const handleOpen = () => setModalMode("open");
   const handleClose = () => setModalMode("close");
   const handleCancel = () => {
-    form.resetFields();
+    openForm.reset();
+    closeForm.reset();
     setModalMode(null);
   };
 
-  const onFinish = (values: any) => {
-    if (modalMode === "open") {
-      openCaixaMutate(
-        { body: { valorAbertura: Number(values.valorAbertura) } },
-        { onSuccess: handleCancel }
-      );
-    } else if (modalMode === "close") {
-      closeCaixaMutate(
-        {
-          body: {
-            valorFechamentoInformado: Number(values.valorFechamentoInformado),
-            observacoes: values.observacoes,
-          },
+  const onOpenSubmit = (values: any) => {
+    openCaixaMutate(
+      { body: { valorAbertura: values.valorAbertura } },
+      { onSuccess: handleCancel }
+    );
+  };
+
+  const onCloseSubmit = (values: any) => {
+    closeCaixaMutate(
+      {
+        body: {
+          valorFechamentoInformado: values.valorFechamentoInformado,
+          observacoes: values.observacoes,
         },
-        { onSuccess: handleCancel }
-      );
-    }
+      },
+      { onSuccess: handleCancel }
+    );
   };
 
   const totalEsperadoEmCaixa =
     (summary?.valorAbertura || 0) + (summary?.saldoFisicoDinheiro || 0);
 
   const CaixaManagerModal = (
-    <Modal
-      title={modalMode === "open" ? "Abrir Caixa" : "Fechar Caixa"}
-      open={modalMode !== null}
-      width={700}
-      centered
-      onOk={() => form.submit()}
-      onCancel={handleCancel}
-      okText={modalMode === "open" ? "Abrir Caixa" : "Confirmar Fechamento"}
-      confirmLoading={isOpening || isClosing}
-    >
-      <Form form={form} layout="vertical" onFinish={onFinish}>
-        {modalMode === "open" && (
-          <>
-            <Alert
-              type="info"
-              showIcon
-              className="!mb-6"
-              message="Insira o valor inicial (fundo de troco) para abrir o caixa e iniciar as vendas."
-            />
-            <Form.Item
-              name="valorAbertura"
-              label="Valor de Abertura"
-              rules={[{ required: true, message: "Informe o valor inicial" }]}
-            >
-              <CurrencyInput min={0} autoFocus />
-            </Form.Item>
-          </>
-        )}
+    <Dialog open={modalMode !== null} onOpenChange={(val) => !val && handleCancel()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-0">
+          <DialogTitle>{modalMode === "open" ? "Abrir Caixa" : "Fechar Caixa"}</DialogTitle>
+        </DialogHeader>
 
-        {modalMode === "close" &&
-          (isLoadingSummary ? (
-            <div className="flex justify-center items-center py-10">
-              <Spin tip="Calculando totais..." />
-            </div>
-          ) : (
-            <>
-              <div className=" p-5 rounded-lg border mb-6">
-                <Typography.Title
-                  level={5}
-                  className="!mb-4 flex items-center gap-2"
-                >
-                  💵 Conferência Física (Gaveta)
-                </Typography.Title>
-
-                <Row gutter={[16, 16]}>
-                  {/* Fundo de Troco */}
-                  <Col span={8}>
-                    <Statistic
-                      title="Valor de Abertura"
-                      value={summary?.valorAbertura}
-                      formatter={formatCurrency}
-                    />
-                  </Col>
-
-                  {/* Vendas em Dinheiro (Líquido) */}
-                  {summary?.resumoPorMetodo
-                    .filter((m) => m.isCash)
-                    .map((metodo) => (
-                      <Col span={8} key={metodo.metodoId}>
-                        <Statistic
-                          title={`(+) Vendas ${metodo.nome}`}
-                          value={metodo.valorLiquido}
-                          formatter={formatCurrency}
-                        />
-                      </Col>
-                    ))}
-
-                  {/* Movimentações */}
-                  <Col span={8}>
-                    <Statistic
-                      title="(+) Entradas / Sangria"
-                      value={summary?.totalEntradas}
-                      formatter={formatCurrency}
-                    />
-                  </Col>
-                  <Col span={8}>
-                    <Statistic
-                      title="(-) Saídas / Sangria"
-                      value={summary?.totalSaidas}
-                      formatter={formatCurrency}
-                      valueStyle={{ color: "#cf1322" }}
-                    />
-                  </Col>
-                  <Col span={8}>
-                    <Statistic
-                      title="(-) Troco Devolvido"
-                      value={summary?.totalTroco}
-                      formatter={formatCurrency}
-                      valueStyle={{ color: "#cf1322" }}
-                    />
-                  </Col>
-                </Row>
-
-                <Divider className="my-4" />
-
-                <div className="flex justify-between items-end">
-                  <span className="text-emerald-900 font-medium">
-                    Valor esperado na gaveta:
-                  </span>
-                  <span className="text-2xl font-bold text-emerald-700">
-                    {formatCurrency(totalEsperadoEmCaixa)}
-                  </span>
-                </div>
-              </div>
-
-              {/* BLOCO 2: OUTROS MEIOS (DIGITAL) */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
-                <Typography.Title level={5} className="!mb-3 !text-gray-600">
-                  💳 Outros Recebimentos (Digital)
-                </Typography.Title>
-                <Row gutter={[16, 16]}>
-                  {summary?.resumoPorMetodo
-                    .filter((m) => !m.isCash)
-                    .map((metodo) => (
-                      <Col span={8} key={metodo.metodoId}>
-                        <Statistic
-                          title={metodo.nome}
-                          value={metodo.valorBruto}
-                          formatter={formatCurrency}
-                          valueStyle={{ fontSize: 16 }}
-                        />
-                      </Col>
-                    ))}
-
-                  {summary?.resumoPorMetodo.filter((m) => !m.isCash).length ===
-                    0 && (
-                    <Col span={24}>
-                      <span className="text-gray-400 text-sm">
-                        Nenhuma venda digital neste caixa.
-                      </span>
-                    </Col>
+        <ScrollArea className="flex-1 p-6 pt-2">
+          {modalMode === "open" && (
+            <Form {...openForm}>
+              <form id="open-caixa-form" onSubmit={openForm.handleSubmit(onOpenSubmit)} className="space-y-6">
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Informação</AlertTitle>
+                  <AlertDescription>
+                    Insira o valor inicial (fundo de troco) para abrir o caixa e iniciar as vendas.
+                  </AlertDescription>
+                </Alert>
+                <FormField
+                  control={openForm.control}
+                  name="valorAbertura"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor de Abertura</FormLabel>
+                      <FormControl>
+                        <CurrencyInput {...field} autoFocus />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </Row>
+                />
+              </form>
+            </Form>
+          )}
+
+          {modalMode === "close" && (
+            isLoadingSummary ? (
+              <div className="flex flex-col justify-center items-center py-20 gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Calculando totais...</p>
               </div>
+            ) : (
+              <Form {...closeForm}>
+                <form id="close-caixa-form" onSubmit={closeForm.handleSubmit(onCloseSubmit)} className="space-y-6">
+                  <div className="border rounded-lg p-5 space-y-4 bg-muted/20">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <DollarSign className="size-4" />
+                      Conferência Física (Gaveta)
+                    </h4>
 
-              {/* BLOCO 3: INPUT DE CONFERÊNCIA */}
-              <Alert
-                message="Conte o dinheiro físico da gaveta e informe abaixo para fechar."
-                type="warning"
-                className="mb-4"
-              />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground uppercase">Valor Abertura</p>
+                        <p className="font-medium">{formatCurrency(summary?.valorAbertura)}</p>
+                      </div>
 
-              <Form.Item
-                name="valorFechamentoInformado"
-                label="Valor Contado em Dinheiro"
-                rules={[{ required: true, message: "Informe o valor contado" }]}
-              >
-                <CurrencyInput autoFocus size="large" />
-              </Form.Item>
+                      {summary?.resumoPorMetodo?.filter((m: any) => m.isCash).map((metodo: any) => (
+                        <div className="space-y-1" key={metodo.metodoId}>
+                          <p className="text-xs text-muted-foreground uppercase">(+) Vendas {metodo.nome}</p>
+                          <p className="font-medium">{formatCurrency(metodo.valorLiquido)}</p>
+                        </div>
+                      ))}
 
-              <Form.Item
-                name="observacoes"
-                label="Observações (Quebra de caixa, justificativas, etc)"
-              >
-                <Input.TextArea rows={2} />
-              </Form.Item>
-            </>
-          ))}
-      </Form>
-    </Modal>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground uppercase">(+) Entradas</p>
+                        <p className="font-medium">{formatCurrency(summary?.totalEntradas)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-destructive uppercase">(-) Saídas</p>
+                        <p className="font-medium text-destructive">{formatCurrency(summary?.totalSaidas)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-destructive uppercase">(-) Troco Devolvido</p>
+                        <p className="font-medium text-destructive">{formatCurrency(summary?.totalTroco)}</p>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Valor esperado na gaveta:</span>
+                      <span className="text-xl font-bold text-emerald-600">
+                        {formatCurrency(totalEsperadoEmCaixa)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-muted/10 p-4 rounded-lg border">
+                    <h5 className="text-sm font-semibold mb-3">Outros Recebimentos (Digital)</h5>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {summary?.resumoPorMetodo?.filter((m: any) => !m.isCash).map((metodo: any) => (
+                        <div key={metodo.metodoId}>
+                          <p className="text-[10px] text-muted-foreground uppercase">{metodo.nome}</p>
+                          <p className="text-sm font-medium">{formatCurrency(metodo.valorBruto)}</p>
+                        </div>
+                      ))}
+                      {summary?.resumoPorMetodo?.filter((m: any) => !m.isCash).length === 0 && (
+                        <p className="text-xs text-muted-foreground col-span-full italic">Nenhuma venda digital registrada.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <Alert variant="warning" className="bg-amber-50 border-amber-200 text-amber-900">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertTitle>Atenção</AlertTitle>
+                    <AlertDescription>
+                      Conte o dinheiro físico da gaveta e informe abaixo para fechar.
+                    </AlertDescription>
+                  </Alert>
+
+                  <FormField
+                    control={closeForm.control}
+                    name="valorFechamentoInformado"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Valor Contado em Dinheiro</FormLabel>
+                        <FormControl>
+                          <CurrencyInput {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={closeForm.control}
+                    name="observacoes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Observações</FormLabel>
+                        <FormControl>
+                          <Textarea rows={2} placeholder="Justificativas, quebras de caixa, etc..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
+            )
+          )}
+        </ScrollArea>
+
+        <DialogFooter className="p-6 border-t">
+          <Button variant="ghost" onClick={handleCancel}>Cancelar</Button>
+          {modalMode === "open" ? (
+            <Button onClick={openForm.handleSubmit(onOpenSubmit)} disabled={isOpening}>
+              {isOpening && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Abrir Caixa
+            </Button>
+          ) : (
+            <Button onClick={closeForm.handleSubmit(onCloseSubmit)} disabled={isClosing || isLoadingSummary}>
+              {isClosing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar Fechamento
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 
   return {

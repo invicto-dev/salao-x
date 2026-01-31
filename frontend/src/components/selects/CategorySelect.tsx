@@ -1,49 +1,63 @@
 import { useCategories, useCategoryModal } from "@/hooks/use-categories";
-import { Button, Select, SelectProps } from "antd";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useState } from "react";
 
-interface Props extends SelectProps {
+interface Props {
+  value?: string;
+  onChange?: (value: string) => void;
+  placeholder?: string;
   isFilter?: boolean;
+  className?: string;
 }
 
-export default function CategorySelect({ isFilter, ...props }: Props) {
+export default function CategorySelect({
+  value,
+  onChange,
+  placeholder = "Selecione uma categoria",
+  isFilter,
+  className,
+}: Props) {
   const { data: categories = [] } = useCategories({
     status: "true",
   });
   const { CategoryModal, toggleModal } = useCategoryModal(null);
 
-  const options = categories.map((c) => ({
-    value: c.id,
-    label: c.nome,
-  }));
-
   return (
     <>
-      <Select
-        showSearch
-        allowClear
-        optionFilterProp="label"
-        placeholder="Selecione uma categoria"
-        options={options}
-        className={isFilter ? "min-w-[250px]" : "w-full"}
-        popupRender={(options) => (
-          <>
-            {options}
+      <div className={`flex flex-col gap-2 ${className}`}>
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger className={isFilter ? "min-w-[200px]" : "w-full"}>
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={c.id.toString()}>
+                {c.nome}
+              </SelectItem>
+            ))}
             {!isFilter && (
               <Button
-                type="text"
-                className="w-full mt-1"
-                icon={<Plus size={14} />}
-                onClick={toggleModal}
+                variant="ghost"
+                className="w-full justify-start mt-2 px-2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleModal();
+                }}
               >
-                Adicionar nova categoria
+                <Plus size={14} className="mr-2" />
+                Nova categoria
               </Button>
             )}
-          </>
-        )}
-        {...props}
-      />
+          </SelectContent>
+        </Select>
+      </div>
       {CategoryModal}
     </>
   );

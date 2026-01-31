@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { Input } from "antd";
+import { Input } from "@/components/ui/input";
 
-interface NameInputProps {
+interface NameInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   value?: string;
-  onChange?: (value: string) => void;
-  placeholder?: string;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const formatWord = (word: string): string => {
@@ -24,35 +23,53 @@ const formatWord = (word: string): string => {
   return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 };
 
-export const NameInput: React.FC<NameInputProps> = ({
-  value,
-  onChange,
-  placeholder = "Digite seu nome",
-}) => {
-  const [internalValue, setInternalValue] = useState(value || "");
+export const NameInput = React.forwardRef<HTMLInputElement, NameInputProps>(
+  ({ value, onChange, placeholder = "Digite o nome", onBlur, ...props }, ref) => {
+    const [internalValue, setInternalValue] = useState(value || "");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
-    setInternalValue(rawValue);
-    if (onChange) onChange(rawValue);
-  };
+    React.useEffect(() => {
+      if (value !== undefined) setInternalValue(value);
+    }, [value]);
 
-  const handleBlur = () => {
-    const formatted = internalValue
-      .split(" ")
-      .filter(Boolean)
-      .map(formatWord)
-      .join(" ");
-    setInternalValue(formatted);
-    if (onChange) onChange(formatted);
-  };
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setInternalValue(e.target.value);
+      if (onChange) onChange(e);
+    };
 
-  return (
-    <Input
-      value={internalValue || value}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      placeholder={placeholder}
-    />
-  );
-};
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+      const formatted = internalValue
+        .split(" ")
+        .filter(Boolean)
+        .map(formatWord)
+        .join(" ");
+
+      setInternalValue(formatted);
+
+      if (onChange) {
+        const newEvent = {
+          ...e,
+          target: {
+            ...e.target,
+            value: formatted,
+          },
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(newEvent);
+      }
+
+      if (onBlur) onBlur(e);
+    };
+
+    return (
+      <Input
+        {...props}
+        ref={ref}
+        value={internalValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+      />
+    );
+  }
+);
+
+NameInput.displayName = "NameInput";

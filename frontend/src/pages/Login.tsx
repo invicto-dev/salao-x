@@ -1,101 +1,143 @@
-import { Card, Form, Input, Button, Checkbox, Typography, message } from "antd";
-import { Mail, Lock } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
-const { Title, Text } = Typography;
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 
-interface LoginFormValues {
-  email: string;
-  password: string;
-  remember?: boolean;
-}
+const loginSchema = z.object({
+  email: z.string().email({ message: "Insira um email válido" }),
+  password: z.string().min(1, { message: "A senha é obrigatória" }),
+  remember: z.boolean().default(true),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const { login, isLoading } = useAuth();
-  const navigate = useNavigate(); // Hook para navegação
+  const navigate = useNavigate();
 
-  const onFinish = async (values: LoginFormValues) => {
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      remember: true,
+    },
+  });
+
+  const onSubmit = async (values: LoginFormValues) => {
     try {
       await login(values.email, values.password);
-      message.success("Login realizado com sucesso!");
+      toast.success("Login realizado com sucesso!");
       navigate("/pdv");
-    } catch (error) {
-      message.error(error.response.data.error);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Falha no login");
       console.error("Falha no login:", error);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-      <Card className="w-full max-w-md shadow-lg">
-        <div className="text-center mb-8">
-          <Title level={2}>Acesse sua Conta</Title>
-          <Text type="secondary">
+    <div className="flex items-center justify-center min-h-screen bg-muted/40">
+      <Card className="w-full max-w-md shadow-lg border-none">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Acesse sua Conta</CardTitle>
+          <CardDescription>
             Bem-vindo(a) de volta! Por favor, insira suas credenciais.
-          </Text>
-        </div>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="seuemail@exemplo.com"
+                          className="pl-9"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <Form
-          name="login_form"
-          layout="vertical"
-          initialValues={{ remember: true }}
-          onFinish={onFinish}
-          size="large"
-        >
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              { required: true, message: "Por favor, insira seu email!" },
-              { type: "email", message: "O email inserido não é válido!" },
-            ]}
-          >
-            <Input
-              prefix={
-                <Mail className="site-form-item-icon text-gray-400" size={14} />
-              }
-              placeholder="seuemail@exemplo.com"
-            />
-          </Form.Item>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="password"
+                          placeholder="Senha"
+                          className="pl-9"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <Form.Item
-            name="password"
-            label="Senha"
-            rules={[
-              { required: true, message: "Por favor, insira sua senha!" },
-            ]}
-          >
-            <Input.Password
-              prefix={
-                <Lock className="site-form-item-icon text-gray-400" size={14} />
-              }
-              placeholder="Senha"
-            />
-          </Form.Item>
+              <div className="flex items-center justify-between">
+                <FormField
+                  control={form.control}
+                  name="remember"
+                  render={({ field }) => (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="remember"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                      <label
+                        htmlFor="remember"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Lembrar-me
+                      </label>
+                    </div>
+                  )}
+                />
+                <Button variant="link" className="px-0 font-normal h-auto" type="button">
+                  Esqueceu a senha?
+                </Button>
+              </div>
 
-          <Form.Item>
-            <div className="flex justify-between items-center">
-              <Form.Item name="remember" valuePropName="checked" noStyle>
-                <Checkbox>Lembrar-me</Checkbox>
-              </Form.Item>
-              <a className="login-form-forgot" href="">
-                Esqueceu a senha?
-              </a>
-            </div>
-          </Form.Item>
-
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              className="w-full"
-              loading={isLoading} // O botão fica em estado de loading enquanto a função 'login' executa
-            >
-              Entrar
-            </Button>
-          </Form.Item>
-        </Form>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Entrar
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
       </Card>
     </div>
   );
