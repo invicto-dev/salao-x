@@ -8,6 +8,14 @@ export class ConfiguracaoController {
     res.status(200).json({ success: true, data: config });
   }
 
+  static async createConfig(req: Request, res: Response) {
+    const payload: Settings.Payload = req.body;
+
+    const newConfig = await SettingsService.create(payload);
+
+    res.status(201).json({ success: true, data: newConfig });
+  }
+
   static async updateConfig(req: Request, res: Response) {
     const { id } = req.params;
     const payload: Settings.Payload = req.body;

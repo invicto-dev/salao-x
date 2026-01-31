@@ -24,6 +24,19 @@ export class SettingsService {
   }
 
   /**
+   * Creates a new
+   *
+   */
+
+  static async create(payload: Settings.Payload) {
+    const newSettings = await prisma.setting.create({
+      data: payload,
+    });
+
+    return newSettings;
+  }
+
+  /**
    * Updates system settings by ID with the provided payload.
    *
    * @param id - The settings record ID.

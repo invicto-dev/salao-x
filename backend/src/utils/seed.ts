@@ -68,6 +68,19 @@ async function main() {
   console.log(`🔑 Senha: root123 (se for o primeiro acesso)`);
   console.log("-----------------------------------------");
 
+  console.log("Gerando Configuração padrão...");
+  await prisma.setting.upsert({
+    where: { id: "default" },
+    update: {},
+    create: {
+      id: "default",
+      nomeEmpresa: "",
+      cnpj: null,
+      asaasActive: false,
+    },
+  });
+  console.log("✅ Configurações garantidas.");
+
   console.log("\n🎉 Seed concluído com sucesso!");
 }
 

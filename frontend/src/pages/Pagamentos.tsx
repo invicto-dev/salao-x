@@ -1,5 +1,14 @@
 import React, { useState } from "react";
-import { Plus, Search, Upload as UploadIcon, List, Edit, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Upload as UploadIcon,
+  List,
+  Edit,
+  Trash2,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -53,7 +62,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const paymentMethodSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
@@ -70,8 +78,10 @@ const MetodoDePagamentos = () => {
   const [methodToDelete, setMethodToDelete] = useState<any>(null);
 
   const { data: paymentMethods = [], isLoading, refetch } = usePaymentMethods();
-  const { mutateAsync: createPaymentMethod, isPending: isCreating } = usePaymentMethodCreate();
-  const { mutateAsync: updatePaymentMethod, isPending: isUpdating } = usePaymentMethodUpdate();
+  const { mutateAsync: createPaymentMethod, isPending: isCreating } =
+    usePaymentMethodCreate();
+  const { mutateAsync: updatePaymentMethod, isPending: isUpdating } =
+    usePaymentMethodUpdate();
   const { mutateAsync: deletePaymentMethod } = usePaymentMethodDelete();
 
   const form = useForm<PaymentMethodFormValues>({
@@ -83,16 +93,16 @@ const MetodoDePagamentos = () => {
     },
   });
 
-  const paymentMethodsFiltered = paymentMethods.filter(
-    (method: any) => {
-      const matchBusca = method.nome.toLowerCase().includes(params.search.toLowerCase());
-      const matchStatus =
-        !params.status ||
-        (params.status === "ativo" && method.ativo) ||
-        (params.status === "inativo" && !method.ativo);
-      return matchBusca && matchStatus;
-    }
-  );
+  const paymentMethodsFiltered = paymentMethods.filter((method: any) => {
+    const matchBusca = method.nome
+      .toLowerCase()
+      .includes(params.search.toLowerCase());
+    const matchStatus =
+      !params.status ||
+      (params.status === "ativo" && method.ativo) ||
+      (params.status === "inativo" && !method.ativo);
+    return matchBusca && matchStatus;
+  });
 
   const columns: ColumnDef<any>[] = [
     {
@@ -110,7 +120,11 @@ const MetodoDePagamentos = () => {
     {
       accessorKey: "descricao",
       header: "Descrição",
-      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.descricao || "-"}</span>,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.original.descricao || "-"}
+        </span>
+      ),
     },
     {
       accessorKey: "ativo",
@@ -118,7 +132,10 @@ const MetodoDePagamentos = () => {
       cell: ({ row }) => {
         const ativo = row.original.ativo;
         return (
-          <Badge variant={ativo ? "outline" : "secondary"} className={ativo ? "text-emerald-600 border-emerald-600" : ""}>
+          <Badge
+            variant={ativo ? "outline" : "secondary"}
+            className={ativo ? "text-emerald-600 border-emerald-600" : ""}
+          >
             {ativo ? "Ativo" : "Inativo"}
           </Badge>
         );
@@ -196,7 +213,9 @@ const MetodoDePagamentos = () => {
                 placeholder="Buscar pelo nome..."
                 className="pl-9"
                 value={params.search}
-                onChange={(e) => setParams({ ...params, search: e.target.value })}
+                onChange={(e) =>
+                  setParams({ ...params, search: e.target.value })
+                }
               />
             </div>
           ),
@@ -205,7 +224,12 @@ const MetodoDePagamentos = () => {
           element: (
             <Select
               value={params.status}
-              onValueChange={(value) => setParams({ ...params, status: value === "all" ? undefined : value })}
+              onValueChange={(value) =>
+                setParams({
+                  ...params,
+                  status: value === "all" ? undefined : value,
+                })
+              }
             >
               <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder="Status" />
@@ -240,65 +264,94 @@ const MetodoDePagamentos = () => {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>{editingMethod ? "Editar Método de Pagamento" : "Novo Método de Pagamento"}</DialogTitle>
+            <DialogTitle>
+              {editingMethod
+                ? "Editar Método de Pagamento"
+                : "Novo Método de Pagamento"}
+            </DialogTitle>
           </DialogHeader>
 
           <Form {...form}>
-            <form id="payment-method-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-               <FormField
-                  control={form.control}
-                  name="nome"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome</FormLabel>
-                      <FormControl>
-                        <NameInput placeholder="Ex: Vale Alimentação" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="descricao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição</FormLabel>
-                      <FormControl>
-                        <Textarea rows={3} placeholder="Descreva o método de pagamento..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="ativo"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>Método Ativo</FormLabel>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+            <form
+              id="payment-method-form"
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-4"
+            >
+              <FormField
+                control={form.control}
+                name="nome"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <NameInput
+                        placeholder="Ex: Vale Alimentação"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="descricao"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={3}
+                        placeholder="Descreva o método de pagamento..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="ativo"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Método Ativo</FormLabel>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             </form>
           </Form>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button type="submit" form="payment-method-form" disabled={isCreating || isUpdating}>
-              {(isCreating || isUpdating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              form="payment-method-form"
+              disabled={isCreating || isUpdating}
+            >
+              {(isCreating || isUpdating) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               {editingMethod ? "Salvar" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!methodToDelete} onOpenChange={(val) => !val && setMethodToDelete(null)}>
+      <AlertDialog
+        open={!!methodToDelete}
+        onOpenChange={(val) => !val && setMethodToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -306,13 +359,17 @@ const MetodoDePagamentos = () => {
               Confirmar Exclusão
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o método de pagamento <strong>{methodToDelete?.nome}</strong>?
-              Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o método de pagamento{" "}
+              <strong>{methodToDelete?.nome}</strong>? Esta ação não pode ser
+              desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Não, manter</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Sim, Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
