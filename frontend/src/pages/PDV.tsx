@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   Package,
+  ShoppingCart,
   Scissors,
   Search,
   Plus,
@@ -26,6 +27,7 @@ import { calPercentual } from "@/utils/cart/calculeIncreaseOrDecrease";
 import Cart from "@/components/PDV/cart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -189,101 +191,105 @@ const PDV = () => {
     return subtotal + valorAcrescimo - valorDesconto;
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-3xl font-bold tracking-tight">PDV - Ponto de Venda</h2>
-        <p className="text-muted-foreground">Sistema completo para vendas e atendimento</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-200px)]">
-        <Card className="flex flex-col shadow-sm border-none overflow-hidden">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-               <Package className="h-5 w-5" />
-               Produtos e Serviços
-            </CardTitle>
-            <div className="pt-2">
-              <BarCodeInput
-                label="produto ou serviço"
-                value={busca}
-                onChangeValue={setBusca}
-                sourceLength={produtos.length + servicos.length}
-              />
+  const renderItemsContent = () => (
+    <Card className="flex flex-col shadow-sm border-none overflow-hidden h-full">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg flex items-center gap-2">
+           <Package className="h-5 w-5" />
+           Produtos e Serviços
+        </CardTitle>
+        <div className="pt-2">
+          <BarCodeInput
+            label="produto ou serviço"
+            value={busca}
+            onChangeValue={setBusca}
+            sourceLength={produtos.length + servicos.length}
+          />
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-hidden p-0 px-6">
+        <ScrollArea className="h-full pr-4 pb-6">
+          {!produtos.length && !servicos.length && !isLoadingProdutos && !isLoadingServicos ? (
+            <div className="flex flex-col gap-6 justify-center items-center h-64 text-center">
+              <div className="bg-muted p-4 rounded-full">
+                 <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground">Nenhum item encontrado</p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => navigate("/produtos")}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Novo Produto
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/servicos")}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Novo Serviço
+                </Button>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-hidden p-0 px-6">
-            <ScrollArea className="h-full pr-4 pb-6">
-              {!produtos.length && !servicos.length && !isLoadingProdutos && !isLoadingServicos ? (
-                <div className="flex flex-col gap-6 justify-center items-center h-64 text-center">
-                  <div className="bg-muted p-4 rounded-full">
-                     <Search className="h-8 w-8 text-muted-foreground" />
+          ) : (
+            <div className={isCaixaFechado ? "pointer-events-none opacity-50 grayscale" : "space-y-8 py-2"}>
+              {produtos.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Produtos</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {produtos.map((produto: any) => (
+                      <CardWithDisabled
+                        key={produto.id}
+                        onClick={() => handleItemClick(produto, "produto")}
+                        disabled={disabledItem(produto)}
+                        className="p-3 text-left hover:scale-[1.02] transition-transform"
+                      >
+                        <p className="font-medium text-sm truncate" title={produto.nome}>{produto.nome}</p>
+                        <p className="text-primary font-bold">{formatCurrency(produto.preco)}</p>
+                        {produto.contarEstoque && (
+                          <Badge variant={produto.estoqueAtual > 0 ? "outline" : "destructive"} className="mt-1 text-[10px] h-4">
+                            {produto.estoqueAtual > 0 ? `${produto.estoqueAtual} ${produto.unidadeMedida}` : "Sem estoque"}
+                          </Badge>
+                        )}
+                      </CardWithDisabled>
+                    ))}
                   </div>
-                  <p className="text-muted-foreground">Nenhum item encontrado</p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => navigate("/produtos")}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Novo Produto
-                    </Button>
-                    <Button variant="outline" onClick={() => navigate("/servicos")}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Novo Serviço
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className={isCaixaFechado ? "pointer-events-none opacity-50 grayscale" : "space-y-8 py-2"}>
-                  {produtos.length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Produtos</h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {produtos.map((produto: any) => (
-                          <CardWithDisabled
-                            key={produto.id}
-                            onClick={() => handleItemClick(produto, "produto")}
-                            disabled={disabledItem(produto)}
-                            className="p-3 text-left"
-                          >
-                            <p className="font-medium text-sm truncate" title={produto.nome}>{produto.nome}</p>
-                            <p className="text-primary font-bold">{formatCurrency(produto.preco)}</p>
-                            {produto.contarEstoque && (
-                              <Badge variant={produto.estoqueAtual > 0 ? "outline" : "destructive"} className="mt-1 text-[10px] h-4">
-                                {produto.estoqueAtual > 0 ? `${produto.estoqueAtual} ${produto.unidadeMedida}` : "Sem estoque"}
-                              </Badge>
-                            )}
-                          </CardWithDisabled>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {servicos.length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Serviços</h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {servicos.map((servico: any) => (
-                          <Card
-                            key={servico.id}
-                            className="p-3 cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all"
-                            onClick={() => handleItemClick(servico, "servico")}
-                          >
-                            <p className="font-medium text-sm truncate" title={servico.nome}>{servico.nome}</p>
-                            <p className="text-primary font-bold">{formatCurrency(servico.preco)}</p>
-                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
-                              <Scissors className="h-3 w-3" />
-                              {servico.duracao}min
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
 
+              {servicos.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Serviços</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {servicos.map((servico: any) => (
+                      <Card
+                        key={servico.id}
+                        className="p-3 cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all hover:scale-[1.02]"
+                        onClick={() => handleItemClick(servico, "servico")}
+                      >
+                        <p className="font-medium text-sm truncate" title={servico.nome}>{servico.nome}</p>
+                        <p className="text-primary font-bold">{formatCurrency(servico.preco)}</p>
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
+                          <Scissors className="h-3 w-3" />
+                          {servico.duracao}min
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="space-y-6 flex flex-col h-full">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">PDV - Ponto de Venda</h2>
+        <p className="text-muted-foreground hidden md:block">Sistema completo para vendas e atendimento</p>
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden lg:grid grid-cols-2 gap-6 h-[calc(100vh-200px)] animate-in fade-in duration-500">
+        {renderItemsContent()}
         <div className="h-full">
           <Cart
             total={calcularTotal()}
@@ -292,6 +298,38 @@ const PDV = () => {
             updateSaleSession={updateSaleSession}
           />
         </div>
+      </div>
+
+      {/* Mobile/Tablet Layout */}
+      <div className="lg:hidden flex-1 overflow-hidden">
+        <Tabs defaultValue="items" className="flex flex-col h-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="items" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Itens
+            </TabsTrigger>
+            <TabsTrigger value="cart" className="flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Carrinho
+              {carrinho?.content?.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 min-w-[20px] flex justify-center">
+                  {carrinho.content.reduce((acc: number, item: any) => acc + item.quantidade, 0)}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="items" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
+             {renderItemsContent()}
+          </TabsContent>
+          <TabsContent value="cart" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
+            <Cart
+              total={calcularTotal()}
+              subtotal={calcularSubtotal()}
+              salesSession={saleSession}
+              updateSaleSession={updateSaleSession}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Modal Valor Aberto */}
