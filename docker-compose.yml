@@ -1,9 +1,9 @@
 services:
   backend:
-    container_name: salao-x-backend
+    container_name: salao_x_backend_dev
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3004:3000"
     volumes:
@@ -20,17 +20,17 @@ services:
       - PORT=${PORT}
       - NODE_ENV=${NODE_ENV}
       - FRONTEND_URL_DEV=${FRONTEND_URL_DEV}
-      - FRONTEND_URL_PRD=${FRONTEND_URL_PRD}
+      - FRONTEND_URL_PRD=${FRONTEND_URL_PRD}c
       - ASAAS_API_URL=${ASAAS_API_URL}
       - ASAAS_API_URL_SANDBOX=${ASAAS_API_URL_SANDBOX}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
 
   frontend:
-    container_name: salao-x-frontend
+    container_name: salao_x_frontend_dev
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "5173:5173"
     volumes:
@@ -41,7 +41,7 @@ services:
       - CHOKIDAR_USEPOLLING=true
 
   db:
-    container_name: salao-x-postgres
+    container_name: salao_x_db_dev
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=${DB_USER}
