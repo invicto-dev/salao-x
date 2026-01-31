@@ -1,14 +1,5 @@
-import {
-  Layout,
-  Menu,
-  Button,
-  Breadcrumb,
-  Drawer,
-  Dropdown,
-  Segmented,
-} from "antd";
-import { useMemo, useState } from "react";
-import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useMemo } from "react";
+import { Routes, Route, useLocation, useNavigate, Link } from "react-router-dom";
 import {
   ShoppingCart,
   Package,
@@ -18,17 +9,20 @@ import {
   Moon,
   Sun,
   List as ListIcon,
-  Store,
   Scissors,
   WalletCards,
   DollarSign,
   LogOut,
   User2,
-  PanelLeft,
-  PanelRight,
   Banknote,
   Clipboard,
+  ChevronDown,
+  Store,
 } from "lucide-react";
+
+import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissions";
+import { useTheme } from "@/components/theme-provider";
 
 // Pages
 import Dashboard from "../../pages/Dashboard";
@@ -44,71 +38,81 @@ import Configuracoes from "../../pages/Configuracoes";
 import Categorias from "@/pages/Categorias";
 import MetodoDePagamentos from "@/pages/Pagamentos";
 import Vendas from "@/pages/Vendas";
-import { useAuth } from "@/contexts/AuthContext";
-import { hasPermission } from "@/utils/permissions";
 import Caixa from "@/pages/Caixa";
 import Comandas from "@/pages/Comandas";
 
-const { Header, Sider, Content } = Layout;
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarRail,
+} from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
 
-interface AppLayoutProps {
-  isDarkMode: boolean;
-  onToggleTheme: () => void;
-}
-
-const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
+const AppLayout = () => {
   const { logout, user } = useAuth();
-  const [collapsed, setCollapsed] = useState(
-    JSON.parse(localStorage.getItem("collapsed") || "false")
-  );
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
-  const navigate = useNavigate();
 
   const menuItems = [
-    /* {
-      key: "/",
-      icon: <BarChart3 size={14} />,
-      label: "Dashboard",
-      permission: "GERENTE",
-    }, */
     {
       key: "/pdv",
-      icon: <ShoppingCart size={14} />,
+      icon: <ShoppingCart className="size-4" />,
       label: "PDV",
       permission: "FUNCIONARIO",
     },
     {
       key: "/comandas",
-      icon: <Clipboard size={14} />,
+      icon: <Clipboard className="size-4" />,
       label: "Comandas",
       permission: "FUNCIONARIO",
     },
     {
       key: "/vendas",
-      icon: <DollarSign size={14} />,
+      icon: <DollarSign className="size-4" />,
       label: "Vendas",
       permission: "FUNCIONARIO",
     },
     {
       key: "produtos-servicos",
       label: "Produtos & Serviços",
-      icon: <Package size={14} />,
+      icon: <Package className="size-4" />,
       permission: "FUNCIONARIO",
       children: [
         {
           key: "/produtos",
-          icon: <Package size={14} />,
+          icon: <Package className="size-4" />,
           label: "Produtos",
         },
         {
           key: "/servicos",
-          icon: <Scissors size={14} />,
+          icon: <Scissors className="size-4" />,
           label: "Serviços",
         },
         {
           key: "/estoque",
-          icon: <Store size={14} />,
+          icon: <Store className="size-4" />,
           label: "Estoque",
         },
       ],
@@ -116,72 +120,56 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
     {
       key: "gestao",
       label: "Gestão",
-      icon: <Users size={14} />,
+      icon: <Users className="size-4" />,
       permission: "SECRETARIO",
       children: [
-        /* {
-          key: "/agendamentos",
-          icon: <Calendar size={14} />,
-          label: "Agendamentos",
-        }, */
         {
           key: "/categorias",
-          icon: <ListIcon size={14} />,
+          icon: <ListIcon className="size-4" />,
           label: "Categorias",
         },
         {
           key: "/clientes",
-          icon: <Users size={14} />,
+          icon: <Users className="size-4" />,
           label: "Clientes",
         },
         {
           key: "/funcionarios",
-          icon: <UserCheck size={14} />,
+          icon: <UserCheck className="size-4" />,
           label: "Funcionários",
         },
         {
           key: "/metodos-de-pagamento",
-          icon: <WalletCards size={14} />,
+          icon: <WalletCards className="size-4" />,
           label: "Métodos de Pagamento",
         },
         {
           key: "/caixa",
-          icon: <Banknote size={14} />,
+          icon: <Banknote className="size-4" />,
           label: "Caixa",
         },
       ],
     },
-    /* {
-      key: "/fidelidade",
-      icon: <Gift size={14} />,
-      label: "Fidelidade",
-      permission: "SECRETARIO",
-    }, */
     {
       key: "/configuracoes",
-      icon: <Settings size={14} />,
+      icon: <Settings className="size-4" />,
       label: "Configurações",
       permission: "ADMIN",
     },
   ];
 
   const filteredMenuItems = useMemo(() => {
-    if (!user?.role) return []; // Se não houver usuário ou role, retorna menu vazio
+    if (!user?.role) return [];
 
-    // Função recursiva para filtrar os itens e seus filhos
-    const filter = (items) => {
-      return items.reduce((acc, item) => {
-        // 1. Verifica se o usuário tem permissão para o item atual
+    const filter = (items: any[]) => {
+      return items.reduce((acc: any[], item) => {
         if (hasPermission(user.role, item.permission)) {
-          // 2. Se o item tiver filhos, filtra os filhos recursivamente
           if (item.children) {
             const filteredChildren = filter(item.children);
-            // 3. Só adiciona o item pai se ele ainda tiver filhos visíveis após o filtro
             if (filteredChildren.length > 0) {
               acc.push({ ...item, children: filteredChildren });
             }
           } else {
-            // 4. Se não tiver filhos, apenas adiciona o item
             acc.push(item);
           }
         }
@@ -192,202 +180,171 @@ const AppLayout = ({ isDarkMode, onToggleTheme }: AppLayoutProps) => {
     return filter(menuItems);
   }, [user]);
 
-  const handleMenuClick = (item: any) => {
-    if (item.key) {
-      navigate(item.key);
-      setMobileMenuOpen(false);
-    }
-  };
-
-  const getSelectedKeys = () => {
+  const getBreadcrumbs = () => {
     const currentPath = location.pathname;
-    return [currentPath];
-  };
+    const items = [{ label: "Salão X", href: "/" }];
 
-  const getOpenKeys = () => {
-    const currentPath = location.pathname;
-    if (
-      currentPath.includes("/produtos") ||
-      currentPath.includes("/servicos") ||
-      currentPath.includes("/estoque")
-    ) {
-      return ["produtos-servicos"];
-    }
-    if (
-      currentPath.includes("/clientes") ||
-      currentPath.includes("/funcionarios") ||
-      currentPath.includes("/agendamentos")
-    ) {
-      return ["gestao"];
-    }
-    return [];
-  };
-
-  const getBreadcrumb = () => {
-    const currentPath = location.pathname;
-    const breadcrumbs = [{ title: "Salão X" }];
-
-    const menuItem = filteredMenuItems.find((item) => {
-      if (item.key === currentPath) return true;
-      return item.children?.some((child) => child.key === currentPath);
-    });
-
-    if (menuItem) {
-      if (menuItem.children) {
-        const childItem = menuItem.children.find(
-          (child) => child.key === currentPath
-        );
-        breadcrumbs.push({ title: menuItem.label });
-        if (childItem) breadcrumbs.push({ title: childItem.label });
-      } else {
-        breadcrumbs.push({ title: menuItem.label });
+    for (const item of filteredMenuItems) {
+      if (item.key === currentPath) {
+        items.push({ label: item.label, href: item.key });
+        break;
+      }
+      if (item.children) {
+        const child = item.children.find((c: any) => c.key === currentPath);
+        if (child) {
+          items.push({ label: item.label, href: "#" });
+          items.push({ label: child.label, href: child.key });
+          break;
+        }
       }
     }
-
-    return breadcrumbs;
+    return items;
   };
 
-  const renderMenu = () => (
-    <Menu
-      mode="inline"
-      selectedKeys={getSelectedKeys()}
-      defaultOpenKeys={getOpenKeys()}
-      style={{ borderRight: 0, background: "transparent" }}
-      items={filteredMenuItems.map((item) => ({
-        key: item.key,
-        icon: item.icon,
-        extra: item.extra,
-        label: item.label,
-        children: item.children?.map((child) => ({
-          key: child.key,
-          icon: child.icon,
-          label: child.label,
-          onClick: () => handleMenuClick(child),
-        })),
-        onClick:
-          item.key && !item.children ? () => handleMenuClick(item) : undefined,
-      }))}
-    />
-  );
+  const breadcrumbs = getBreadcrumbs();
 
   return (
-    <Layout className="flex-1 min-h-screen">
-      {/* Desktop Sidebar */}
-      <Sider
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
-        className="hidden md:block border-r border-sidebar-border bg-sidebar"
-        width={256}
-        collapsedWidth={64}
-      >
-        <div className="flex items-center justify- h-16 border-b border-sidebar-border">
-          <img
-            onClick={() => navigate("/pdv")}
-            className={`w-40 cursor-pointer ${isDarkMode ? "invert" : ""}`}
-            src="/public/salao-x-not-bg.png"
-          />
-        </div>
-        <div className="py-4">{renderMenu()}</div>
-      </Sider>
-
-      {/* Mobile Drawer */}
-      <Drawer
-        title={
-          <img
-            className={`w-20 h-20 object-contain  ${
-              isDarkMode ? "invert" : ""
-            }`}
-            src="/public/salao-x-not-bg.png"
-          />
-        }
-        placement="left"
-        onClose={() => setMobileMenuOpen(false)}
-        open={mobileMenuOpen}
-        className="md:hidden"
-        width={256}
-        styles={{ body: { padding: 0 }, header: { padding: 0 } }}
-      >
-        <div className="py-4">{renderMenu()}</div>
-      </Drawer>
-
-      <Layout>
-        {/* Header */}
-        <Header className=" bg-header border-b border-sidebar-border px-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              type="text"
-              icon={
-                collapsed ? <PanelRight size={14} /> : <PanelLeft size={14} />
-              }
-              onClick={() => {
-                if (window.innerWidth < 768) {
-                  setMobileMenuOpen(true);
-                } else {
-                  localStorage.setItem("collapsed", JSON.stringify(!collapsed));
-                  setCollapsed(!collapsed);
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <Sidebar collapsible="icon">
+          <SidebarHeader className="h-16 border-b flex items-center px-4">
+             <Link to="/pdv" className="flex items-center gap-2">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Scissors className="size-4" />
+                </div>
+                <span className="font-semibold text-lg group-data-[collapsible=icon]:hidden">Salão X</span>
+             </Link>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarMenu>
+              {filteredMenuItems.map((item) => {
+                if (item.children) {
+                  return (
+                    <Collapsible key={item.key} asChild defaultOpen={location.pathname.includes(item.key)} className="group/collapsible">
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton tooltip={item.label}>
+                            {item.icon}
+                            <span>{item.label}</span>
+                            <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {item.children.map((child: any) => (
+                              <SidebarMenuSubItem key={child.key}>
+                                <SidebarMenuSubButton asChild isActive={location.pathname === child.key}>
+                                  <Link to={child.key}>
+                                    {child.icon}
+                                    <span>{child.label}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
                 }
-              }}
-              className="hover:bg-accent"
-            />
-            <Breadcrumb className="hidden lg:block" items={getBreadcrumb()} />
-          </div>
-          <div className="flex items-center gap-2">
-            <Segmented
-              shape="round"
-              onChange={onToggleTheme}
-              value={isDarkMode ? "dark" : "light"}
-              options={[
-                { value: "light", icon: <Sun className="mt-1.5" size={14} /> },
-                { value: "dark", icon: <Moon className="mt-1.5" size={14} /> },
-              ]}
-            />
+                return (
+                  <SidebarMenuItem key={item.key}>
+                    <SidebarMenuButton asChild isActive={location.pathname === item.key} tooltip={item.label}>
+                      <Link to={item.key}>
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarContent>
+          <SidebarFooter className="border-t p-4">
+             <div className="flex items-center gap-4 group-data-[collapsible=icon]:hidden">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                >
+                  {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                </Button>
+                <div className="flex-1 min-w-0">
+                   <p className="text-sm font-medium truncate">{user?.nome}</p>
+                   <p className="text-xs text-muted-foreground truncate">{user?.role}</p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={logout}>
+                   <LogOut className="size-4" />
+                </Button>
+             </div>
+             <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <User2 className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                       {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={logout}>
+                       Sair
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+             </div>
+          </SidebarFooter>
+          <SidebarRail />
+        </Sidebar>
 
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: "logout",
-                    icon: <LogOut size={14} />,
-                    label: "Sair",
-                    onClick: logout,
-                  },
-                ],
-              }}
-              trigger={["click"]}
-            >
-              <Button type="text" icon={<User2 size={14} />}>
-                {user?.nome}
-              </Button>
-            </Dropdown>
+        <main className="flex-1 flex flex-col min-w-0">
+          <header className="h-16 border-b flex items-center px-4 gap-4 sticky top-0 bg-background z-10">
+            <SidebarTrigger />
+            <Breadcrumb>
+              <BreadcrumbList>
+                {breadcrumbs.map((bc, index) => (
+                  <React.Fragment key={`${bc.label}-${index}`}>
+                    <BreadcrumbItem>
+                      {index === breadcrumbs.length - 1 ? (
+                        <BreadcrumbPage>{bc.label}</BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink asChild>
+                           <Link to={bc.href}>{bc.label}</Link>
+                        </BreadcrumbLink>
+                      )}
+                    </BreadcrumbItem>
+                    {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
+                  </React.Fragment>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </header>
+          <div className="p-6 flex-1 overflow-auto">
+            <Routes>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/pdv" element={<PDV />} />
+              <Route path="/comandas" element={<Comandas />} />
+              <Route path="/vendas" element={<Vendas />} />
+              <Route path="/produtos" element={<Produtos />} />
+              <Route path="/servicos" element={<Servicos />} />
+              <Route path="/estoque" element={<Estoque />} />
+              <Route path="/categorias" element={<Categorias />} />
+              <Route path="/clientes" element={<Clientes />} />
+              <Route path="/funcionarios" element={<Funcionarios />} />
+              <Route path="/agendamentos" element={<Agendamentos />} />
+              <Route path="/fidelidade" element={<Fidelidade />} />
+              <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route
+                path="/metodos-de-pagamento"
+                element={<MetodoDePagamentos />}
+              />
+              <Route path="/caixa" element={<Caixa />} />
+            </Routes>
           </div>
-        </Header>
-
-        {/* Content */}
-        <Content className="bg-content p-6 overflow-auto">
-          <Routes>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/pdv" element={<PDV />} />
-            <Route path="/comandas" element={<Comandas />} />
-            <Route path="/vendas" element={<Vendas />} />
-            <Route path="/produtos" element={<Produtos />} />
-            <Route path="/servicos" element={<Servicos />} />
-            <Route path="/estoque" element={<Estoque />} />
-            <Route path="/categorias" element={<Categorias />} />
-            <Route path="/clientes" element={<Clientes />} />
-            <Route path="/funcionarios" element={<Funcionarios />} />
-            <Route path="/agendamentos" element={<Agendamentos />} />
-            <Route path="/fidelidade" element={<Fidelidade />} />
-            <Route path="/configuracoes" element={<Configuracoes />} />
-            <Route
-              path="/metodos-de-pagamento"
-              element={<MetodoDePagamentos />}
-            />
-            <Route path="/caixa" element={<Caixa />} />
-          </Routes>
-        </Content>
-      </Layout>
-    </Layout>
+        </main>
+      </div>
+    </SidebarProvider>
   );
 };
 

@@ -1,0 +1,11 @@
+FROM node:20-alpine
+
+WORKDIR /usr/app
+
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npx prisma generate
+
+EXPOSE 3000
+CMD ["sh", "-c", "npm run db:seed && npm run dev"]

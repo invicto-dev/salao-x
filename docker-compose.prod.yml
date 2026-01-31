@@ -1,46 +1,46 @@
 services:
   backend:
-    container_name: salao_x_backend_dev
+    container_name: salao_x_backend_prod
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     ports:
       - "3004:3000"
-    volumes:
-      - ./backend:/usr/app
-      - /usr/app/node_modules
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
-      - PORT=${PORT}
-      - NODE_ENV=${NODE_ENV}
+      - PORT=3000
+      - NODE_ENV=production
       - FRONTEND_URL_DEV=${FRONTEND_URL_DEV}
-      - FRONTEND_URL_PRD=${FRONTEND_URL_PRD}c
+      - FRONTEND_URL_PRD=${FRONTEND_URL_PRD}
       - ASAAS_API_URL=${ASAAS_API_URL}
       - ASAAS_API_URL_SANDBOX=${ASAAS_API_URL_SANDBOX}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+    # Opcional: Persistir uploads se o container for recriado
+    volumes:
+      - uploads_data:/app/tmp/uploads
 
   frontend:
-    container_name: salao_x_frontend_dev
+    container_name: salao_x_frontend_prod
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/usr/app
-      - /usr/app/node_modules
-    environment:
-      - CHOKIDAR_USEPOLLING=true
+      - "8080:80"
+    depends_on:
+      - backend
+    # Nota: environment aqui é inútil para o Vite em produção com Nginx,
+    # pois o build já ocorreu. Removemos para evitar confusão.
 
   db:
-    container_name: salao_x_db_dev
+    container_name: salao_x_postgres_prod
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -57,8 +57,10 @@ services:
       retries: 5
 
   redis:
-    container_name: salao_x_redis_dev
+    container_name: salao-x-redis
     image: redis:7-alpine
+    # Comando para silenciar o warning de overcommit (opcional, requer privilégio)
+    # command: redis-server --save 60 1 --loglevel warning
     ports:
       - "6380:6379"
     volumes:
@@ -67,3 +69,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  uploads_data: # Adicionado para persistir uploads

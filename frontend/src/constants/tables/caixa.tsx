@@ -1,91 +1,71 @@
 import { formatCurrency } from "@/utils/formatCurrency";
-import { Button, Space, TableColumnsType, Tag } from "antd";
+import { ColumnDef } from "@tanstack/react-table";
 import { CircleArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export const columnsCaixa = (
-  gerenciarCaixa: (caixa: Caixa.Props) => void
-): TableColumnsType<Caixa.Props> => [
+  gerenciarCaixa: (caixa: any) => void
+): ColumnDef<any>[] => [
   {
-    title: "Data Abertura",
-    dataIndex: "dataAbertura",
-    key: "dataAbertura",
-    render: (dataAbertura) => (
-      <div className="flex items-center gap-3">
-        <div>
-          <div className="font-medium">
-            {new Date(dataAbertura).toLocaleString("pt-BR")}
-          </div>
-        </div>
+    accessorKey: "dataAbertura",
+    header: "Data Abertura",
+    cell: ({ row }) => (
+      <div className="font-medium">
+        {new Date(row.original.dataAbertura).toLocaleString("pt-BR")}
       </div>
     ),
   },
   {
-    title: "Data Fechamento",
-    dataIndex: "dataFechamento",
-    key: "dataFechamento",
-    render: (dataFechamento) => (
-      <div className="flex items-center gap-3">
-        <div>
-          <div className="font-medium">
-            {dataFechamento
-              ? new Date(dataFechamento).toLocaleString("pt-BR")
-              : "-"}
-          </div>
-        </div>
+    accessorKey: "dataFechamento",
+    header: "Data Fechamento",
+    cell: ({ row }) => (
+      <div className="font-medium text-muted-foreground">
+        {row.original.dataFechamento
+          ? new Date(row.original.dataFechamento).toLocaleString("pt-BR")
+          : "-"}
       </div>
     ),
   },
   {
-    title: "Valor Abertura",
-    dataIndex: "valorAbertura",
-    key: "valorAbertura",
-    render: (valorAbertura) => (
-      <div className="flex items-center gap-3">
-        <div>
-          <div className="font-medium">{formatCurrency(valorAbertura)}</div>
-        </div>
-      </div>
-    ),
+    accessorKey: "valorAbertura",
+    header: "Abertura",
+    cell: ({ row }) => formatCurrency(row.original.valorAbertura),
   },
   {
-    title: "Valor Fechamento Informado",
-    dataIndex: "valorFechamentoInformado",
-    key: "valorFechamentoInformado",
-    render: (valorFechamentoInformado) => (
-      <div className="flex items-center gap-3">
-        <div>
-          <div className="font-medium">
-            {valorFechamentoInformado
-              ? formatCurrency(valorFechamentoInformado)
-              : "-"}
-          </div>
-        </div>
-      </div>
-    ),
+    accessorKey: "valorFechamentoInformado",
+    header: "Fechamento Inf.",
+    cell: ({ row }) => row.original.valorFechamentoInformado
+      ? formatCurrency(row.original.valorFechamentoInformado)
+      : "-",
   },
   {
-    title: "Status",
-    dataIndex: "status",
-    key: "status",
-    align: "center",
-    render: (status: string) => (
-      <Tag color={status === "ABERTO" ? "green" : "red"}>{status}</Tag>
-    ),
-  },
-  {
-    title: "Ações",
-    key: "acoes",
-    align: "center",
-    render: (_: any, record: any) => (
-      <Space>
-        <Button
-          type="text"
-          icon={<CircleArrowRight size={14} />}
-          onClick={() => gerenciarCaixa(record)}
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = row.original.status;
+      return (
+        <Badge
+          variant={status === "ABERTO" ? "outline" : "secondary"}
+          className={status === "ABERTO" ? "text-emerald-600 border-emerald-600" : "text-destructive border-destructive"}
         >
-          Ver Detalhes
-        </Button>
-      </Space>
+          {status}
+        </Badge>
+      );
+    },
+  },
+  {
+    id: "acoes",
+    header: "Ações",
+    cell: ({ row }) => (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => gerenciarCaixa(row.original)}
+      >
+        <CircleArrowRight className="mr-2 h-4 w-4" />
+        Ver Detalhes
+      </Button>
     ),
   },
 ];

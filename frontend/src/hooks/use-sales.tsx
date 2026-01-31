@@ -6,7 +6,7 @@ import {
   updateSaleStatus,
 } from "@/api/sales";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { toast } from "sonner";
 import { AxiosError } from "axios";
 
 export const useSales = (params?: Params) => {
@@ -37,14 +37,14 @@ export const useSaleCreate = () => {
     onSuccess: (sale) => {
       const status = sale.status;
       queryClient.invalidateQueries({ queryKey: ["get-products"] });
-      message.success(
+      toast.success(
         status === "PENDENTE"
           ? "Comanda aberta com sucesso."
           : "Venda registrada com sucesso."
       );
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 };
@@ -63,10 +63,10 @@ export const useFinishedCommand = () => {
     },
     onSuccess: () => {
       queryCliente.invalidateQueries({ queryKey: ["get-sales"] });
-      message.success("Comanda registrada com sucesso.");
+      toast.success("Comanda registrada com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
       return error;
     },
   });
@@ -88,10 +88,10 @@ export const useSaleUpdateStatus = () => {
     },
     onSuccess: () => {
       queryCliente.invalidateQueries({ queryKey: ["get-sales"] });
-      message.success("Venda atualizada com sucesso.");
+      toast.success("Venda atualizada com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
       return error;
     },
   });

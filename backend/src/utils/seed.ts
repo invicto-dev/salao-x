@@ -6,11 +6,14 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Iniciando seed de usuarios no banco de dados...");
 
+  // --------------------------------------------------------
+  // 1. MÉTODOS DE PAGAMENTO
+  // --------------------------------------------------------
   console.log("Gerando métodos de pagamento padrões...");
 
   await prisma.paymentMethod.upsert({
     where: { nome: "Dinheiro" },
-    update: {},
+    update: {}, // Se já existe, não faz nada
     create: {
       nome: "Dinheiro",
       descricao: "Pagamento em espécie",
@@ -30,71 +33,53 @@ async function main() {
       integration: "ASAAS_CREDIT",
     },
   });
-
   console.log("✅ Método de pagamento 'Crediário (Asaas)' garantido.");
 
-  await prisma.setting.upsert({
-    where: { id: "configuracao-padrao" },
-    update: {},
-    create: {
-      id: "configuracao-padrao",
-      nomeEmpresa: "Salão X Dev",
-      cnpj: "13.123.456/0001-90",
-      endereco: "Tv. Santa Luzia, 123",
-      bairro: "Santa Luzia",
-      cidade: "Oriximiná",
-      cep: "13.123.456-000",
-      telefone: "(11) 1234-5678",
-      email: "salaox@dev.com",
-      site: "https://salao-x.vercel.app",
-      horarioFuncionamento: {
-        "segunda-feira": "08:00",
-        "terca-feira": "08:00",
-        "quarta-feira": "08:00",
-        "quinta-feira": "08:00",
-        "sexta-feira": "08:00",
-        sabado: "08:00",
-        domingo: "08:00",
-      },
-      intervaloPadrao: 30,
-      antecedenciaMinima: 15,
-      notificarAgendamentos: false,
-      notificarEstoqueBaixo: false,
-      notificarAniversarios: false,
-      whatsappAtivo: false,
-      emailAtivo: false,
-      timezone: "America/Sao_Paulo",
-    },
-  });
-
-  console.log("✅ Configuração padrão criada com sucesso!");
-
+  // --------------------------------------------------------
+  // 2. USUÁRIO ROOT
+  // --------------------------------------------------------
   console.log("Gerando o usuario root...");
 
+  const rootEmail = "usuario@root.com";
+  // Senha padrão apenas para criação. Se o usuário já existir, mantemos a senha atual dele.
   const hashedRootPassword = await bcrypt.hash("root123", 10);
 
-  const users = [
-    {
+  await prisma.employee.upsert({
+    where: { email: rootEmail },
+    // UPDATE vazio: Se o usuário já existe, NÃO altera nada (preserva senha alterada pelo user)
+    // Se quiser resetar a senha toda vez que reiniciar, coloque { senha: hashedRootPassword } aqui dentro.
+    update: {},
+    create: {
       nome: "Usuário Root",
       ativo: true,
-      email: "usuario@root.com",
+      email: rootEmail,
       senha: hashedRootPassword,
       role: Role.ROOT,
       funcao: "Usuário Root",
       telefone: "(11) 1234-5678",
       comissao: 0,
     },
-  ];
-
-  await prisma.employee.createMany({
-    data: users,
   });
 
-  console.log("✅ Usuário criado com sucesso!");
+  console.log("✅ Usuário Root garantido!");
+  console.log("-----------------------------------------");
+  console.log("🔐 Credenciais de Acesso:");
+  console.log(`📧 Email: ${rootEmail}`);
+  console.log(`🔑 Senha: root123 (se for o primeiro acesso)`);
+  console.log("-----------------------------------------");
 
-  console.log("Root credenciais:");
-  console.log("Email: usuario@root.com");
-  console.log("Senha: root123");
+  console.log("Gerando Configuração padrão...");
+  await prisma.setting.upsert({
+    where: { id: "default" },
+    update: {},
+    create: {
+      id: "default",
+      nomeEmpresa: "",
+      cnpj: null,
+      asaasActive: false,
+    },
+  });
+  console.log("✅ Configurações garantidas.");
 
   console.log("\n🎉 Seed concluído com sucesso!");
 }

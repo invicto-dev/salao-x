@@ -6,7 +6,7 @@ import {
   updateCustomer,
 } from "@/api/customer";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { toast } from "sonner";
 import { AxiosError } from "axios";
 
 export const useCustomers = (params?: Params) => {
@@ -31,10 +31,10 @@ export const useCustomerCreate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-customers"] });
-      message.success("Cliente criado com sucesso.");
+      toast.success("Cliente criado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
       return error;
     },
   });
@@ -50,10 +50,10 @@ export const useCustomerUpdate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-customers"] });
-      message.success("Cliente atualizado com sucesso.");
+      toast.success("Cliente atualizado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 
@@ -68,10 +68,10 @@ export const useCustomerDelete = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-customers"] });
-      message.success("Cliente excluído com sucesso.");
+      toast.success("Cliente excluído com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 };

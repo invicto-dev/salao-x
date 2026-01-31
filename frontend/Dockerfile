@@ -1,13 +1,22 @@
-FROM node:20-alpine
+# Estágio 1: Build
+FROM node:18-alpine AS builder
 
-WORKDIR /usr/app
+WORKDIR /app
 
 COPY package*.json ./
-
-RUN npm install
+RUN npm ci
 
 COPY . .
 
-EXPOSE 5173
+RUN npm run build
 
-CMD ["npm", "run", "dev", "--", "--host"]
+# Estágio 2: Servidor Web (Nginx)
+FROM nginx:alpine AS runner
+
+RUN rm -rf /usr/share/nginx/html/*
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

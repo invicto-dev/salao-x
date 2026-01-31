@@ -6,7 +6,7 @@ import {
   updatePaymentMethod,
 } from "@/api/paymentMethods";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { toast } from "sonner";
 import { AxiosError } from "axios";
 
 export const usePaymentMethods = () => {
@@ -31,10 +31,10 @@ export const usePaymentMethodCreate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-payment-methods"] });
-      message.success("Metodo de pagemento criado com sucesso.");
+      toast.success("Metodo de pagemento criado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
       return error;
     },
   });
@@ -56,10 +56,10 @@ export const usePaymentMethodUpdate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-payment-methods"] });
-      message.success("Metodo de pagemento atualizado com sucesso.");
+      toast.success("Metodo de pagemento atualizado com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 
@@ -74,10 +74,10 @@ export const usePaymentMethodDelete = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-payment-methods"] });
-      message.success("Metodo de pagemento excluído com sucesso.");
+      toast.success("Metodo de pagemento excluído com sucesso.");
     },
     onError: (error: AxiosError<{ error: string }>) => {
-      message.error(error.response.data.error);
+      toast.error(error.response.data.error);
     },
   });
 };

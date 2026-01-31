@@ -1,43 +1,71 @@
-import {
-  Card,
-  Form,
-  Input,
-  Button,
-  Switch,
-  Space,
-  Typography,
-  Row,
-  Col,
-  Divider,
-  Select,
-  InputNumber,
-  Tabs,
-  Statistic,
-} from "antd";
+import React, { useEffect } from "react";
 import {
   Save,
   Building,
   Bell,
   Database,
-  Upload as UploadIcon,
+  Loader2,
+  Globe,
+  Settings2
 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+
 import {
   useConfiguracoes,
   useConfiguracoesUpdate,
 } from "@/hooks/use-configuracoes";
-import { useQuery } from "@tanstack/react-query";
 import { getCurrencyCode } from "@/utils/getCurrencyCode";
 import packageJson from "../../package.json";
+import PagesLayout from "@/components/layout/PagesLayout";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-const { Title, Text } = Typography;
-const { Option } = Select;
-const { TabPane } = Tabs;
+const configSchema = z.object({
+  nomeEmpresa: z.string().min(1, "Nome é obrigatório"),
+  cnpj: z.string().optional(),
+  endereco: z.string().optional(),
+  bairro: z.string().optional(),
+  cidade: z.string().optional(),
+  cep: z.string().optional(),
+  telefone: z.string().optional(),
+  email: z.string().email("Email inválido").optional().or(z.literal("")),
+  site: z.string().optional(),
+  intervaloPadrao: z.coerce.number().min(5).max(60),
+  antecedenciaMinima: z.coerce.number().min(15).max(1440),
+  asaasApiKey: z.string().optional(),
+  asaasEnvironment: z.string().default("sandbox"),
+  asaasActive: z.boolean().default(false),
+  timezone: z.string().default("America/Sao_Paulo"),
+  currency: z.string().default("BRL"),
+});
 
 const Configuracoes = () => {
-  const [form] = Form.useForm();
-  const [notificacoesForm] = Form.useForm();
-  const [sistemaForm] = Form.useForm();
-  const { data, isLoading, isError } = useConfiguracoes();
+  const { data, isLoading } = useConfiguracoes();
   const { mutate: updateConfiguracoes, isPending } = useConfiguracoesUpdate();
 
   const { data: currencies = [] } = useQuery({
@@ -45,413 +73,388 @@ const Configuracoes = () => {
     queryFn: getCurrencyCode,
   });
 
-  const onSave = (values: Salon.Config) => {
+  const form = useForm({
+    resolver: zodResolver(configSchema),
+    defaultValues: {
+      nomeEmpresa: "",
+      cnpj: "",
+      endereco: "",
+      bairro: "",
+      cidade: "",
+      cep: "",
+      telefone: "",
+      email: "",
+      site: "",
+      intervaloPadrao: 30,
+      antecedenciaMinima: 30,
+      asaasApiKey: "",
+      asaasEnvironment: "sandbox",
+      asaasActive: false,
+      timezone: "America/Sao_Paulo",
+      currency: "BRL",
+    },
+  });
+
+  useEffect(() => {
+    if (data) {
+      form.reset({
+        ...data,
+        email: data.email || "",
+      });
+    }
+  }, [data, form]);
+
+  const onSave = (values: any) => {
     updateConfiguracoes({
       id: data.id,
       body: values,
     });
   };
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <Title level={2} className="!mb-2">
-          Configurações
-        </Title>
-        <p className="text-muted-foreground">
-          Gerencie as configurações do sistema e da empresa
-        </p>
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
 
-      <Tabs defaultActiveKey="1" size="large">
-        <TabPane
-          tab={
-            <span className="flex items-center gap-2">
-              <Building size={14} />
-              Empresa
-            </span>
-          }
-          key="1"
-        >
-          <Card loading={isLoading} title="Informações da Empresa">
-            <Form
-              form={form}
-              layout="vertical"
-              initialValues={data}
-              onFinish={onSave}
-            >
-              <Row gutter={16}>
-                <Col xs={24} lg={16}>
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        label="Nome da Empresa"
-                        name="nomeEmpresa"
-                        rules={[
-                          { required: true, message: "Nome é obrigatório" },
-                        ]}
-                      >
-                        <Input placeholder="Nome da empresa" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <Form.Item label="CNPJ" name="cnpj">
-                        <Input placeholder="00.000.000/0000-00" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
+  return (
+    <PagesLayout
+      title="Configurações"
+      subtitle="Gerencie as configurações do sistema e da sua empresa"
+    >
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSave)} className="space-y-6">
+          <Tabs defaultValue="company" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+              <TabsTrigger value="company" className="flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                Empresa
+              </TabsTrigger>
+              <TabsTrigger value="system" className="flex items-center gap-2">
+                <Settings2 className="h-4 w-4" />
+                Sistema
+              </TabsTrigger>
+            </TabsList>
 
-                  <Form.Item label="Endereço" name="endereco">
-                    <Input placeholder="Rua, número" />
-                  </Form.Item>
-
-                  <Row gutter={16}>
-                    <Col xs={24} sm={8}>
-                      <Form.Item label="Bairro" name="bairro">
-                        <Input placeholder="Bairro" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={8}>
-                      <Form.Item label="Cidade" name="cidade">
-                        <Input placeholder="Cidade" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={8}>
-                      <Form.Item label="CEP" name="cep">
-                        <Input placeholder="00000-000" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12}>
-                      <Form.Item label="Telefone" name="telefone">
-                        <Input placeholder="(11) 3333-4444" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        label="Email"
-                        name="email"
-                        rules={[{ type: "email", message: "Email inválido" }]}
-                      >
-                        <Input placeholder="contato@salaox.com" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  <Form.Item label="Site" name="site">
-                    <Input placeholder="www.salaox.com" />
-                  </Form.Item>
-                </Col>
-
-                {/* <Col xs={24} lg={8}>
-                  <Form.Item label="Logo da Empresa">
-                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                      <Upload {...uploadProps}>
-                        <div className="space-y-2">
-                          <UploadIcon
-                            size={32}
-                            className="mx-auto text-muted-foreground"
-                          />
-                          <div className="text-sm">
-                            Clique para fazer upload do logo
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            PNG, JPG até 2MB
-                          </div>
-                        </div>
-                      </Upload>
-                    </div>
-                  </Form.Item>
-                </Col> */}
-              </Row>
-
-              <Divider />
-
-              {/* <Title level={4}>⏰ Horário de Funcionamento</Title>
-                {
-                  Object.keys(
-                    data.horarioFuncionamento
-                  ).map((dia) => {
-                    return (
-                      <Row gutter={16}>
-                      <Col xs={24} sm={8} key={dia}>
-                        <Text strong>{dia}</Text>
-                        <div className="flex gap-2 mt-2">
-                          <Form.Item
-                            name={["horarioFuncionamento", dia, "inicio"]}
-                          >
-                            <Input placeholder="08:00" />
-                          </Form.Item>
-                          <span className="flex items-center">às</span>
-                          <Form.Item
-                            name={["horarioFuncionamento", dia, "fim"]}
-                          >
-                            <Input placeholder="18:00" />
-                          </Form.Item>
-                        </div>
-                      </Col>
-              </Row>
-                    );
-                  })
-                } */}
-
-              <Row gutter={16}>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    label="Intervalo Padrão (minutos)"
-                    name="intervaloPadrao"
-                    help="Tempo de intervalo entre agendamentos"
-                  >
-                    <InputNumber min={5} max={60} style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    label="Antecedência Mínima (minutos)"
-                    name="antecedenciaMinima"
-                    help="Tempo mínimo para agendar um serviço"
-                  >
-                    <InputNumber
-                      min={15}
-                      max={1440}
-                      style={{ width: "100%" }}
+            <TabsContent value="company" className="space-y-6 pt-6">
+              <Card className="border-none shadow-sm">
+                <CardHeader>
+                  <CardTitle>Informações da Empresa</CardTitle>
+                  <CardDescription>Estes dados serão utilizados em recibos e comunicações.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="nomeEmpresa"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome da Empresa</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome da empresa" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item>
-                <Button type="primary" htmlType="submit" loading={isPending}>
-                  Salvar Configurações da Empresa
-                </Button>
-              </Form.Item>
-            </Form>
-          </Card>
-        </TabPane>
-
-        <TabPane
-          disabled={true}
-          tab={
-            <span className="flex items-center gap-2">
-              <Bell size={14} />
-              Notificações
-            </span>
-          }
-          key="2"
-        >
-          <Card loading={isLoading} title="Configurações de Notificações">
-            <Form
-              form={notificacoesForm}
-              layout="vertical"
-              initialValues={data}
-              onFinish={onSave}
-            >
-              <Row gutter={16}>
-                <Col xs={24} sm={12}>
-                  <Card size="small" title="Email">
-                    <Space direction="vertical" className="w-full">
-                      <Form.Item name="emailAtivo" valuePropName="checked">
-                        <Switch
-                          checkedChildren="Ativo"
-                          unCheckedChildren="Inativo"
-                        />
-                        <Text className="ml-2">Notificações por email</Text>
-                      </Form.Item>
-
-                      <Form.Item label="Servidor SMTP" name="smtpServer">
-                        <Input placeholder="smtp.gmail.com" />
-                      </Form.Item>
-
-                      <Form.Item label="Email de Envio" name="emailEnvio">
-                        <Input placeholder="noreply@salaox.com" />
-                      </Form.Item>
-                    </Space>
-                  </Card>
-                </Col>
-
-                <Col xs={24} sm={12}>
-                  <Card size="small" title="💬 WhatsApp">
-                    <Space direction="vertical" className="w-full">
-                      <Form.Item name="whatsappAtivo" valuePropName="checked">
-                        <Switch
-                          checkedChildren="Ativo"
-                          unCheckedChildren="Inativo"
-                        />
-                        <Text className="ml-2">Notificações por WhatsApp</Text>
-                      </Form.Item>
-
-                      <Form.Item label="Token da API" name="whatsappToken">
-                        <Input.Password placeholder="Token do WhatsApp Business API" />
-                      </Form.Item>
-
-                      <Form.Item label="Número de Envio" name="whatsappNumero">
-                        <Input placeholder="5511999999999" />
-                      </Form.Item>
-                    </Space>
-                  </Card>
-                </Col>
-              </Row>
-
-              <Divider />
-
-              <Title level={4}> Tipos de Notificação</Title>
-
-              <Row gutter={16}>
-                <Col xs={24} sm={8}>
-                  <Form.Item
-                    name="notificarAgendamentos"
-                    valuePropName="checked"
-                  >
-                    <Switch />
-                    <Text className="ml-2">Confirmação de agendamentos</Text>
-                  </Form.Item>
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Form.Item
-                    name="notificarEstoqueBaixo"
-                    valuePropName="checked"
-                  >
-                    <Switch />
-                    <Text className="ml-2">Estoque baixo</Text>
-                  </Form.Item>
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Form.Item
-                    name="notificarAniversarios"
-                    valuePropName="checked"
-                  >
-                    <Switch />
-                    <Text className="ml-2">Aniversários de clientes</Text>
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  icon={<Save size={14} />}
-                >
-                  Salvar Configurações de Notificações
-                </Button>
-              </Form.Item>
-            </Form>
-          </Card>
-        </TabPane>
-
-        <TabPane
-          tab={
-            <span className="flex items-center gap-2">
-              <Database size={14} />
-              Sistema
-            </span>
-          }
-          key="3"
-        >
-          <Card loading={isLoading} title="Configurações do Sistema">
-            <Form
-              form={sistemaForm}
-              layout="vertical"
-              initialValues={data}
-              onFinish={onSave}
-            >
-              <Title level={4}>Integração Asaas (Crediário)</Title>
-              <Row gutter={16}>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    label="API Key Asaas"
-                    name="asaasApiKey"
-                    help="Chave da API do Asaas para integração de crediário"
-                  >
-                    <Input.Password placeholder="$aact_..." />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    label="Ambiente"
-                    name="asaasEnvironment"
-                    initialValue="sandbox"
-                  >
-                    <Select>
-                      <Option value="sandbox">Sandbox (Testes)</Option>
-                      <Option value="production">Produção</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item
-                className="mt-4"
-                label="Habilitar integração com Asaas"
-                name="asaasActive"
-                valuePropName="checked"
-              >
-                <Switch />
-              </Form.Item>
-
-              <Divider />
-
-              <Title level={4}>Localização</Title>
-
-              <Row gutter={16}>
-                <Space direction="vertical" className="w-full">
-                  <Form.Item label="Fuso Horário" name="timezone">
-                    <Select>
-                      <Option value="America/Sao_Paulo">
-                        São Paulo (GMT-3)
-                      </Option>
-                      <Option value="America/Rio_Branco">
-                        Rio Branco (GMT-5)
-                      </Option>
-                      <Option value="America/Manaus">Manaus (GMT-4)</Option>
-                    </Select>
-                  </Form.Item>
-
-                  <Form.Item label="Moeda" name="currency">
-                    <Select
-                      showSearch
-                      optionFilterProp="label"
-                      options={[
-                        ...currencies,
-                        { simbolo: "BRL", nome: "Real Brasileiro" },
-                      ]
-                        .sort((a, b) => a.nome.localeCompare(b.nome))
-                        .map((c) => ({
-                          label: `${c.nome} (${c.simbolo})`,
-                          value: c.simbolo,
-                        }))}
+                    <FormField
+                      control={form.control}
+                      name="cnpj"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>CNPJ</FormLabel>
+                          <FormControl>
+                            <Input placeholder="00.000.000/0000-00" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </Form.Item>
-                </Space>
-              </Row>
+                  </div>
 
-              <Divider />
-
-              <Form.Item>
-                <Button type="primary" htmlType="submit">
-                  Salvar Configurações do Sistema
-                </Button>
-              </Form.Item>
-            </Form>
-          </Card>
-
-          <Card title="Informações do Sistema" className="mt-4">
-            <Row gutter={16}>
-              <Col xs={24} sm={8}>
-                <Card size="small">
-                  <Statistic
-                    title="Versão do Sistema"
-                    value={packageJson.version}
+                  <FormField
+                    control={form.control}
+                    name="endereco"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Endereço</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Rua, número" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </Card>
-              </Col>
-            </Row>
-          </Card>
-        </TabPane>
-      </Tabs>
-    </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="bairro"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Bairro</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Bairro" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="cidade"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cidade</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Cidade" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="cep"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>CEP</FormLabel>
+                          <FormControl>
+                            <Input placeholder="00000-000" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="telefone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Telefone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="(11) 3333-4444" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="contato@salaox.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="site"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Site</FormLabel>
+                        <FormControl>
+                          <Input placeholder="www.salaox.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="border-none shadow-sm">
+                <CardHeader>
+                  <CardTitle>Agendamentos</CardTitle>
+                  <CardDescription>Padrões para novos agendamentos.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="intervaloPadrao"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Intervalo Padrão (minutos)</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} />
+                        </FormControl>
+                        <FormDescription>Tempo entre agendamentos.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="antecedenciaMinima"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Antecedência Mínima (minutos)</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} />
+                        </FormControl>
+                        <FormDescription>Tempo mínimo para novos agendamentos.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="system" className="space-y-6 pt-6">
+              <Card className="border-none shadow-sm">
+                <CardHeader>
+                  <CardTitle>Integração Asaas</CardTitle>
+                  <CardDescription>Configure o crediário automático para seus clientes.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="asaasApiKey"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>API Key</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="$aact_..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="asaasEnvironment"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ambiente</FormLabel>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="sandbox">Sandbox (Testes)</SelectItem>
+                              <SelectItem value="production">Produção</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="asaasActive"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel>Ativar Integração</FormLabel>
+                          <FormDescription>Habilita o uso do Asaas para pagamentos parcelados.</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="border-none shadow-sm">
+                <CardHeader>
+                  <CardTitle>Localização & Moeda</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="timezone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Fuso Horário</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="America/Sao_Paulo">São Paulo (GMT-3)</SelectItem>
+                            <SelectItem value="America/Rio_Branco">Rio Branco (GMT-5)</SelectItem>
+                            <SelectItem value="America/Manaus">Manaus (GMT-4)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="currency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Moeda Principal</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {[...currencies, { simbolo: "BRL", nome: "Real Brasileiro" }]
+                              .sort((a: any, b: any) => a.nome.localeCompare(b.nome))
+                              .map((c: any) => (
+                                <SelectItem key={c.simbolo} value={c.simbolo}>
+                                  {c.nome} ({c.simbolo})
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="border-none shadow-sm bg-muted/30">
+                <CardContent className="pt-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-medium">Versão do Sistema</p>
+                      <p className="text-2xl font-bold">{packageJson.version}</p>
+                    </div>
+                    <Database className="h-8 w-8 text-muted-foreground/30" />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex justify-end pt-4">
+             <Button type="submit" size="lg" disabled={isPending}>
+                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Salvar Todas as Configurações
+             </Button>
+          </div>
+        </form>
+      </Form>
+    </PagesLayout>
   );
 };
 
