@@ -37,7 +37,6 @@ services:
       - ./frontend:/usr/app
       - /usr/app/node_modules
     environment:
-      - VITE_API_URL=${VITE_API_URL}
       - CHOKIDAR_USEPOLLING=true
 
   db:
