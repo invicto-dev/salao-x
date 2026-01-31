@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Routes, Route, useLocation, useNavigate, Link } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate, Link, Navigate } from "react-router-dom";
 import {
   ShoppingCart,
   Package,
@@ -182,7 +182,7 @@ const AppLayout = () => {
 
   const getBreadcrumbs = () => {
     const currentPath = location.pathname;
-    const items = [{ label: "Salão X", href: "/" }];
+    const items = [{ label: "Salão X", href: "/dashboard" }];
 
     for (const item of filteredMenuItems) {
       if (item.key === currentPath) {
@@ -205,10 +205,10 @@ const AppLayout = () => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full bg-content">
         <Sidebar collapsible="icon">
           <SidebarHeader className="h-16 border-b flex items-center px-4">
-             <Link to="/pdv" className="flex items-center gap-2">
+             <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Scissors className="size-4" />
                 </div>
@@ -218,12 +218,15 @@ const AppLayout = () => {
           <SidebarContent>
             <SidebarMenu>
               {filteredMenuItems.map((item) => {
+                const isParentActive = item.children?.some((child: any) => location.pathname.startsWith(child.key));
+                const isItemActive = location.pathname === item.key || isParentActive;
+
                 if (item.children) {
                   return (
-                    <Collapsible key={item.key} asChild defaultOpen={location.pathname.includes(item.key)} className="group/collapsible">
+                    <Collapsible key={item.key} asChild defaultOpen={location.pathname.includes(item.key) || isParentActive} className="group/collapsible">
                       <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                          <SidebarMenuButton tooltip={item.label}>
+                          <SidebarMenuButton tooltip={item.label} isActive={isItemActive}>
                             {item.icon}
                             <span>{item.label}</span>
                             <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
@@ -234,7 +237,7 @@ const AppLayout = () => {
                             {item.children.map((child: any) => (
                               <SidebarMenuSubItem key={child.key}>
                                 <SidebarMenuSubButton asChild isActive={location.pathname === child.key}>
-                                  <Link to={child.key}>
+                                  <Link to={child.key} className="flex items-center gap-2">
                                     {child.icon}
                                     <span>{child.label}</span>
                                   </Link>
@@ -265,6 +268,7 @@ const AppLayout = () => {
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="hover:opacity-70 transition-opacity"
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 >
                   {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
@@ -273,7 +277,7 @@ const AppLayout = () => {
                    <p className="text-sm font-medium truncate">{user?.nome}</p>
                    <p className="text-xs text-muted-foreground truncate">{user?.role}</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={logout}>
+                <Button variant="ghost" size="icon" onClick={logout} className="hover:opacity-70 transition-opacity">
                    <LogOut className="size-4" />
                 </Button>
              </div>
@@ -320,8 +324,9 @@ const AppLayout = () => {
               </BreadcrumbList>
             </Breadcrumb>
           </header>
-          <div className="p-6 flex-1 overflow-auto">
+          <div className="p-6 flex-1 overflow-auto bg-content/50">
             <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/pdv" element={<PDV />} />
               <Route path="/comandas" element={<Comandas />} />

@@ -44,7 +44,7 @@ export default function PagesLayout({
       </div>
 
       {(filters || buttonsAfterFilters) && (
-        <Card className="border-none shadow-sm bg-card/50">
+        <Card className="border-none shadow-sm bg-card/50 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <CardContent className="p-4">
             <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
               {filters && (
@@ -61,7 +61,7 @@ export default function PagesLayout({
                   {buttonsAfterFilters.map((button, index) => {
                     const { label, icon, ...rest } = button;
                     return (
-                      <Button key={index} {...rest}>
+                      <Button key={index} {...rest} className="hover:opacity-80 transition-all active:scale-95">
                         {icon}
                         {label}
                       </Button>
@@ -74,7 +74,7 @@ export default function PagesLayout({
         </Card>
       )}
 
-      <Card className="border-none shadow-sm">
+      <Card className="border-none shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
         <CardContent className="p-6">
           {Error && Error.isError ? (
             <Alert variant="destructive">
