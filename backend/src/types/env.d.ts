@@ -9,8 +9,6 @@ declare global {
       JWT_SECRET: string;
       REDIS_URL?: string;
       TIMEZONE?: string;
-      FRONTEND_URL_DEV: string;
-      FRONTEND_URL_PRD: string;
       ASAAS_API_KEY: string;
       ASAAS_API_URL: string;
       ASAAS_API_URL_SANDBOX: string;

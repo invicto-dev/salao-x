@@ -19,8 +19,6 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - PORT=${PORT}
       - NODE_ENV=${NODE_ENV}
-      - FRONTEND_URL_DEV=${FRONTEND_URL_DEV}
-      - FRONTEND_URL_PRD=${FRONTEND_URL_PRD}
       - ASAAS_API_URL=${ASAAS_API_URL}
       - ASAAS_API_URL_SANDBOX=${ASAAS_API_URL_SANDBOX}
       - REDIS_HOST=redis
@@ -37,7 +35,6 @@ services:
       - ./frontend:/usr/app
       - /usr/app/node_modules
     environment:
-      - VITE_API_URL=${VITE_API_URL}
       - CHOKIDAR_USEPOLLING=true
 
   db:

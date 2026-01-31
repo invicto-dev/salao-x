@@ -17,8 +17,6 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - PORT=3000
       - NODE_ENV=production
-      - FRONTEND_URL_DEV=${FRONTEND_URL_DEV}
-      - FRONTEND_URL_PRD=${FRONTEND_URL_PRD}
       - ASAAS_API_URL=${ASAAS_API_URL}
       - ASAAS_API_URL_SANDBOX=${ASAAS_API_URL_SANDBOX}
       - REDIS_HOST=redis
@@ -32,10 +30,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      # --- CORREÇÃO AQUI ---
-      # Injeta a variável DURANTE o build da imagem
-      args:
-        VITE_API_URL: ${VITE_API_URL}
     ports:
       - "8080:80"
     depends_on:

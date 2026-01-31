@@ -8,12 +8,6 @@ RUN npm ci
 
 COPY . .
 
-# --- CORREÇÃO AQUI ---
-# Recebe a variável de argumento do build
-ARG VITE_API_URL
-# Torna disponível para o comando de build
-ENV VITE_API_URL=$VITE_API_URL
-
 RUN npm run build
 
 # Estágio 2: Servidor Web (Nginx)
