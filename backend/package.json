@@ -13,6 +13,7 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx src/utils/seed.ts",
     "db:seed-prd": "node dist/utils/seed.js",
     "db:seed:smart": "if [ \"$NODE_ENV\" = \"production\" ]; then npm run db:seed-prd; else npm run db:seed; fi"

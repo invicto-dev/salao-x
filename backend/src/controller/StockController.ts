@@ -31,10 +31,7 @@ export class StockController {
     for (const product of products) {
       const estoqueAtual = product.estoqueAtual.toNumber();
       valorTotalEstoque += estoqueAtual * (product.custo?.toNumber() ?? 0);
-      if (
-        product.estoqueMinimo &&
-        estoqueAtual <= product.estoqueMinimo
-      ) {
+      if (product.estoqueMinimo && estoqueAtual <= product.estoqueMinimo) {
         produtosEstoqueBaixo++;
       }
     }
@@ -98,7 +95,9 @@ export class StockController {
     }
 
     // Validação Hierárquica
-    const isManager = [Role.ROOT, Role.ADMIN, Role.GERENTE].includes(user.role);
+    const isManager = (
+      [Role.ROOT, Role.ADMIN, Role.GERENTE] as Role[]
+    ).includes(user.role as Role);
     if (!isManager) {
       if (!managerPassword) {
         return res.status(403).json({
