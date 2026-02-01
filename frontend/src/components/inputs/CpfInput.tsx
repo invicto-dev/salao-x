@@ -1,10 +1,9 @@
 import React from "react";
-import { Input } from "antd";
+import { Input } from "@/components/ui/input";
 
-interface CpfInputProps {
+interface CpfInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   value?: string;
-  onChange?: (value: string) => void;
-  placeholder?: string;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const formatCpf = (value: string): string => {
@@ -20,23 +19,33 @@ const formatCpf = (value: string): string => {
   )}-${digits.slice(9, 11)}`;
 };
 
-export const CpfInput: React.FC<CpfInputProps> = ({
-  value,
-  onChange,
-  placeholder = "000.000.000-00",
-}) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
-    const formatted = formatCpf(rawValue);
-    if (onChange) onChange(formatted);
-  };
+export const CpfInput = React.forwardRef<HTMLInputElement, CpfInputProps>(
+  ({ value, onChange, placeholder = "000.000.000-00", ...props }, ref) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const formatted = formatCpf(e.target.value);
+      if (onChange) {
+        const newEvent = {
+          ...e,
+          target: {
+            ...e.target,
+            value: formatted,
+          },
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(newEvent);
+      }
+    };
 
-  return (
-    <Input
-      value={value}
-      onChange={handleChange}
-      placeholder={placeholder}
-      maxLength={14}
-    />
-  );
-};
+    return (
+      <Input
+        ref={ref}
+        value={value}
+        onChange={handleChange}
+        placeholder={placeholder}
+        maxLength={14}
+        {...props}
+      />
+    );
+  }
+);
+
+CpfInput.displayName = "CpfInput";

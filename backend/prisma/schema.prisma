@@ -234,6 +234,7 @@ model Product {
   contarEstoque Boolean  @default(true)
   estoqueMinimo Int?     @default(1)
   unidadeMedida String   @default("un")
+  estoqueAtual  Decimal  @default(0)
   ativo         Boolean  @default(true)
   descricao     String?
 

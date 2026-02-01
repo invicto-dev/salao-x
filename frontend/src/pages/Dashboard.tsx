@@ -1,255 +1,223 @@
-import { Card, Col, Row, Statistic, Table, Tag, Progress, Typography } from 'antd';
-import { TrendingUp, TrendingDown, DollarSign, Users, Package, Calendar } from 'lucide-react';
-
-const { Title } = Typography;
+import React, { useState } from "react";
+import { TrendingUp, TrendingDown, DollarSign, Users, Package, Calendar, Loader2, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/utils/formatCurrency";
+import { useDashboard } from "@/hooks/use-dashboard";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { subDays, startOfMonth, format } from "date-fns";
 
 const Dashboard = () => {
-  // Mock data para demonstração
+  const [period, setPeriod] = useState("30");
+
+  const getDateRange = (period: string) => {
+    const end = new Date();
+    let start = new Date();
+
+    if (period === "0") { // Hoje
+      start.setHours(0, 0, 0, 0);
+    } else if (period === "7") {
+      start = subDays(end, 7);
+    } else if (period === "30") {
+      start = subDays(end, 30);
+    } else if (period === "month") {
+      start = startOfMonth(end);
+    }
+
+    return {
+      start: format(start, "yyyy-MM-dd"),
+      end: format(end, "yyyy-MM-dd"),
+    };
+  };
+
+  const { start, end } = getDateRange(period);
+  const { data, isLoading, error } = useDashboard(start, end);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-[400px] flex-col items-center justify-center gap-2">
+        <AlertCircle className="h-8 w-8 text-destructive" />
+        <p className="text-muted-foreground">Erro ao carregar dados do dashboard.</p>
+      </div>
+    );
+  }
+
   const kpis = [
     {
-      title: 'Faturamento Hoje',
-      value: 2850.50,
-      prefix: 'R$',
-      suffix: '',
-      change: 12.5,
-      icon: <DollarSign className="text-salao-success" size={24} />
+      title: 'Faturamento',
+      value: data?.faturamentoTotal ?? 0,
+      isCurrency: true,
+      icon: <DollarSign className="text-emerald-500" size={24} />
     },
     {
-      title: 'Clientes Atendidos',
-      value: 24,
-      suffix: 'hoje',
-      change: 8.3,
-      icon: <Users className="text-salao-primary" size={24} />
+      title: 'Total de Vendas',
+      value: data?.totalVendas ?? 0,
+      suffix: 'pedidos',
+      icon: <Users className="text-primary" size={24} />
     },
     {
-      title: 'Produtos Vendidos',
-      value: 45,
-      suffix: 'unidades',
-      change: -3.2,
-      icon: <Package className="text-salao-accent" size={24} />
-    },
-    {
-      title: 'Agendamentos',
-      value: 18,
-      suffix: 'hoje',
-      change: 15.7,
-      icon: <Calendar className="text-salao-warning" size={24} />
-    }
-  ];
-
-  const topServicos = [
-    { nome: 'Corte Feminino', vendas: 15, receita: 750.00 },
-    { nome: 'Escova', vendas: 12, receita: 360.00 },
-    { nome: 'Coloração', vendas: 8, receita: 640.00 },
-    { nome: 'Manicure', vendas: 10, receita: 250.00 },
-    { nome: 'Pedicure', vendas: 8, receita: 200.00 }
-  ];
-
-  const topProdutos = [
-    { nome: 'Shampoo Profissional', vendas: 8, receita: 240.00 },
-    { nome: 'Condicionador', vendas: 6, receita: 180.00 },
-    { nome: 'Máscara Hidratante', vendas: 4, receita: 160.00 },
-    { nome: 'Óleo Capilar', vendas: 5, receita: 125.00 },
-    { nome: 'Finalizador', vendas: 3, receita: 90.00 }
-  ];
-
-  const comissoesAPagar = [
-    { funcionario: 'Ana Silva', valor: 285.50, servicos: 12 },
-    { funcionario: 'Maria Santos', valor: 195.75, servicos: 8 },
-    { funcionario: 'Carla Oliveira', valor: 125.25, servicos: 5 },
-    { funcionario: 'Julia Costa', valor: 98.50, servicos: 4 }
-  ];
-
-  const servicosColumns = [
-    {
-      title: 'Serviço',
-      dataIndex: 'nome',
-      key: 'nome',
-    },
-    {
-      title: 'Vendas',
-      dataIndex: 'vendas',
-      key: 'vendas',
-      render: (value: number) => <Tag color="blue">{value}</Tag>
-    },
-    {
-      title: 'Receita',
-      dataIndex: 'receita',
-      key: 'receita',
-      render: (value: number) => `R$ ${value.toFixed(2)}`
-    }
-  ];
-
-  const produtosColumns = [
-    {
-      title: 'Produto',
-      dataIndex: 'nome',
-      key: 'nome',
-    },
-    {
-      title: 'Vendas',
-      dataIndex: 'vendas',
-      key: 'vendas',
-      render: (value: number) => <Tag color="green">{value}</Tag>
-    },
-    {
-      title: 'Receita',
-      dataIndex: 'receita',
-      key: 'receita',
-      render: (value: number) => `R$ ${value.toFixed(2)}`
-    }
-  ];
-
-  const comissoesColumns = [
-    {
-      title: 'Funcionário',
-      dataIndex: 'funcionario',
-      key: 'funcionario',
-    },
-    {
-      title: 'Serviços',
-      dataIndex: 'servicos',
-      key: 'servicos',
-      render: (value: number) => <Tag color="purple">{value}</Tag>
-    },
-    {
-      title: 'Comissão',
-      dataIndex: 'valor',
-      key: 'valor',
-      render: (value: number) => (
-        <span className="font-semibold text-salao-success">
-          R$ {value.toFixed(2)}
-        </span>
-      )
+      title: 'Estoque Crítico',
+      value: data?.estoqueCritico ?? 0,
+      suffix: 'produtos',
+      icon: <Package className="text-pink-500" size={24} />,
+      isAlert: (data?.estoqueCritico ?? 0) > 0
     }
   ];
 
   return (
     <div className="space-y-6">
-      <div>
-        <Title level={2} className="!mb-2">Dashboard</Title>
-        <p className="text-muted-foreground">
-          Visão geral do seu salão de beleza
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <p className="text-muted-foreground">Visão geral do seu salão de beleza</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">Período:</span>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Selecione o período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Hoje</SelectItem>
+              <SelectItem value="7">Últimos 7 dias</SelectItem>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="month">Este Mês</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* KPIs */}
-      <Row gutter={[16, 16]}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {kpis.map((kpi, index) => (
-          <Col xs={24} sm={12} lg={6} key={index}>
-            <Card>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <Statistic
-                    title={kpi.title}
-                    value={kpi.value}
-                    prefix={kpi.prefix}
-                    suffix={kpi.suffix}
-                    precision={kpi.prefix === 'R$' ? 2 : 0}
-                  />
-                  <div className="flex items-center mt-2 text-sm">
-                    {kpi.change > 0 ? (
-                      <TrendingUp size={14} className="text-salao-success mr-1" />
-                    ) : (
-                      <TrendingDown size={14} className="text-salao-error mr-1" />
-                    )}
-                    <span className={kpi.change > 0 ? 'text-salao-success' : 'text-salao-error'}>
-                      {Math.abs(kpi.change)}%
-                    </span>
-                    <span className="text-muted-foreground ml-1">vs ontem</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  {kpi.icon}
-                </div>
+          <Card key={index} className="border-none shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium text-muted-foreground">{kpi.title}</CardTitle>
+              {kpi.icon}
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${kpi.isAlert ? 'text-destructive' : ''}`}>
+                {kpi.isCurrency ? formatCurrency(kpi.value) : kpi.value}
+                {kpi.suffix && <span className="ml-1 text-xs font-normal text-muted-foreground">{kpi.suffix}</span>}
               </div>
-            </Card>
-          </Col>
+            </CardContent>
+          </Card>
         ))}
-      </Row>
+      </div>
 
-      {/* Charts e Tabelas */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>
-          <Card title="🏆 Top Serviços do Dia" className="h-full">
-            <Table
-              dataSource={topServicos}
-              columns={servicosColumns}
-              pagination={false}
-              size="small"
-              rowKey="nome"
-            />
-          </Card>
-        </Col>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Serviços */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">🏆 Top Serviços</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Serviço</TableHead>
+                  <TableHead className="text-center">Vendas</TableHead>
+                  <TableHead className="text-right">Receita</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data?.topServicos?.map((item: any) => (
+                  <TableRow key={item.nome}>
+                    <TableCell className="font-medium">{item.nome}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">{item.vendas}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(item.receita)}</TableCell>
+                  </TableRow>
+                ))}
+                {(!data?.topServicos || data.topServicos.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-4">Nenhum serviço vendido no período.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
-        <Col xs={24} lg={12}>
-          <Card title="📦 Top Produtos Vendidos" className="h-full">
-            <Table
-              dataSource={topProdutos}
-              columns={produtosColumns}
-              pagination={false}
-              size="small"
-              rowKey="nome"
-            />
-          </Card>
-        </Col>
-      </Row>
+        {/* Top Produtos */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">📦 Top Produtos Vendidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produto</TableHead>
+                  <TableHead className="text-center">Vendas</TableHead>
+                  <TableHead className="text-right">Receita</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data?.topProdutos?.map((item: any) => (
+                  <TableRow key={item.nome}>
+                    <TableCell className="font-medium">{item.nome}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">{item.vendas}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(item.receita)}</TableCell>
+                  </TableRow>
+                ))}
+                {(!data?.topProdutos || data.topProdutos.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-4">Nenhum produto vendido no período.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>
-          <Card title="💰 Comissões a Pagar" className="h-full">
-            <Table
-              dataSource={comissoesAPagar}
-              columns={comissoesColumns}
-              pagination={false}
-              size="small"
-              rowKey="funcionario"
-            />
-            <div className="mt-4 p-3 bg-salao-primary-light rounded-lg">
-              <div className="text-sm text-muted-foreground">Total de comissões</div>
-              <div className="text-lg font-semibold text-salao-primary">
-                R$ {comissoesAPagar.reduce((acc, item) => acc + item.valor, 0).toFixed(2)}
+      {/* Metas Mensais (Mantendo as metas como mock por enquanto conforme não foi solicitado backend para elas, mas integrando com o faturamento real) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">📊 Meta de Faturamento Mensal</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-8 py-6">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Progresso Atual</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatCurrency(data?.faturamentoTotal ?? 0)} / {formatCurrency(60000)}
+                </span>
               </div>
+              <Progress value={((data?.faturamentoTotal ?? 0) / 60000) * 100} className="h-2" />
             </div>
-          </Card>
-        </Col>
-
-        <Col xs={24} lg={12}>
-          <Card title="📊 Meta Mensal" className="h-full">
-            <div className="space-y-6">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Faturamento</span>
-                  <span className="text-sm text-muted-foreground">
-                    R$ 45.650 / R$ 60.000
-                  </span>
-                </div>
-                <Progress percent={76} strokeColor="#7c3aed" />
-              </div>
-              
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Clientes Atendidos</span>
-                  <span className="text-sm text-muted-foreground">
-                    387 / 500
-                  </span>
-                </div>
-                <Progress percent={77} strokeColor="#ec4899" />
-              </div>
-              
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Produtos Vendidos</span>
-                  <span className="text-sm text-muted-foreground">
-                    645 / 800
-                  </span>
-                </div>
-                <Progress percent={81} strokeColor="#059669" />
-              </div>
-            </div>
-          </Card>
-        </Col>
-      </Row>
+            <p className="text-sm text-muted-foreground">Meta baseada no período selecionado comparado a meta fixa de R$ 60.000,00.</p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

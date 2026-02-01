@@ -1,34 +1,59 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
-  Typography,
-  Input,
-  Select,
-  Tag,
-  Modal,
-  Drawer,
-  Descriptions,
-  List,
-  TableColumnProps,
-  Button,
-} from "antd";
+  Ban,
+  Receipt,
+  Search,
+  Eye,
+  AlertTriangle,
+  DollarSign,
+} from "lucide-react";
 import { useSales, useSaleUpdateStatus } from "@/hooks/use-sales";
-import { Ban, Receipt, Search } from "lucide-react";
 import { useReciboVenda } from "@/hooks/use-recibo-venda";
 import { formatCurrency } from "@/utils/formatCurrency";
 import DropdownComponent from "@/components/Dropdown";
 import { formatSaleId } from "@/utils/formatSaleId";
 import PagesLayout from "@/components/layout/PagesLayout";
 import { useDebounce } from "@/hooks/use-debounce";
-import { ResponsiveTable } from "@/components/tables/ResponsiveTable";
+import { DataTable } from "@/components/tables/DataTable";
 import { formatDateTime } from "@/utils/formatDateTime";
-import { format } from "path";
+import { ColumnDef } from "@tanstack/react-table";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-const { Text } = Typography;
-
-type Venda = ReturnType<typeof useSales>["data"][0];
+type Venda = any;
 
 const Vendas = () => {
-  const [params, setParams] = useState<Params>({});
+  const [params, setParams] = useState<any>({
+    search: "",
+    status: undefined
+  });
+  const debouncedSearch = useDebounce(params.search);
+
   const {
     data: vendas = [],
     isLoading,
@@ -36,14 +61,12 @@ const Vendas = () => {
     refetch,
   } = useSales({
     ...params,
-    search: useDebounce(params.search),
+    search: debouncedSearch,
   });
+
   const { mutate: update } = useSaleUpdateStatus();
-
-  console.log("Vendas renderizadas:", vendas);
-
   const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null);
-
+  const [vendaParaCancelar, setVendaParaCancelar] = useState<Venda | null>(null);
   const { ReciboComponent, abrirRecibo } = useReciboVenda();
 
   const handleCancelarVenda = (vendaId: string) => {
@@ -53,111 +76,76 @@ const Vendas = () => {
         status: "CANCELADO",
       },
     });
+    setVendaParaCancelar(null);
   };
 
-  const showModalCancelamento = (venda: Venda) => {
-    Modal.confirm({
-      title: "Confirmar Cancelamento",
-      content: `Você tem certeza que deseja cancelar a venda #${venda.id.substring(
-        0,
-        8
-      )}? Esta ação não pode ser desfeita.`,
-      okText: "Sim, Cancelar",
-      okButtonProps: { danger: true },
-      cancelText: "Não",
-      onOk: () => {
-        handleCancelarVenda(venda.id);
-        setVendaSelecionada(null);
-      },
-    });
-  };
-
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "PAGO":
-        return "green";
+        return <Badge className="bg-emerald-500 hover:bg-emerald-600">PAGO</Badge>;
       case "PENDENTE":
-        return "orange";
+        return <Badge variant="outline" className="text-amber-500 border-amber-500">PENDENTE</Badge>;
       case "CANCELADO":
-        return "red";
+        return <Badge variant="destructive">CANCELADO</Badge>;
       default:
-        return "default";
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  const columns: TableColumnProps<Venda>[] = [
+  const columns: ColumnDef<Venda>[] = [
     {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-      className: "font-bold",
-      render: (id) => formatSaleId(id),
+      accessorKey: "id",
+      header: "ID",
+      cell: ({ row }) => <span className="font-bold">{formatSaleId(row.original.id)}</span>,
     },
     {
-      title: "Data/Hora",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (text: string) => formatDateTime(text),
+      accessorKey: "createdAt",
+      header: "Data/Hora",
+      cell: ({ row }) => formatDateTime(row.original.createdAt),
     },
     {
-      title: "Cliente",
-      dataIndex: "cliente",
-      key: "cliente",
-      render: (cliente: Venda["cliente"]) =>
-        cliente?.nome || "Consumidor Final",
-    },
-
-    {
-      title: "Total",
-      dataIndex: "total",
-      key: "total",
-      render: (total: string) =>
-       formatCurrency(total)
+      accessorKey: "cliente",
+      header: "Cliente",
+      cell: ({ row }) => row.original.cliente?.nome || "Consumidor Final",
     },
     {
-      title: "Status",
-      dataIndex: "status",
-      align: "center",
-      key: "status",
-      render: (status: string) => (
-        <Tag color={getStatusColor(status)}>{status}</Tag>
-      ),
+      accessorKey: "total",
+      header: "Total",
+      cell: ({ row }) => formatCurrency(row.original.total),
     },
     {
-      title: "Caixa",
-      dataIndex: "caixaId",
-      align: "center",
-      render: (caixaId: string) => <span>{formatSaleId(caixaId)}</span>,
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => getStatusBadge(row.original.status),
     },
     {
-      title: "Ações",
-      key: "acoes",
-      align: "center" as const,
-      render: (_: any, record: Venda) => (
-        <DropdownComponent
-          menu={{
-            items: [
-              {
-                key: "1",
-                label: "Imprimir Recibo",
-                icon: <Receipt size={14} />,
-                onClick: (e) => {
-                  e.domEvent.stopPropagation();
-                  abrirRecibo(record);
+      id: "acoes",
+      header: "Ações",
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setVendaSelecionada(row.original)}>
+            <Eye className="size-4" />
+          </Button>
+          <DropdownComponent
+            menu={{
+              items: [
+                {
+                  key: "1",
+                  label: "Imprimir Recibo",
+                  icon: <Receipt size={14} />,
+                  onClick: () => abrirRecibo(row.original),
                 },
-              },
-              {
-                key: "2",
-                label: "Cancelar Venda",
-                icon: <Ban size={14} />,
-                onClick: (e) => {
-                  e.domEvent.stopPropagation();
-                  showModalCancelamento(record);
+                {
+                  key: "2",
+                  label: "Cancelar Venda",
+                  icon: <Ban size={14} />,
+                  danger: true,
+                  onClick: () => setVendaParaCancelar(row.original),
                 },
-              },
-            ],
-          }}
-        />
+              ],
+            }}
+          />
+        </div>
       ),
     },
   ];
@@ -165,26 +153,32 @@ const Vendas = () => {
   const filters = [
     {
       element: (
-        <Input
-          placeholder="Buscar venda por cliente ou ID..."
-          prefix={<Search size={14} />}
-          value={params.search}
-          onChange={(e) => setParams({ ...params, search: e.target.value })}
-          allowClear
-        />
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por cliente ou ID..."
+            className="pl-9"
+            value={params.search}
+            onChange={(e) => setParams({ ...params, search: e.target.value })}
+          />
+        </div>
       ),
     },
     {
       element: (
         <Select
-          placeholder="Filtrar por status"
-          allowClear
-          onChange={(value) => setParams({ ...params, status: value })}
-          className="w-full md:w-48"
+          value={params.status}
+          onValueChange={(value) => setParams({ ...params, status: value === "all" ? undefined : value })}
         >
-          <Select.Option value="PAGO">Pago</Select.Option>
-          <Select.Option value="PENDENTE">Pendente</Select.Option>
-          <Select.Option value="CANCELADO">Cancelado</Select.Option>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Filtrar por status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os Status</SelectItem>
+            <SelectItem value="PAGO">Pago</SelectItem>
+            <SelectItem value="PENDENTE">Pendente</SelectItem>
+            <SelectItem value="CANCELADO">Cancelado</SelectItem>
+          </SelectContent>
         </Select>
       ),
     },
@@ -200,169 +194,121 @@ const Vendas = () => {
         onClick: refetch,
       }}
     >
-      <ResponsiveTable
-        dataSource={vendas}
+      <DataTable
         columns={columns}
+        data={vendas}
         loading={isLoading}
-        onRow={(record) => ({
-          onClick: () => setVendaSelecionada(record),
-        })}
-        rowClassName={() => "cursor-pointer"}
-        locale={{
-          emptyText:
-            vendas.length === 0
-              ? "Nenhuma venda encontrada"
-              : "Nenhuma venda para mostrar",
-        }}
-        renderItem={(item) => (
-          <List.Item onClick={() => setVendaSelecionada(item)}>
-            <List.Item.Meta
-              title={item.cliente?.nome || "Consumidor Final"}
-              description={`${formatSaleId(item.id)} - ${formatDateTime(
-                item.createdAt
-              )}`}
-            />
-            <DropdownComponent
-              menu={{
-                items: [
-                  {
-                    key: "1",
-                    label: "Imprimir Recibo",
-                    icon: <Receipt size={14} />,
-                    onClick: (e) => {
-                      e.domEvent.stopPropagation();
-                      abrirRecibo(item);
-                    },
-                  },
-                  {
-                    key: "2",
-                    label: "Cancelar Venda",
-                    icon: <Ban size={14} />,
-                    onClick: (e) => {
-                      e.domEvent.stopPropagation();
-                      showModalCancelamento(item);
-                    },
-                  },
-                ],
-              }}
-            />
-          </List.Item>
-        )}
       />
 
-      <Drawer
-        title={`Detalhes da Venda ${formatSaleId(vendaSelecionada?.id)}`}
-        onClose={() => setVendaSelecionada(null)}
-        open={!!vendaSelecionada}
-        width={450}
-      >
-        {vendaSelecionada && (
-          <div className="space-y-6">
-            <Descriptions bordered column={1} size="small">
-              <Descriptions.Item label="Cliente">
-                {vendaSelecionada.cliente?.nome || "Consumidor Final"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Data da Venda">
-                {new Date(vendaSelecionada.createdAt).toLocaleString("pt-BR")}
-              </Descriptions.Item>
-              <Descriptions.Item label="Status">
-                <Tag color={getStatusColor(vendaSelecionada.status)}>
-                  {vendaSelecionada.status}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Subtotal da Venda">
-                <span>{formatCurrency(vendaSelecionada.subtotal)}</span>
-              </Descriptions.Item>
-              <Descriptions.Item label="Total da Venda">
-                <span className="font-bold">
-                  {formatCurrency(vendaSelecionada.total)}
-                </span>
-              </Descriptions.Item>
-            </Descriptions>
+      {/* Drawer de Detalhes */}
+      <Sheet open={!!vendaSelecionada} onOpenChange={(val) => !val && setVendaSelecionada(null)}>
+        <SheetContent className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Detalhes da Venda {vendaSelecionada && formatSaleId(vendaSelecionada.id)}</SheetTitle>
+          </SheetHeader>
+          {vendaSelecionada && (
+            <ScrollArea className="h-[calc(100vh-100px)] pr-4">
+              <div className="space-y-6 py-6">
+                <div className="grid grid-cols-2 gap-4 text-sm border p-4 rounded-lg bg-muted/30">
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground">Cliente</p>
+                    <p className="font-medium">{vendaSelecionada.cliente?.nome || "Consumidor Final"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground">Data</p>
+                    <p className="font-medium">{new Date(vendaSelecionada.createdAt).toLocaleString("pt-BR")}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground">Status</p>
+                    <div>{getStatusBadge(vendaSelecionada.status)}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground">Total</p>
+                    <p className="font-bold text-lg">{formatCurrency(vendaSelecionada.total)}</p>
+                  </div>
+                </div>
 
-            <div>
-              <List
-                header={<Text strong>Itens Vendidos</Text>}
-                dataSource={vendaSelecionada.itens}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={`${item.quantidade} x ${
-                        item.nome || "Item deletado"
-                      }`}
-                      description={formatCurrency(item.preco)}
-                    />
-                    <div>{formatCurrency(item.subtotal)}</div>
-                  </List.Item>
-                )}
-                size="small"
-              />
-            </div>
+                <div className="space-y-4">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <Receipt className="size-4" />
+                    Itens Vendidos
+                  </h4>
+                  <div className="space-y-3">
+                    {vendaSelecionada.itens.map((item: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center text-sm border-b pb-2">
+                        <div>
+                          <p className="font-medium">{item.nome || "Item deletado"}</p>
+                          <p className="text-xs text-muted-foreground">{item.quantidade} x {formatCurrency(item.preco)}</p>
+                        </div>
+                        <p className="font-medium">{formatCurrency(item.subtotal)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-            <div>
-              <List
-                header={<Text strong>Pagamentos Adicionados</Text>}
-                dataSource={vendaSelecionada.pagamentos}
-                locale={{ emptyText: "Nenhum pagamento informado." }}
-                renderItem={(pagamento) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={pagamento.metodoDePagamento.nome}
-                      description={
-                        pagamento.metodoDePagamento.isCash &&
-                        vendaSelecionada.troco > 0 ? (
-                          <Typography className="text-xs">{`Troco: ${formatCurrency(
-                            vendaSelecionada.troco
-                          )}`}</Typography>
-                        ) : (
+                <div className="space-y-4">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <DollarSign className="size-4" />
+                    Pagamentos
+                  </h4>
+                  <div className="space-y-3">
+                    {vendaSelecionada.pagamentos.length > 0 ? (
+                      vendaSelecionada.pagamentos.map((pagamento: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center text-sm border-b pb-2">
                           <div>
-                            {pagamento.installmentCount && (
-                              <Typography className="text-xs">{`${
-                                pagamento.installmentCount
-                              } X ${formatCurrency(
-                                pagamento.valor / pagamento.installmentCount
-                              )}`}</Typography>
-                            )}
-                            {pagamento.externalChargeUrl && (
-                              <Typography.Link
-                                href={pagamento.externalChargeUrl}
-                                target="_blank"
-                              >
-                                {pagamento.externalChargeUrl}
-                              </Typography.Link>
+                            <p className="font-medium">{pagamento.metodoDePagamento.nome}</p>
+                            {pagamento.metodoDePagamento.isCash && vendaSelecionada.troco > 0 && (
+                              <p className="text-xs text-muted-foreground">Troco: {formatCurrency(vendaSelecionada.troco)}</p>
                             )}
                           </div>
-                        )
-                      }
-                    />
-                    <div>{formatCurrency(pagamento.valor)}</div>
-                  </List.Item>
-                )}
-                size="small"
-              />
-            </div>
-            <div className="space-y-2">
-              <Button
-                onClick={() => abrirRecibo(vendaSelecionada)}
-                icon={<Receipt size={14} />}
-                block
-              >
-                Imprimir Recibo
-              </Button>
-              {vendaSelecionada.status !== "CANCELADO" && (
-                <Button
-                  onClick={() => showModalCancelamento(vendaSelecionada)}
-                  icon={<Ban size={14} />}
-                  block
-                  danger
-                >
-                  Cancelar Venda
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-      </Drawer>
+                          <p className="font-medium">{formatCurrency(pagamento.valor)}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Nenhum pagamento informado.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-4 space-y-2">
+                  <Button variant="outline" className="w-full" onClick={() => abrirRecibo(vendaSelecionada)}>
+                    <Receipt className="mr-2 h-4 w-4" />
+                    Imprimir Recibo
+                  </Button>
+                  {vendaSelecionada.status !== "CANCELADO" && (
+                    <Button variant="destructive" className="w-full" onClick={() => setVendaParaCancelar(vendaSelecionada)}>
+                      <Ban className="mr-2 h-4 w-4" />
+                      Cancelar Venda
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </ScrollArea>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Modal de Confirmação de Cancelamento */}
+      <AlertDialog open={!!vendaParaCancelar} onOpenChange={(val) => !val && setVendaParaCancelar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="text-destructive size-5" />
+              Confirmar Cancelamento
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem certeza que deseja cancelar a venda {vendaParaCancelar && formatSaleId(vendaParaCancelar.id)}?
+              Esta ação não pode ser desfeita e os produtos retornarão ao estoque (se aplicável).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não, manter</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleCancelarVenda(vendaParaCancelar.id)} className="bg-destructive hover:bg-destructive/90">
+              Sim, Cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ReciboComponent />
     </PagesLayout>
