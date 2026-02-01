@@ -57,6 +57,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ManagerPasswordDialog } from "@/components/modais/ManagerPasswordDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 const productUpdateSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
@@ -73,8 +75,11 @@ const movementSchema = z.object({
 });
 
 const Estoque = () => {
+  const { user } = useAuth();
   const [modalEditarOpen, setModalEditarOpen] = useState(false);
   const [modalMovimentacaoOpen, setModalMovimentacaoOpen] = useState(false);
+  const [modalManagerOpen, setModalManagerOpen] = useState(false);
+  const [pendingMovement, setPendingMovement] = useState<any>(null);
   const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null);
 
   const [params, setParams] = useState<any>({ search: "", categoryId: undefined });
@@ -124,12 +129,33 @@ const Estoque = () => {
   };
 
   const handleCreateMovement = async (values: any) => {
+    const isManager = ["ROOT", "ADMIN", "GERENTE"].includes(user?.role || "");
+
+    if (!isManager) {
+      setPendingMovement(values);
+      setModalManagerOpen(true);
+      return;
+    }
+
     try {
       await createMovement(values);
-      toast.success("Movimentação registrada com sucesso");
       setModalMovimentacaoOpen(false);
+      movementForm.reset();
     } catch (error) {
-      toast.error("Erro ao registrar movimentação");
+      // O hook já trata o erro com toast
+    }
+  };
+
+  const handleManagerSuccess = async (password: string) => {
+    if (!pendingMovement) return;
+
+    try {
+      await createMovement({ ...pendingMovement, managerPassword: password });
+      setModalMovimentacaoOpen(false);
+      setPendingMovement(null);
+      movementForm.reset();
+    } catch (error) {
+      // O hook já trata o erro com toast
     }
   };
 
@@ -385,6 +411,13 @@ const Estoque = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Verificação de Gerente */}
+      <ManagerPasswordDialog
+        open={modalManagerOpen}
+        onOpenChange={setModalManagerOpen}
+        onSuccess={handleManagerSuccess}
+      />
 
       {/* Modal Movimentação */}
       <Dialog open={modalMovimentacaoOpen} onOpenChange={setModalMovimentacaoOpen}>

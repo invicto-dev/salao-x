@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
-import { prisma } from "../config/database"; // Assumindo que seu prisma client está aqui
-import { ApprovalStatus, Prisma } from "@prisma/client";
+import { prisma } from "../config/database";
+import { ApprovalStatus, Prisma, Role } from "@prisma/client";
 import { AuthRequest } from "../middlewares/auth";
+import { StockService } from "../services/StockService";
+import bcrypt from "bcryptjs";
 
 export class StockController {
   /**
@@ -12,8 +14,7 @@ export class StockController {
       where: { contarEstoque: true, ativo: true },
     });
 
-    const productIds = products.map((p) => p.id);
-    if (productIds.length === 0) {
+    if (products.length === 0) {
       return res.status(200).json({
         success: true,
         data: {
@@ -24,29 +25,14 @@ export class StockController {
       });
     }
 
-    const stockAggregates = await prisma.stockMovement.groupBy({
-      by: ["produtoId"],
-      _sum: { quantidade: true },
-      where: {
-        produtoId: { in: productIds },
-        status: ApprovalStatus.APROVADO,
-      },
-    });
-
-    const stockMap = new Map<string, number>();
-    stockAggregates.forEach((agg) =>
-      stockMap.set(agg.produtoId, agg._sum.quantidade?.toNumber() ?? 0)
-    );
-
     let valorTotalEstoque = 0;
     let produtosEstoqueBaixo = 0;
 
     for (const product of products) {
-      const estoqueAtual = stockMap.get(product.id) ?? 0;
+      const estoqueAtual = product.estoqueAtual.toNumber();
       valorTotalEstoque += estoqueAtual * (product.custo?.toNumber() ?? 0);
       if (
         product.estoqueMinimo &&
-        estoqueAtual > 0 &&
         estoqueAtual <= product.estoqueMinimo
       ) {
         produtosEstoqueBaixo++;
@@ -93,12 +79,12 @@ export class StockController {
   }
 
   /**
-   * Cria uma nova movimentação de estoque.
+   * Cria uma nova movimentação de estoque com validação hierárquica.
    */
   static async createMovement(req: AuthRequest, res: Response) {
-    const body = req.body;
+    const { managerPassword, ...movementData } = req.body;
 
-    if (!body || Object.keys(body).length === 0) {
+    if (!movementData || Object.keys(movementData).length === 0) {
       return res
         .status(400)
         .json({ success: false, error: "Nenhuma informação fornecida." });
@@ -111,27 +97,58 @@ export class StockController {
         .json({ success: false, error: "Usuário não autenticado." });
     }
 
-    const settings = await prisma.setting.findFirst();
+    // Validação Hierárquica
+    const isManager = [Role.ROOT, Role.ADMIN, Role.GERENTE].includes(user.role);
+    if (!isManager) {
+      if (!managerPassword) {
+        return res.status(403).json({
+          success: false,
+          error: "Senha de gerente obrigatória para esta operação.",
+          requireManagerPassword: true,
+        });
+      }
 
+      // Verificar senha do gerente
+      const managers = await prisma.employee.findMany({
+        where: {
+          role: { in: [Role.ROOT, Role.ADMIN, Role.GERENTE] },
+          ativo: true,
+        },
+      });
+
+      let authorized = false;
+      for (const manager of managers) {
+        if (await bcrypt.compare(managerPassword, manager.senha)) {
+          authorized = true;
+          break;
+        }
+      }
+
+      if (!authorized) {
+        return res.status(401).json({
+          success: false,
+          error: "Senha de gerente inválida.",
+        });
+      }
+    }
+
+    const settings = await prisma.setting.findFirst();
     let status: ApprovalStatus = ApprovalStatus.APROVADO;
-    if (settings?.exigirAprovacaoEstoque /*  && user.role !== Role.ADMIN */) {
+    if (settings?.exigirAprovacaoEstoque) {
       status = ApprovalStatus.PENDENTE;
     }
 
-    // Garante que a quantidade de saída seja negativa
-    if (body.tipo === "SAIDA" && body.quantidade > 0) {
-      body.quantidade = -Math.abs(body.quantidade);
-    }
-
-    const newMovement = await prisma.stockMovement.create({
-      data: {
-        ...body,
+    try {
+      const newMovement = await StockService.registerMovement({
+        ...movementData,
         solicitadoPorId: user.id,
         status: status,
-      },
-    });
+      });
 
-    return res.status(201).json({ success: true, data: newMovement });
+      return res.status(201).json({ success: true, data: newMovement });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
   }
 
   /**
@@ -167,15 +184,31 @@ export class StockController {
     const newStatus =
       action === "APROVAR" ? ApprovalStatus.APROVADO : ApprovalStatus.REJEITADO;
 
-    const updatedMovement = await prisma.stockMovement.update({
-      where: { id: movementId },
-      data: {
-        status: newStatus,
-        aprovadoPorId: approver.id,
-        dataAprovacao: new Date(),
-        motivoRejeicao:
-          newStatus === ApprovalStatus.REJEITADO ? rejectionReason : null,
-      },
+    const updatedMovement = await prisma.$transaction(async (tx) => {
+      const updated = await tx.stockMovement.update({
+        where: { id: movementId },
+        data: {
+          status: newStatus,
+          aprovadoPorId: approver.id,
+          dataAprovacao: new Date(),
+          motivoRejeicao:
+            newStatus === ApprovalStatus.REJEITADO ? rejectionReason : null,
+        },
+      });
+
+      // Se aprovado, atualizar o estoqueAtual no produto
+      if (newStatus === ApprovalStatus.APROVADO) {
+        await tx.product.update({
+          where: { id: updated.produtoId },
+          data: {
+            estoqueAtual: {
+              increment: updated.quantidade,
+            },
+          },
+        });
+      }
+
+      return updated;
     });
 
     return res.status(200).json({ success: true, data: updatedMovement });

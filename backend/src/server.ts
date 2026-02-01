@@ -19,6 +19,7 @@ import { errorHandler } from "./middlewares/errorHandler";
 import { stockRoutes } from "./routes/stock";
 import { authRoutes } from "./routes/auth";
 import { caixaRoutes } from "./routes/caixa";
+import { dashboardRoutes } from "./routes/dashboard";
 import { authenticateToken, requireAdmin } from "./middlewares/auth";
 import { JobRoutes } from "./routes/jobs";
 
@@ -69,6 +70,7 @@ app.use("/api/payment-methods", paymentMethodRoutes);
 app.use("/api/categories", authenticateToken, categoryRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/stock", stockRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/jobs", JobRoutes);
 
 // Middleware para tratar erros
