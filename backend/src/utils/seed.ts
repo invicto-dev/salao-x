@@ -6,6 +6,19 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Iniciando seed de usuarios no banco de dados...");
 
+  console.log("Gerando Configuração padrão...");
+  await prisma.setting.upsert({
+    where: { id: "default" },
+    update: {},
+    create: {
+      id: "default",
+      nomeEmpresa: "",
+      cnpj: null,
+      asaasActive: false,
+    },
+  });
+  console.log("✅ Configurações garantidas.");
+
   // --------------------------------------------------------
   // 1. MÉTODOS DE PAGAMENTO
   // --------------------------------------------------------
@@ -67,19 +80,6 @@ async function main() {
   console.log(`📧 Email: ${rootEmail}`);
   console.log(`🔑 Senha: root123 (se for o primeiro acesso)`);
   console.log("-----------------------------------------");
-
-  console.log("Gerando Configuração padrão...");
-  await prisma.setting.upsert({
-    where: { id: "default" },
-    update: {},
-    create: {
-      id: "default",
-      nomeEmpresa: "",
-      cnpj: null,
-      asaasActive: false,
-    },
-  });
-  console.log("✅ Configurações garantidas.");
 
   console.log("\n🎉 Seed concluído com sucesso!");
 }

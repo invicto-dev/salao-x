@@ -5,6 +5,7 @@ import {
   Prisma,
 } from "@prisma/client";
 import { prisma } from "../config/database";
+import { StockService } from "./StockService";
 
 /**
  * Service responsible for managing products and their stock movements.
@@ -70,13 +71,16 @@ export class ProductService {
 
     const newProduct = await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
-        data: productData,
+        data: {
+          ...productData,
+          estoqueAtual: 0, // Será atualizado pelo StockService.registerMovement
+        },
       });
 
       // If initial stock is provided, register stock movement
       if (estoqueInicial && estoqueInicial > 0) {
-        await tx.stockMovement.create({
-          data: {
+        await StockService.registerMovement(
+          {
             produtoId: product.id,
             quantidade: estoqueInicial,
             tipo: StockMovementType.ENTRADA,
@@ -85,7 +89,8 @@ export class ProductService {
             observacao: "Initial stock added at product creation.",
             solicitadoPorId: user.id,
           },
-        });
+          tx
+        );
       }
 
       return product;
@@ -115,33 +120,10 @@ export class ProductService {
       orderBy: { nome: "asc" },
     });
 
-    if (products.length === 0) {
-      return [];
-    }
-
-    const productIds = products.map((p) => p.id);
-
-    const stockAggregates = await prisma.stockMovement.groupBy({
-      by: ["produtoId"],
-      _sum: { quantidade: true },
-      where: {
-        produtoId: { in: productIds },
-        status: ApprovalStatus.APROVADO,
-      },
-    });
-
-    const stockMap = new Map<string, number>();
-
-    stockAggregates.forEach((agg) => {
-      stockMap.set(agg.produtoId, agg._sum.quantidade?.toNumber() ?? 0);
-    });
-
-    const productsWithStock = products.map((product) => ({
+    return products.map((product) => ({
       ...product,
-      estoqueAtual: stockMap.get(product.id) ?? 0,
+      estoqueAtual: product.estoqueAtual?.toNumber() ?? 0,
       categoria: product.categoria?.nome,
     }));
-
-    return productsWithStock;
   }
 }

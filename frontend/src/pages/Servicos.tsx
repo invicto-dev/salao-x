@@ -7,7 +7,7 @@ import {
   Clock,
   Trash2,
   AlertTriangle,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -91,13 +91,20 @@ const Servicos = () => {
   const [serviceToDelete, setServiceToDelete] = useState<any>(null);
 
   const debouncedBusca = useDebounce(params.search, 500);
-  const { data: servicos = [], isLoading, isFetching, refetch } = useServices({
+  const {
+    data: servicos = [],
+    isLoading,
+    isFetching,
+    refetch,
+  } = useServices({
     search: debouncedBusca,
     status: params.status,
   });
 
-  const { mutateAsync: createService, isPending: isCreating } = useServiceCreate();
-  const { mutateAsync: updateService, isPending: isUpdating } = useServiceUpdate();
+  const { mutateAsync: createService, isPending: isCreating } =
+    useServiceCreate();
+  const { mutateAsync: updateService, isPending: isUpdating } =
+    useServiceUpdate();
   const { mutateAsync: deleteServico } = useServiceDelete();
 
   const form = useForm<ServiceFormValues>({
@@ -134,7 +141,10 @@ const Servicos = () => {
           <div>
             <div className="font-medium">{row.original.nome}</div>
             <div className="text-[10px] text-muted-foreground uppercase">
-              {row.original.codigo || "Sem código"} • {row.original.categoria?.nome || row.original.categoria || "Sem categoria"}
+              {row.original.codigo || "Sem código"} •{" "}
+              {row.original.categoria?.nome ||
+                row.original.categoria ||
+                "Sem categoria"}
             </div>
           </div>
         </div>
@@ -145,9 +155,13 @@ const Servicos = () => {
       header: "Preço",
       cell: ({ row }) => (
         <div>
-          <div className="font-semibold text-primary">{formatCurrency(row.original.preco)}</div>
+          <div className="font-semibold text-primary">
+            {formatCurrency(row.original.preco)}
+          </div>
           {row.original.valorEmAberto && (
-            <div className="text-[10px] text-muted-foreground italic">Valor em aberto</div>
+            <div className="text-[10px] text-muted-foreground italic">
+              Valor em aberto
+            </div>
           )}
         </div>
       ),
@@ -168,7 +182,10 @@ const Servicos = () => {
       cell: ({ row }) => {
         const ativo = row.original.ativo;
         return (
-          <Badge variant={ativo ? "outline" : "secondary"} className={ativo ? "text-emerald-600 border-emerald-600" : ""}>
+          <Badge
+            variant={ativo ? "outline" : "secondary"}
+            className={ativo ? "text-emerald-600 border-emerald-600" : ""}
+          >
             {ativo ? "Ativo" : "Inativo"}
           </Badge>
         );
@@ -214,10 +231,8 @@ const Servicos = () => {
     try {
       if (editingService) {
         await updateService({ id: editingService.id, body: values });
-        toast.success("Serviço atualizado com sucesso");
       } else {
         await createService(values);
-        toast.success("Serviço criado com sucesso");
       }
       setModalOpen(false);
     } catch (error) {
@@ -229,7 +244,6 @@ const Servicos = () => {
     if (!serviceToDelete) return;
     try {
       await deleteServico(serviceToDelete.id);
-      toast.success("Serviço excluído com sucesso");
       setServiceToDelete(null);
     } catch (error) {
       toast.error("Erro ao excluir serviço");
@@ -249,7 +263,9 @@ const Servicos = () => {
                 placeholder="Buscar por nome ou código..."
                 className="pl-9"
                 value={params.search}
-                onChange={(e) => setParams({ ...params, search: e.target.value })}
+                onChange={(e) =>
+                  setParams({ ...params, search: e.target.value })
+                }
               />
             </div>
           ),
@@ -258,7 +274,12 @@ const Servicos = () => {
           element: (
             <Select
               value={params.status}
-              onValueChange={(value) => setParams({ ...params, status: value === "all" ? undefined : value })}
+              onValueChange={(value) =>
+                setParams({
+                  ...params,
+                  status: value === "all" ? undefined : value,
+                })
+              }
             >
               <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Filtrar por status" />
@@ -302,12 +323,18 @@ const Servicos = () => {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editingService ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
+            <DialogTitle>
+              {editingService ? "Editar Serviço" : "Novo Serviço"}
+            </DialogTitle>
           </DialogHeader>
 
           <ScrollArea className="max-h-[70vh] pr-4">
             <Form {...form}>
-              <form id="service-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+              <form
+                id="service-form"
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4 py-2"
+              >
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -316,7 +343,10 @@ const Servicos = () => {
                       <FormItem>
                         <FormLabel>Nome do Serviço</FormLabel>
                         <FormControl>
-                          <NameInput placeholder="Ex: Corte Feminino" {...field} />
+                          <NameInput
+                            placeholder="Ex: Corte Feminino"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -344,7 +374,10 @@ const Servicos = () => {
                     <FormItem>
                       <FormLabel>Categoria</FormLabel>
                       <FormControl>
-                        <CategorySelect value={field.value || undefined} onChange={field.onChange} />
+                        <CategorySelect
+                          value={field.value || undefined}
+                          onChange={field.onChange}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -358,7 +391,11 @@ const Servicos = () => {
                     <FormItem>
                       <FormLabel>Descrição</FormLabel>
                       <FormControl>
-                        <Textarea rows={3} placeholder="Descreva o serviço..." {...field} />
+                        <Textarea
+                          rows={3}
+                          placeholder="Descreva o serviço..."
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -384,13 +421,21 @@ const Servicos = () => {
                                   onCheckedChange={openField.onChange}
                                   className="h-3 w-3"
                                 />
-                                <label htmlFor="service-valor-aberto" className="text-[10px] font-normal leading-none">Aberto?</label>
+                                <label
+                                  htmlFor="service-valor-aberto"
+                                  className="text-[10px] font-normal leading-none"
+                                >
+                                  Aberto?
+                                </label>
                               </div>
                             )}
                           />
                         </FormLabel>
                         <FormControl>
-                          <CurrencyInput disabled={form.watch("valorEmAberto")} {...field} />
+                          <CurrencyInput
+                            disabled={form.watch("valorEmAberto")}
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -418,10 +463,16 @@ const Servicos = () => {
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                       <div className="space-y-0.5">
                         <FormLabel>Serviço Ativo</FormLabel>
-                        <FormDescription>Define se o serviço aparecerá nas vendas e agendamentos.</FormDescription>
+                        <FormDescription>
+                          Define se o serviço aparecerá nas vendas e
+                          agendamentos.
+                        </FormDescription>
                       </div>
                       <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -431,16 +482,27 @@ const Servicos = () => {
           </ScrollArea>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button type="submit" form="service-form" disabled={isCreating || isUpdating}>
-              {(isCreating || isUpdating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              form="service-form"
+              disabled={isCreating || isUpdating}
+            >
+              {(isCreating || isUpdating) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               {editingService ? "Salvar Alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!serviceToDelete} onOpenChange={(val) => !val && setServiceToDelete(null)}>
+      <AlertDialog
+        open={!!serviceToDelete}
+        onOpenChange={(val) => !val && setServiceToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -448,13 +510,17 @@ const Servicos = () => {
               Confirmar Exclusão
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o serviço <strong>{serviceToDelete?.nome}</strong>?
-              Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o serviço{" "}
+              <strong>{serviceToDelete?.nome}</strong>? Esta ação não pode ser
+              desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Não, manter</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Sim, Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

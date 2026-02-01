@@ -42,5 +42,6 @@ declare namespace Stock {
     quantidade: number;
     custoUnitario?: number;
     observacao?: string;
+    managerPassword?: string;
   }
 }

@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 import { AsaasService } from "./AsaasService";
 import { CaixaService } from "./CaixaService";
+import { StockService } from "./StockService";
 
 export class SalesService {
   static async getAll(params: Params) {
@@ -133,16 +134,22 @@ export class SalesService {
     const productItems = itens.filter((item) => item.produtoId);
 
     if (productItems.length > 0) {
-      const stockMovements = productItems.map((item) => ({
-        produtoId: item.produtoId!,
-        saleId,
-        quantidade: item.contarEstoque ? -Math.abs(item.quantidade) : 0,
-        tipo: StockMovementType.SAIDA,
-        motivo: StockMovementReason.VENDA,
-        status: ApprovalStatus.APROVADO,
-        solicitadoPorId: user.id,
-      }));
-      await tx.stockMovement.createMany({ data: stockMovements });
+      for (const item of productItems) {
+        if (item.contarEstoque) {
+          await StockService.registerMovement(
+            {
+              produtoId: item.produtoId!,
+              saleId,
+              quantidade: Math.abs(item.quantidade),
+              tipo: StockMovementType.SAIDA,
+              motivo: StockMovementReason.VENDA,
+              status: ApprovalStatus.APROVADO,
+              solicitadoPorId: user.id,
+            },
+            tx
+          );
+        }
+      }
     }
   }
 
@@ -373,16 +380,20 @@ export class SalesService {
         }
 
         if (saleToCancel.itens.length > 0) {
-          const stockReversals = saleToCancel.itens.map((item) => ({
-            produtoId: item.produtoId!,
-            saleId: saleToCancel.id,
-            quantidade: Math.abs(item.quantidade),
-            tipo: StockMovementType.ENTRADA,
-            motivo: StockMovementReason.CANCELAMENTO_VENDA,
-            status: ApprovalStatus.APROVADO,
-            solicitadoPorId: user.id,
-          }));
-          await tx.stockMovement.createMany({ data: stockReversals });
+          for (const item of saleToCancel.itens) {
+            await StockService.registerMovement(
+              {
+                produtoId: item.produtoId!,
+                saleId: saleToCancel.id,
+                quantidade: Math.abs(item.quantidade),
+                tipo: StockMovementType.ENTRADA,
+                motivo: StockMovementReason.CANCELAMENTO_VENDA,
+                status: ApprovalStatus.APROVADO,
+                solicitadoPorId: user.id,
+              },
+              tx
+            );
+          }
         }
 
         return tx.sale.update({

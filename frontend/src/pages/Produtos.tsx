@@ -7,7 +7,7 @@ import {
   Loader2,
   Trash2,
   AlertTriangle,
-  X
+  X,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -96,7 +96,7 @@ const Produtos = () => {
   const [params, setParams] = useState<any>({
     search: "",
     categoryId: undefined,
-    status: undefined
+    status: undefined,
   });
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -116,11 +116,14 @@ const Produtos = () => {
     search: debouncedSearch,
   });
 
-  const { mutateAsync: createProduct, isPending: isPendingCreate } = useProductCreate();
-  const { mutateAsync: updateProduct, isPending: isPendingUpdate } = useProductUpdate();
+  const { mutateAsync: createProduct, isPending: isPendingCreate } =
+    useProductCreate();
+  const { mutateAsync: updateProduct, isPending: isPendingUpdate } =
+    useProductUpdate();
   const { mutateAsync: deleteProduto } = useProductDelete();
   const { data: job } = useImportJobStatus(jobId);
-  const { mutateAsync: importProducts, isPending: isPendingImport } = useImportProducts();
+  const { mutateAsync: importProducts, isPending: isPendingImport } =
+    useImportProducts();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -181,10 +184,8 @@ const Produtos = () => {
           id: editingProduct.id,
           body: values,
         });
-        toast.success("Produto atualizado com sucesso");
       } else {
         await createProduct(values);
-        toast.success("Produto criado com sucesso");
       }
       setModalOpen(false);
     } catch (error) {
@@ -213,7 +214,6 @@ const Produtos = () => {
     if (!productToDelete) return;
     try {
       await deleteProduto(productToDelete.id);
-      toast.success("Produto excluído com sucesso");
       setProductToDelete(null);
     } catch (error) {
       toast.error("Erro ao excluir produto");
@@ -245,7 +245,12 @@ const Produtos = () => {
       element: (
         <Select
           value={params.status?.toString()}
-          onValueChange={(value) => setParams({ ...params, status: value === "all" ? undefined : value === "true" })}
+          onValueChange={(value) =>
+            setParams({
+              ...params,
+              status: value === "all" ? undefined : value === "true",
+            })
+          }
         >
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Filtrar por status" />
@@ -293,12 +298,18 @@ const Produtos = () => {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
           <DialogHeader className="p-6 pb-0">
-            <DialogTitle>{editingProduct ? "Editar Produto" : "Novo Produto"}</DialogTitle>
+            <DialogTitle>
+              {editingProduct ? "Editar Produto" : "Novo Produto"}
+            </DialogTitle>
           </DialogHeader>
 
           <ScrollArea className="flex-1 p-6 pt-2">
             <Form {...form}>
-              <form id="product-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form
+                id="product-form"
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <FormField
@@ -308,7 +319,10 @@ const Produtos = () => {
                         <FormItem>
                           <FormLabel>Nome do Produto</FormLabel>
                           <FormControl>
-                            <NameInput placeholder="Ex: Shampoo Hidratante" {...field} />
+                            <NameInput
+                              placeholder="Ex: Shampoo Hidratante"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -357,7 +371,10 @@ const Produtos = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Unid. Medida</FormLabel>
-                            <Select value={field.value} onValueChange={field.onChange}>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue />
@@ -365,7 +382,9 @@ const Produtos = () => {
                               </FormControl>
                               <SelectContent>
                                 {unidadeMedidas.map((un) => (
-                                  <SelectItem key={un} value={un}>{un}</SelectItem>
+                                  <SelectItem key={un} value={un}>
+                                    {un}
+                                  </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -382,7 +401,11 @@ const Produtos = () => {
                         <FormItem>
                           <FormLabel>Descrição</FormLabel>
                           <FormControl>
-                            <Textarea rows={3} placeholder="Descreva o produto..." {...field} />
+                            <Textarea
+                              rows={3}
+                              placeholder="Descreva o produto..."
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -393,13 +416,18 @@ const Produtos = () => {
                   <div className="space-y-4">
                     <FormLabel>Imagem do Produto</FormLabel>
                     <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center bg-muted/20">
-                      <UploadIcon size={32} className="mx-auto text-muted-foreground mb-2" />
+                      <UploadIcon
+                        size={32}
+                        className="mx-auto text-muted-foreground mb-2"
+                      />
                       <p className="text-sm font-medium">Upload desabilitado</p>
-                      <p className="text-xs text-muted-foreground">Em breve suporte para imagens</p>
+                      <p className="text-xs text-muted-foreground">
+                        Em breve suporte para imagens
+                      </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                       <FormField
+                      <FormField
                         control={form.control}
                         name="preco"
                         render={({ field }) => (
@@ -417,13 +445,21 @@ const Produtos = () => {
                                       onCheckedChange={openField.onChange}
                                       className="h-3 w-3"
                                     />
-                                    <label htmlFor="valorEmAberto" className="text-[10px] font-normal leading-none">Aberto?</label>
+                                    <label
+                                      htmlFor="valorEmAberto"
+                                      className="text-[10px] font-normal leading-none"
+                                    >
+                                      Aberto?
+                                    </label>
                                   </div>
                                 )}
                               />
                             </FormLabel>
                             <FormControl>
-                              <CurrencyInput disabled={form.watch("valorEmAberto")} {...field} />
+                              <CurrencyInput
+                                disabled={form.watch("valorEmAberto")}
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -437,7 +473,10 @@ const Produtos = () => {
                           <FormItem>
                             <FormLabel>Preço de Custo</FormLabel>
                             <FormControl>
-                              <CurrencyInput {...field} value={field.value || 0} />
+                              <CurrencyInput
+                                {...field}
+                                value={field.value || 0}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -446,14 +485,18 @@ const Produtos = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                       <FormField
+                      <FormField
                         control={form.control}
                         name="estoqueMinimo"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Estoque Mín.</FormLabel>
                             <FormControl>
-                              <Input type="number" {...field} value={field.value || 0} />
+                              <Input
+                                type="number"
+                                {...field}
+                                value={field.value || 0}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -483,14 +526,19 @@ const Produtos = () => {
                     </div>
 
                     <div className="flex items-center justify-between border p-3 rounded-md bg-muted/10">
-                       <FormField
+                      <FormField
                         control={form.control}
                         name="ativo"
                         render={({ field }) => (
                           <FormItem className="flex flex-row items-center justify-between space-y-0 gap-2">
-                            <FormLabel className="text-sm font-normal">Ativo</FormLabel>
+                            <FormLabel className="text-sm font-normal">
+                              Ativo
+                            </FormLabel>
                             <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
                             </FormControl>
                           </FormItem>
                         )}
@@ -500,9 +548,14 @@ const Produtos = () => {
                         name="contarEstoque"
                         render={({ field }) => (
                           <FormItem className="flex flex-row items-center justify-between space-y-0 gap-2">
-                            <FormLabel className="text-sm font-normal">Controlar Estoque</FormLabel>
+                            <FormLabel className="text-sm font-normal">
+                              Controlar Estoque
+                            </FormLabel>
                             <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
                             </FormControl>
                           </FormItem>
                         )}
@@ -515,9 +568,17 @@ const Produtos = () => {
           </ScrollArea>
 
           <DialogFooter className="p-6 border-t">
-            <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button type="submit" form="product-form" disabled={isPendingCreate || isPendingUpdate}>
-              {(isPendingCreate || isPendingUpdate) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              form="product-form"
+              disabled={isPendingCreate || isPendingUpdate}
+            >
+              {(isPendingCreate || isPendingUpdate) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               {editingProduct ? "Salvar Alterações" : "Cadastrar Produto"}
             </Button>
           </DialogFooter>
@@ -548,7 +609,9 @@ const Produtos = () => {
 
               <div
                 className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
-                  selectedFile ? "border-primary bg-primary/5" : "border-muted-foreground/20 hover:border-primary/50"
+                  selectedFile
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/20 hover:border-primary/50"
                 }`}
                 onClick={() => document.getElementById("csv-upload")?.click()}
               >
@@ -577,8 +640,12 @@ const Produtos = () => {
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm font-medium">Clique para selecionar o arquivo</p>
-                    <p className="text-xs text-muted-foreground mt-1">Apenas arquivos .csv</p>
+                    <p className="text-sm font-medium">
+                      Clique para selecionar o arquivo
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Apenas arquivos .csv
+                    </p>
                   </>
                 )}
               </div>
@@ -590,22 +657,36 @@ const Produtos = () => {
                 <Badge>{job.status}</Badge>
               </div>
 
-              <Progress value={job.totalRows > 0 ? (job.processedRows / job.totalRows) * 100 : 0} />
+              <Progress
+                value={
+                  job.totalRows > 0
+                    ? (job.processedRows / job.totalRows) * 100
+                    : 0
+                }
+              />
 
               <p className="text-xs text-center text-muted-foreground">
                 {job.processedRows} de {job.totalRows} linhas processadas.
               </p>
 
-              {(job.status === "CONCLUIDO" || job.status === "CONCLUIDO_COM_ERROS") && (
+              {(job.status === "CONCLUIDO" ||
+                job.status === "CONCLUIDO_COM_ERROS") && (
                 <div className="space-y-3 bg-muted/30 p-4 rounded-lg text-sm">
-                  <p className="text-emerald-600 font-medium">✅ {job.successfulRows} produtos importados.</p>
-                  {job.failedRows > 0 && <p className="text-destructive font-medium">❌ {job.failedRows} produtos falharam.</p>}
+                  <p className="text-emerald-600 font-medium">
+                    ✅ {job.successfulRows} produtos importados.
+                  </p>
+                  {job.failedRows > 0 && (
+                    <p className="text-destructive font-medium">
+                      ❌ {job.failedRows} produtos falharam.
+                    </p>
+                  )}
 
                   {job.results && job.results.length > 0 && (
                     <ScrollArea className="h-32 mt-2 border rounded p-2 bg-background">
                       {job.results.map((res: any, index: number) => (
                         <p key={index} className="text-[10px] mb-1">
-                          <span className="font-bold">Linha {res.row}:</span> {res.errors.join(", ")}
+                          <span className="font-bold">Linha {res.row}:</span>{" "}
+                          {res.errors.join(", ")}
                         </p>
                       ))}
                     </ScrollArea>
@@ -624,7 +705,9 @@ const Produtos = () => {
                 onClick={handleUpload}
                 disabled={!selectedFile || isPendingImport}
               >
-                {isPendingImport && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isPendingImport && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Iniciar Importação
               </Button>
             )}
@@ -633,7 +716,10 @@ const Produtos = () => {
       </Dialog>
 
       {/* Confirmação de Exclusão */}
-      <AlertDialog open={!!productToDelete} onOpenChange={(val) => !val && setProductToDelete(null)}>
+      <AlertDialog
+        open={!!productToDelete}
+        onOpenChange={(val) => !val && setProductToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -641,13 +727,17 @@ const Produtos = () => {
               Confirmar Exclusão
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o produto <strong>{productToDelete?.nome}</strong>?
-              Esta ação removerá todas as movimentações de estoque vinculadas a ele.
+              Tem certeza que deseja excluir o produto{" "}
+              <strong>{productToDelete?.nome}</strong>? Esta ação removerá todas
+              as movimentações de estoque vinculadas a ele.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Não, cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Sim, Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
